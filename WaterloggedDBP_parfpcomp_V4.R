@@ -17,8 +17,12 @@ ls()
 
 # set path - DBP
 # Note that the spectro was used for a subset of data because the SHmadzu was not working. Good for a comparison between the aqualog data?
+<<<<<<< HEAD
 spectro.direct <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_Spectro_data"
 fppar.directory <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_Spectro_data/DBP_parfp"
+=======
+fppar.directory <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_Spectro_data/DBP_fppar"
+>>>>>>> eaddfb2c778c702f9a41bea04df86b4194e6f449
 project <- "DBP"
 
 setwd(fppar.directory) 
@@ -26,9 +30,12 @@ setwd(fppar.directory)
 # confirm path
 getwd()
 
+<<<<<<< HEAD
 # path for dilution factors
 dilution.path <- file.path(spectro.direct, paste(project, "_dilutionfactors", sep = "")) 
 #note that the file must be properly named in order for this to work
+=======
+>>>>>>> eaddfb2c778c702f9a41bea04df86b4194e6f449
 
 ##########
 ## first compile all par and fp files within a folder
@@ -48,11 +55,19 @@ filelist.par <- list.files(pattern = ".par") #note that one WL file is .par.txt
 fp <- length(filelist.fp)
 par <- length(filelist.par) #check to make sure that both are the same length
 
+<<<<<<< HEAD
 #sample.ID <- 0 #create sample ID variable
 
 for (i in 1:fp){
   sample.ID.temp <- strapplyc(filelist.fp[i], "_(.*)_.", simplify = TRUE)
   sampleID.fp[i] <- sample.ID.temp
+=======
+sample.ID <- 0 #create sample ID variable
+
+for (i in 1:fp){
+  sample.ID.temp <- strapplyc(filelist.fp[i], "_(.*)_.", simplify = TRUE)
+  sample.ID[i] <- sample.ID.temp
+>>>>>>> eaddfb2c778c702f9a41bea04df86b4194e6f449
 }
 
 sampleID.par <- 0
@@ -61,7 +76,11 @@ for (i in 1:par){
   sampleID.par[i] <- sample.ID.temp
 }
 
+<<<<<<< HEAD
 filelist.fpsampleID <- as.data.frame(cbind(filelist.fp, sampleID.fp))
+=======
+filelist.fpsampleID <- as.data.frame(cbind(filelist.fp, sample.ID))
+>>>>>>> eaddfb2c778c702f9a41bea04df86b4194e6f449
 filelist.parsampleID <- as.data.frame(cbind(filelist.par, sampleID.par))
 colnames(filelist.parsampleID) <- c("filelist.par", "sample.ID")
 
