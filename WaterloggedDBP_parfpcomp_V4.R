@@ -27,7 +27,7 @@ setwd(fppar.directory)
 getwd()
 
 # path for dilution factors
-dilution.path <- file.path(spectro.direct, paste(project, "_dilutionfactors", sep = "")) 
+dilution.file <- file.path(spectro.direct, paste(project, "_dilutionfactors.csv", sep = "")) 
 #note that the file must be properly named in order for this to work
 
 ##########
@@ -40,7 +40,6 @@ library(gsubfn)
 
 ##########
 #read in the fp and par files
-
 #ensure the headings for all the files are in correct format: DateTime, Status_0, etc.. and samples have column
 filelist.fp <- list.files(pattern = ".fp$")
 filelist.par <- list.files(pattern = ".par") #note that one WL file is .par.txt
@@ -48,8 +47,7 @@ filelist.par <- list.files(pattern = ".par") #note that one WL file is .par.txt
 fp <- length(filelist.fp)
 par <- length(filelist.par) #check to make sure that both are the same length
 
-#sample.ID <- 0 #create sample ID variable
-
+sampleID.fp <- 0 #create sample ID variable
 for (i in 1:fp){
   sample.ID.temp <- strapplyc(filelist.fp[i], "_(.*)_.", simplify = TRUE)
   sampleID.fp[i] <- sample.ID.temp
@@ -63,7 +61,9 @@ for (i in 1:par){
 
 filelist.fpsampleID <- as.data.frame(cbind(filelist.fp, sampleID.fp))
 filelist.parsampleID <- as.data.frame(cbind(filelist.par, sampleID.par))
+
 colnames(filelist.parsampleID) <- c("filelist.par", "sample.ID")
+colnames(filelist.fpsampleID) <- c("filelist.fp", "sample.ID")
 
 filelist.fppar <- as.data.frame(merge(filelist.fpsampleID, filelist.parsampleID, by = "sample.ID", all = TRUE))
 #filelist.fppar <- as.data.frame(cbind(filelist.par, filelist.fpsampleID))
@@ -72,11 +72,12 @@ filelist.fppar <- as.data.frame(merge(filelist.fpsampleID, filelist.parsampleID,
 ###########
 #dilution file
 dil.top = c("sample.ID", "dilutionfactor")
-dilution <- as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/WL_data/WL_dilution_factors_v2.csv", sep=",", header = FALSE, col.names = dil.top))
+#dilution <- as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/WL_data/WL_dilution_factors_v2.csv", sep=",", header = FALSE, col.names = dil.top))
+dilution <- as.data.frame(read.csv(dilution.file, sep=",", header = FALSE, col.names = dil.top))
 
 filelist.all <- merge(filelist.fppar, dilution, by = "sample.ID", all = TRUE)
 #make sure only unique entries are in
-#filelist.all <- unique(filelist.pre)
+filelist.all <- unique(filelist.all)
 remove(dilution)
 remove(dil.top)
 
@@ -114,13 +115,15 @@ for (i in 1:n){
   ###########################
   # Calculating absorbance indicies
   # call function
-  setwd("/Users/ashlee/Dropbox/R Scripts") 
+  setwd("/Users/ashlee/SpecScripts")
+  # note that above directory is linked to GitHub
+  
   source("spectral_indicies_v2.R")
   
   #call the function to calculate indicies
   Abs.indicies <- Abs.ind(spec = fppar) #path length = 33 mm
   
-  # bind together calculated Abs inidcies - calculated from 
+  # bind together calculated Abs inidcies with pertinent values from par file (TOC, NO3, DOC, SAC254) 
   Abs.all <- cbind(parfile[,c(4,6,8,10)], Abs.indicies)
   
   #take average of all columns
