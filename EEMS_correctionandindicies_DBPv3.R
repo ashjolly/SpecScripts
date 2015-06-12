@@ -111,6 +111,8 @@ n = nrow(data.3)
 ex_all = data.frame(matrix(vector(), 0, n))
 em_all = data.frame(matrix(vector(), 0, n))
 
+#set working directory for scripts that have corrections etc
+
 for (i in 1:n){
   
   #test - filenames
@@ -176,7 +178,9 @@ for (i in 1:n){
   ##################################
   ########### Correct for Raman
   # call function
-  setwd("/Users/ashlee/Dropbox/R Scripts") 
+  #setwd("/Users/ashlee/Dropbox/R Scripts")
+  setwd("/Users/ashlee/SpecScripts") 
+  
   source("Ramancorrect_v1.R")
   
   # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
@@ -212,7 +216,7 @@ for (i in 1:n){
   ###########
   # Calculating absorbance indicies
   # call function
-  setwd("/Users/ashlee/Dropbox/R Scripts") 
+  #setwd("/Users/ashlee/Dropbox/R Scripts") 
   source("Aqualog_Absindicies_v1.R")
   
   #call the function to calculate indicies
@@ -222,7 +226,7 @@ for (i in 1:n){
   ##########
   # Calculating fluorescence indicies
   # call function
-  setwd("/Users/ashlee/Dropbox/R Scripts") 
+  #setwd("/Users/ashlee/Dropbox/R Scripts") 
   source("Aqualog_Fluorindicies_v2.R")
   
   #below may need to be altered depending on the output of your scan
@@ -259,12 +263,13 @@ for (i in 1:n){
   xlimit <- range(300, 700, finite=TRUE)
   ylimit <- range(240, 450, finite = TRUE)
   
-  numcont = 100 # number of contour levels you want: Change
+  numcont = 100 # number of contour levels you want: Change if you want
+ 
   ##### contour plotting function
   library(gplots)
   
   # call contour plot function
-  setwd("/Users/ashlee/Dropbox/R Scripts") 
+  #setwd("/Users/ashlee/Dropbox/R Scripts") 
   source("EEM_contour_v1.R")
   
   #Plot contours and save in correction file
@@ -303,8 +308,10 @@ setwd(directoryCorrectedEEMS)
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 
 n = length(filelist_EEMScor)
-######## CM
-#take out row and column names in first column and row and save in CM folder
+
+######## 
+# Prepping files for CM modelling in Matlab
+# CM - take out row and column names in first column and row and save in CM folder
 
 for (i in 1:n){
   temp.EEMS <- read.delim(filelist_EEMScor[i], header= TRUE, sep = ",")
@@ -333,10 +340,10 @@ for (i in 1:n){
 }
 
 # save ex and em in two separate files, to make it easier to read into CM PARAFAC files
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste("DBP","em",".csv", sep = ""))
+corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste("DBPpre","em",".csv", sep = ""))
 write.table(em, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
 
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste("DBP","ex",".csv", sep = ""))
+corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste("DBPpre","ex",".csv", sep = ""))
 ex.PARAFAC <- seq(240, 796, by = 2)
 write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
 
@@ -404,6 +411,3 @@ write.table(em, file = "/Users/ashlee/Documents/MATLAB/DOMFluor/DBP_pre/Em.csv",
 #File containing sample names
 write.table(sample.ID, file = "/Users/ashlee/Documents/MATLAB/DOMFluor/DBP_pre/01key.csv", 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
-
-
-
