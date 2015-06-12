@@ -100,6 +100,9 @@ data.1 <- merge(filelist_EEMS, filelist_Abs,  by = "sample.ID", all = TRUE)
 data.2 <- merge(data.1, filelist_Blank, by = "sample.ID", all = TRUE)
 data.3 <- merge(data.2, dilution, by = "sample.ID", all = TRUE)
 
+#Remove data.1 and data.2 - only need merged file
+remove(data.1, data.2)
+
 #############################################################################
 ### set up loop for all files in folders
 Spectral.Indicies = data.frame(matrix(vector(), 0, 16)) #creating an empty vector
