@@ -30,9 +30,34 @@ library(reshape)
 library(plyr)
 library(gsubfn)
 
+# directories for different projects
+#DBP Pre chlorination
+#blank directory
+directoryblank <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_blank" 
+#abs directory
+directoryAbs <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Abs" 
+# raw EEMS directory
+directoryEEMS <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBPS_prechlor_EEM" 
+
+# directory for corrected EEMS
+directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+
+#######
+# directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
+# This is the same for all projects
+directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS" 
+
+######
+#dilution file
+top = c("sample.ID", "dilutionfactor")
+dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
+                                  sep=",", header = TRUE, col.names = top))
+
+project -> "DBPPre"
+
+# Should not have to change anything beyond this
 ###########
 #Blank files
-directoryblank <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_blank" 
 setwd(directoryblank) 
 filelist_Blank <- list.files(pattern = ".dat$")
 #create column with sample ID - extracted from blank filename
@@ -48,7 +73,6 @@ filelist_Blank <- cbind(filelist_Blank, sample.ID)
 
 ###########
 #Abs
-directoryAbs <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Abs" 
 setwd(directoryAbs) 
 filelist_Abs <- list.files(pattern = ".dat$")
 #create column with sample ID - extracted from ABS filename
@@ -62,7 +86,6 @@ filelist_Abs <- cbind(filelist_Abs, sample.ID)
 
 #########
 # raw EEMS files - note that these are IFM and RM
-directoryEEMS <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBPS_prechlor_EEM" 
 setwd(directoryEEMS) 
 filelist_EEMS <- list.files(pattern = ".dat$")
 #Raw_EEMS <- as.data.frame(filelist_EEMS)
@@ -79,19 +102,6 @@ filelist_EEMS <- cbind(filelist_EEMS, sample.ID)
 # test 
 #EEMSfile <- read.delim("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBPS_prechlor_EEM/001DBP0001PEM.dat", 
 #                       header= FALSE, sep = "")
-#########
-# directory for corrected EEMS
-directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
-
-#######
-# directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
-directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS" 
-
-######
-#dilution file
-top = c("sample.ID", "dilutionfactor")
-dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
-                                  sep=",", header = TRUE, col.names = top))
 
 #######
 # Merge blank, EEM, abs and dilution files according to sample ID
@@ -210,7 +220,7 @@ for (i in 1:n){
   #EEMcorr1 <- EEMcorr[,c(1:(x-4))] #cut out last three columns of Na data. Remove this line eventually ;)
   # Note that the file still contains two columns of Na's. Will save the original file, and remove this after corrections (saving for PARAFAC)
   
-  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"Prechlor_Corrected",".csv", sep = ""))
+  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,project,"_Corrected",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
   ###########
@@ -273,7 +283,7 @@ for (i in 1:n){
   source("EEM_contour_v1.R")
   
   #Plot contours and save in correction file
-  plotpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_PreChlor_Contour",".jpeg", sep = ""))
+  plotpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project, "_Contour",".jpeg", sep = ""))
   
   g <- length(EEMcorr)
   EEMplot <- EEMcorr[,c(1:(g-4))] #cut out last three columns of Na data. Remove this line eventually ;)
