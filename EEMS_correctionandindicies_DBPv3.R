@@ -30,17 +30,29 @@ library(reshape)
 library(plyr)
 library(gsubfn)
 
+######
 # directories for different projects
-#DBP Pre chlorination
+# DBP Pre chlorination
 #blank directory
-directoryblank <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_blank" 
+#directoryblank <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_blank" 
 #abs directory
-directoryAbs <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Abs" 
+#directoryAbs <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Abs" 
 # raw EEMS directory
-directoryEEMS <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBPS_prechlor_EEM" 
+#directoryEEMS <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBPS_prechlor_EEM" 
+# directory for corrected EEMS
+#directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+
+####
+# DBP Post chlorination
+#blank directory
+directoryblank <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_Blank" 
+#abs directory
+directoryAbs <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_Abs" 
+# raw EEMS directory
+directoryEEMS <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_EEM" 
 
 # directory for corrected EEMS
-directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMs"
 
 #######
 # directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
@@ -50,10 +62,16 @@ directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS"
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
-dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
+#DBP pre
+#dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
+#                                  sep=",", header = TRUE, col.names = top))
+
+#DBP post
+dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_Aqualogdilution.csv", 
                                   sep=",", header = TRUE, col.names = top))
 
-project -> "DBPPre"
+#project -> "DBPPre"
+project = "DBPPost"
 
 # Should not have to change anything beyond this
 ###########
@@ -124,11 +142,6 @@ em_all = data.frame(matrix(vector(), 0, n))
 #set working directory for scripts that have corrections etc
 
 for (i in 1:n){
-  
-  #test - filenames
-  #EEMSfilename = "25sept2014001WL101PEM.dat"
-  #Blankfilename = "25sept2014001WL101BEM.dat"
-  #Absfilename = "25sept2014001WL101ABS.dat"
   
   # Read in the EEM file
   EEMSfilename <- toString(data.3[i,2]) # set EEMS file for the sample
@@ -220,7 +233,7 @@ for (i in 1:n){
   #EEMcorr1 <- EEMcorr[,c(1:(x-4))] #cut out last three columns of Na data. Remove this line eventually ;)
   # Note that the file still contains two columns of Na's. Will save the original file, and remove this after corrections (saving for PARAFAC)
   
-  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,project,"_Corrected",".csv", sep = ""))
+  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_Corrected",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
   ###########
