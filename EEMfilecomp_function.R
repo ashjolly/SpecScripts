@@ -2,7 +2,7 @@
 # 22June2015 Ashlee
 #############
 
-EEMfilecomp <- function(workdir) {
+EEMfilecomp <- function(workdir, dil) {
   
   setwd(workdir)
   #above directory contains all blank, Abs and EEM files for correction and calculation from Aqualog
@@ -52,7 +52,7 @@ EEMfilecomp <- function(workdir) {
   #alter so that it mearges according to sample ID, which is contained
   data.1 <- merge(filelist_EEMS, filelist_Abs,  by = "sample.ID", all = TRUE)
   data.2 <- merge(data.1, filelist_Blank, by = "sample.ID", all = TRUE)
-  data.3 <- merge(data.2, dilution, by = "sample.ID", all = TRUE)
+  data.3 <- merge(data.2, dil, by = "sample.ID", all = TRUE)
   
   #Remove data.1 and data.2 - only need merged file
   remove(data.1, data.2)
