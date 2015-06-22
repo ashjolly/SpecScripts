@@ -44,12 +44,8 @@ library(gsubfn)
 
 ####
 # DBP Post chlorination
-#blank directory
-directoryblank <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_Blank" 
-#abs directory
-directoryAbs <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_Abs" 
-# raw EEMS directory
-directoryEEMS <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_EEM" 
+# directory with all of the fluorescence files
+directoryall <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
 
 # directory for corrected EEMS
 directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMs"
@@ -73,63 +69,15 @@ dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP
 #project -> "DBPPre"
 project = "DBPPost"
 
+#setwd(directoryall)
+
 # Should not have to change anything beyond this
 ###########
-#Blank files
-setwd(directoryblank) 
-filelist_Blank <- list.files(pattern = ".dat$")
-#create column with sample ID - extracted from blank filename
-y = length(filelist_Blank)
+# call function to create a graph headings file from abs, EEM and blank file
+setwd("/Users/ashlee/SpecScripts") 
+source("EEMfilecomp_function.R")
 
-sample.ID <- 0 #create sample ID variable
-
-for (i in 1:y){
-  sample.ID.temp <- strapplyc(filelist_Blank[i], "001(.*)BEM", simplify = TRUE)
-  sample.ID[i] <- sample.ID.temp
-}
-filelist_Blank <- cbind(filelist_Blank, sample.ID)
-
-###########
-#Abs
-setwd(directoryAbs) 
-filelist_Abs <- list.files(pattern = ".dat$")
-#create column with sample ID - extracted from ABS filename
-y = length(filelist_Abs)
-
-for (i in 1:y){
-  sample.ID.temp <- strapplyc(filelist_Abs[i], "001(.*)ABS", simplify = TRUE)
-  sample.ID[i] <- sample.ID.temp
-}
-filelist_Abs <- cbind(filelist_Abs, sample.ID)
-
-#########
-# raw EEMS files - note that these are IFM and RM
-setwd(directoryEEMS) 
-filelist_EEMS <- list.files(pattern = ".dat$")
-#Raw_EEMS <- as.data.frame(filelist_EEMS)
-
-#create column with sample ID - extracted from EEMS filename
-y = length(filelist_EEMS)
-
-for (i in 1:y){
-  sample.ID.temp <- strapplyc(filelist_EEMS[i], "001(.*)PEM", simplify = TRUE)
-  sample.ID[i] <- sample.ID.temp
-}
-filelist_EEMS <- cbind(filelist_EEMS, sample.ID)
-
-# test 
-#EEMSfile <- read.delim("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBPS_prechlor_EEM/001DBP0001PEM.dat", 
-#                       header= FALSE, sep = "")
-
-#######
-# Merge blank, EEM, abs and dilution files according to sample ID
-#alter so that it mearges according to sample ID, which is contained
-data.1 <- merge(filelist_EEMS, filelist_Abs,  by = "sample.ID", all = TRUE)
-data.2 <- merge(data.1, filelist_Blank, by = "sample.ID", all = TRUE)
-data.3 <- merge(data.2, dilution, by = "sample.ID", all = TRUE)
-
-#Remove data.1 and data.2 - only need merged file
-remove(data.1, data.2)
+data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution)
 
 #############################################################################
 ### set up loop for all files in folders
@@ -145,19 +93,19 @@ for (i in 1:n){
   
   # Read in the EEM file
   EEMSfilename <- toString(data.3[i,2]) # set EEMS file for the sample
-  setwd(directoryEEMS) 
+  #setwd(directoryEEMS) 
   EEMSfile <- read.delim(EEMSfilename, header= FALSE, sep = "")
   #samplename <- strapplyc(EEMSfilename, "001(.*)PEM", simplify = TRUE)
   samplename <- toString(data.3[i,1]) 
   
   # Blankfilename <- test2[i,2] # set blank file for the sample
   Blankfilename <- toString(data.3[i,4]) 
-  setwd(directoryblank) 
+  #setwd(directoryblank) 
   Blankfile <- read.delim(Blankfilename, header= FALSE, sep = "")
   
   #Absfile <- test2[i,3] # set Abs file for the sample
   Absfilename <- toString(data.3[i,3]) 
-  setwd(directoryAbs) 
+  #setwd(directoryAbs) 
   Absfile <- read.delim(Absfilename, header= FALSE, sep = "")
   
   # Dilution = column 5 in data.3
