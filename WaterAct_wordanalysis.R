@@ -3,6 +3,7 @@
 
 # Make a list of submissions whose top 10 most frequent words are the same?
 # references: http://onepager.togaware.com/TextMiningO.pdf
+# https://gist.github.com/benmarwick/11333467
 # 22June2015
 ################
 
@@ -30,7 +31,9 @@ myfiles <- list.files(path = Selected_individual, pattern = "pdf",  full.names =
 #                                         paste0('"', i, '"')), wait = FALSE) )
 
 # read PDF files into one 
-docs <- Corpus(DirSource(Selected_individual), readerControl=list(reader=readPDF))
+#docs <- Corpus(DirSource(Selected_individual), readerControl=list(reader=readPDF))
+
+test <- lapply(myfiles, function(i) system(paste('"usr/bin/pdftotext.exe"', paste0('"', i, '"')), wait = FALSE) )
 
 # convert all upper case to lower case
 docs <- tm_map(docs, content_transformer(tolower))
@@ -52,3 +55,8 @@ docs <- tm_map(docs, stripWhitespace)
 
 #create document term matrix
 dtm <- DocumentTermMatrix(docs)
+
+
+### word count
+
+
