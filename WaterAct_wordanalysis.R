@@ -13,6 +13,8 @@ rm(list = ls())
 ls()
 
 Selected_individual <- "/Users/ashlee/Documents/WaterAct Paper/Selected_individual"
+dname <-  "/Users/ashlee/Documents/WaterAct Paper/Selected_individual/corpus"
+# where txt files will be stored
 
 setwd(Selected_individual)
 
@@ -25,6 +27,9 @@ library(reshape)
 library(plyr)
 library(gsubfn)
 
+############### Convert PDFs to txt files
+# Necessary to do this prior to doing text analysis. 
+# Not necessary if your files are already in .txt files
 # read PDFs from file with randomly selected files
 length(dir(Selected_individual))
 
@@ -40,13 +45,10 @@ myfiles <- list.files(path = Selected_individual, pattern = "pdf",  full.names =
 # get text files that you just created in that directory. Not that .txt files are moved to 'Corpus' 
 # folder within the same folder
 
-dname <-  "/Users/ashlee/Documents/WaterAct Paper/Selected_individual/corpus"
-
-y <- length(dir(dname)) #should be number of text files that you pasted here
-
 # get file names
 setwd(dname)
 filelist_txt <- list.files(pattern = ".txt$")
+y = length(filelist_txt)
 
 sample.ID <- 0 #create sample ID variable
 
@@ -55,8 +57,8 @@ for (i in 1:y){
   sample.ID[i] <- sample.ID.temp
 }
 
-
 ############## Creating corpus file
+# First step of text analysis
 # input the text files into a corpus
 corpus.i <- Corpus(DirSource(dname), readerControl = list(language="lat"))
 
@@ -73,6 +75,7 @@ inspect(corpus.i[2])
 ######## Preprocessing text data prior to analysis
 # To see transformations possible within the tm package  -> getTransformations()
 # using two cores! tell r to nly use one core using lazy = TRUE
+# this was converted into a function so that could use this later for partitioned txt files
 
 text.pro <- function(txtdoc){
   
@@ -109,7 +112,7 @@ text.pro <- function(txtdoc){
 
   return(docs)
 }
-
+# use this function to clean corpus from all individual txt submissions
 docs <- text.pro(txtdoc = corpus.i)
 
 ########## Create document term matrix
@@ -162,17 +165,12 @@ row.names(wordc) <- sample.ID
 hist(wordc[,1], breaks = 200)
 
 # get most frequent word counts
-top.wc <- sort(table(wordc[,1]),decreasing=TRUE)[1:5]
+num.groups <- 20 #number of word count groups you want to create
+top.wc <- sort(table(wordc[,1]),decreasing=TRUE)[1:num.groups]
 top.wcn <- as.numeric(rownames(top.wc))
 
-# get the top 5 groups of submissions sorted according to word count 
-wc.1 <- rownames(subset(wordc, wordc[,1] >= (top.wcn[1]-5) & wordc[,1] <= (top.wcn[1]+5)))
-wc.2 <- rownames(subset(wordc, wordc[,1] >= (top.wcn[2]-5) & wordc[,1] <= (top.wcn[2]+5)))
-wc.3 <- rownames(subset(wordc, wordc[,1] >= (top.wcn[3]-5) & wordc[,1] <= (top.wcn[3]+5)))
-wc.4 <- rownames(subset(wordc, wordc[,1] >= (top.wcn[4]-5) & wordc[,1] <= (top.wcn[4]+5)))
-wc.5 <- rownames(subset(wordc, wordc[,1] >= (top.wcn[5]-5) & wordc[,1] <= (top.wcn[5]+5)))
-
-#total <- cbind(wc.1, wc.2, wc.3, wc.4, wc.5)
+# get the submissions sorted according to word count 
+# adaptable to choose the number of groups
 
 ###########
 # save into different folders - function
@@ -186,8 +184,30 @@ save.wc <- function(listwc, sub.wc) {
   return(temp)
 }
 
-###### use function to save files into different folders
-test.1 <- save.wc(listwc = wc.1, sub.wc = 1) #copy and do it for everyone
+###########
+# use to sort and save the files into separate folders
+
+temp <- seq(1,num.groups, by = 1)
+n = length(temp)
+
+for (i in 1:n) {
+  # partition files
+  wc.temp <- rownames(subset(wordc, wordc[,1] >= (top.wcn[i]-5) & wordc[,1] <= (top.wcn[i]+5)))
+  #name each of the divisions -wc.[the partition you are looking for]
+  assign(paste("wc.", i, sep = ""), wc.temp) 
+  
+  ## save files
+  #create folder if it doesn't exist
+  folder.name <- file.path(dname, paste("corpus_", i,sep = ""))
+  
+  # if the folder doesn't exist, create it.
+  if (file.exists(folder.name) == FALSE) {
+    dir.create(folder.name, showWarnings = FALSE)
+  }
+  
+  #save files in correct folder                         
+  save.wc(listwc = wc.temp, sub.wc = i)
+}
 
 ############### Word frequency analysis
 ######## Test that the word count partitioned the files well
@@ -206,7 +226,13 @@ wfa.matrix <- function(parentdir, section){
 
     # calculate the frequency of words
     # names of the top 50 most common names within the subset
-    wordfreq.50 <- rownames(as.matrix(sort(rowSums(as.matrix(tdm.1)), decreasing=TRUE)))[1:50]
+    if (length(rownames(as.matrix(sort(rowSums(as.matrix(tdm.1)), decreasing=TRUE)))) >= 50) {
+      wordfreq.50 <- rownames(as.matrix(sort(rowSums(as.matrix(tdm.1)), decreasing=TRUE)))[1:50]
+    }
+    
+    if (length(rownames(as.matrix(sort(rowSums(as.matrix(tdm.1)), decreasing=TRUE)))) < 50) {
+        wordfreq.50 <- rownames(as.matrix(sort(rowSums(as.matrix(tdm.1)), decreasing=TRUE)))
+    }
     
     # convert tdm to matrix
     term.matrix <- as.matrix(tdm.1)
@@ -230,6 +256,7 @@ wfa.matrix <- function(parentdir, section){
     write.table(test, file = directory.matrix, row.names = TRUE, col.names = TRUE, sep = ",")
 }
 
-## use function to write matrix of most frequent works  to separate csv files
-
-num1 <- wfa.matrix(parentdir = dname , section = 5)
+### Use function to write matrix of most frequent works to separate csv files
+for (t in 1:n) {
+  wfa.matrix(parentdir = dname , section = t)
+}
