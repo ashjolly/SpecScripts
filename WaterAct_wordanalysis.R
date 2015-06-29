@@ -129,9 +129,6 @@ tdm <- TermDocumentMatrix(docs)
 #freq.terms.1 <- findFreqTerms(dtm, lowfreq=4)
 freq.terms <- findFreqTerms(tdm, lowfreq=100)
 
-#which words are associated with what? can find context of words
-#protect.a <- findAssocs(tdm, "protect",.8)
-
 freq <- colSums(as.matrix(dtm))
 
 ord <- order(freq)
@@ -145,8 +142,17 @@ most <- freq[tail(ord)]
 # calculate the frequency of words
 wordfreq <- sort(rowSums(as.matrix(tdm)), decreasing=TRUE)
 
-#clustering :: k-means clustering
+# #which words are associated with what? can find context of words
+# according to frequency- most frequent
+top.associations <- findAssocs(dtm, c("protect", "use", "must", "public", "new", "resourc"), 
+                               c(0.4, 0.4, 0.4, 0.4, 0.4, 0.4))
+env.associations <- findAssocs(dtm, c("environment"), 0.4)
+                               
+# save
 
+dput(top.associations, file = file.path(paste(dname, "/top_associations.txt", sep=""))) 
+dput(env.associations, file = file.path(paste(dname, "/env_associations.csv", sep="")))
+    #clustering :: k-means clustering
 cluster <- kmeans(tdm, 10)
 #colnames(cluster) <- sample.ID
 
