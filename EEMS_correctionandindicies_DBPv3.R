@@ -72,6 +72,7 @@ project = "DBPPost"
 #setwd(directoryall)
 
 # Should not have to change anything beyond this
+
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
 setwd("/Users/ashlee/SpecScripts") 
@@ -88,9 +89,31 @@ ex_all = data.frame(matrix(vector(), 0, n))
 em_all = data.frame(matrix(vector(), 0, n))
 
 #set working directory for scripts that have corrections etc
+#note that column 1 in data must be = 
 
 for (i in 1:n){
   
+  # functions to load and trim EEMS data - blank, EEM and files
+  
+  # load and trim EEMS
+  #call function. Note that wd will change to sample WD in function
+  setwd("/Users/ashlee/SpecScripts") 
+  source("")
+  
+  #### load and trim ABS
+  # call function. Note that wd will change to sample WD in function
+  setwd("/Users/ashlee/SpecScripts") 
+  source("")
+  Abstrim <- ABStrim(graphheadings = data.3, samplewd = directoryall)
+  
+  # load and trim blank
+  Blktrim <- BLANKtrim(graphheadings = data.3, samplewd = directoryall)
+  
+  # identify dilution factor in master file
+  # Dilution = column 5 in data.3
+  dil = data.3[i,5]
+  
+
   # Read in the EEM file
   EEMSfilename <- toString(data.3[i,2]) # set EEMS file for the sample
   #setwd(directoryEEMS) 
@@ -108,8 +131,6 @@ for (i in 1:n){
   #setwd(directoryAbs) 
   Absfile <- read.delim(Absfilename, header= FALSE, sep = "")
   
-  # Dilution = column 5 in data.3
-  dil = data.3[i,5]
   
   ############## trim and arrange the abs, blank and eem files
   # EEM file
