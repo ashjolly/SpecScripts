@@ -1,19 +1,25 @@
 #
 #
 #
-# FUnction to load and trim blank files from Aqualog
+# Function to load and trim blank files from Aqualog
 # 29june2015
 ########
 
-BLANKtrim <- function() {
+BLANKtrim <- function(graphheadings, samplewd) {
+  
+  #set wd where all of the blank files are located. Note in .dat format
+  setwd(samplewd)
+  
   #read in blank file
   # Blankfilename <- test2[i,2] # set blank file for the sample
-  Blankfilename <- toString(data.3[i,4]) 
-  #setwd(directoryblank) 
+  Blankfilename <- toString(graphheadings[i,4]) 
+  
+  # Read in blank file according to name in graph headings 
   Blankfile <- read.delim(Blankfilename, header= FALSE, sep = "")
   
   #### Blank file trimming
   # take out the first two rows and first two columns of data in Blank - these contain text
+  # assign column and row names
   
   #emission = y axis. get as row names
   y = nrow(Blankfile)
