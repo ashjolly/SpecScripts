@@ -118,5 +118,8 @@ Abs <- function(absorbance) {
   }
   
   absorbancetral <- cbind(abs254, e2e3, e4e6, CDOM.total, slope_ratio, absorbance$S1, absorbance$S2, absorbance$S3, absorbance$SR)# bind together all calculated indicies by column
+  # set column names
+  colnames(absorbancetral) <- c("abs254", "e2e3", "e4e6", "CDOM.total", "slope_ratio", "S1", "S2", "S3", "SR")
+  
   return(absorbancetral)
 }
