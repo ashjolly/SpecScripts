@@ -36,7 +36,10 @@ EEMfilecomp <- function(workdir, dil) {
   
   #########
   # raw EEMS files - note that these are IFM and RM
-  filelist_EEMS <- list.files(pattern = "PEM.dat$")
+  #filelist_EEMS <- list.files(pattern = "PEM.dat$")
+  
+  #below is raw eem without any corrections
+  filelist_EEMS <- list.files(pattern = "SYM.dat$")
   
   #create column with sample ID - extracted from EEMS filename
   y = length(filelist_EEMS)
