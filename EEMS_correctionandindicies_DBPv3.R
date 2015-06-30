@@ -142,6 +142,7 @@ for (i in 1:n){
   source("EEMIFECorr_function.R")
   
   IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em)
+  # note that IFE should be between 0.4 and  0.98 according to McKnight 2001 (doi: 10.4319/lo.2001.46.1.0038)
   
   EEM.IFC = EEM*10.^(0.5*IFC) #perform inner filter calculation
 
