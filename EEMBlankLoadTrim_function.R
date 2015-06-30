@@ -23,13 +23,13 @@ BLANKtrim <- function(graphheadings, samplewd) {
   
   #emission = y axis. get as row names
   y = nrow(Blankfile)
-  em = as.numeric(t(data.frame(Blankfile[c(3:y), 1])))
+  em = as.numeric(t(data.frame(Blankfile[c(2:y), 1])))
   em_all[i,] = em
   
   #excitation - x axis. Get as column names.
   x = ncol(Blankfile) 
-  ex_initial = as.numeric(Blankfile[1, c(4:x)])
-  ex = as.numeric((sort(Blankfile[1, c(4:x)], decreasing = FALSE)))
+  #ex_initial = as.numeric(Blankfile[1, c(2:x)])
+  ex = as.numeric((sort(Blankfile[1, c(2:x)], decreasing = FALSE)))
   ex_all[i,] = ex
   
   # cut Blank files
