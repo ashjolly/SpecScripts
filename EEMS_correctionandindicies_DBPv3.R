@@ -58,6 +58,7 @@ directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS"
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
+
 #DBP pre
 #dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
 #                                  sep=",", header = TRUE, col.names = top))
@@ -69,9 +70,7 @@ dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP
 #project -> "DBPPre"
 project = "DBPPost"
 
-#setwd(directoryall)
-
-# Should not have to change anything beyond this
+### Should not have to change anything beyond this
 
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
@@ -88,6 +87,10 @@ n = nrow(data.3)
 ex_all = data.frame(matrix(vector(), 0, n))
 em_all = data.frame(matrix(vector(), 0, n))
 
+#blank
+ex_blank = data.frame(matrix(vector(), 0, n))
+em_blank = data.frame(matrix(vector(), 0, n))
+
 #set working directory for scripts that have corrections etc
 #note that column 1 in data must be = 
 
@@ -95,80 +98,29 @@ for (i in 1:n){
   
   # functions to load and trim EEMS data - blank, EEM and files
   
+  #sample name
+  samplename <- toString(data.3[i,1]) #column with the sample IDs
+  
   #### load and trim EEMS
   #call function. Note that wd will change to sample WD in function
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMfileLoadTrim_function.R")
-  EEMtrim(graphheadings = data.3, samplewd = directoryall)
+  EEM <- EEMtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
     
   #### load and trim ABS
   # call function. Note that wd will change to sample WD in function
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMAbsLoadTrim_function.R")
-  Abstrim <- ABStrim(graphheadings = data.3, samplewd = directoryall)
+  Abstrim <- ABStrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
   
   #### load and trim blank
   setwd("/Users/ashlee/SpecScripts")
   source("EEMBlankLoadTrim_function.R")
-  Blktrim <- BLANKtrim(graphheadings = data.3, samplewd = directoryall)
+  Blktrim <- BLANKtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
   
   #### identify dilution factor in master file
   # Dilution = column 5 in data.3
   dil = data.3[i,5]
-  
-
-  # Read in the EEM file
-  EEMSfilename <- toString(data.3[i,2]) # set EEMS file for the sample
-  #setwd(directoryEEMS) 
-  EEMSfile <- read.delim(EEMSfilename, header= FALSE, sep = "")
-  #samplename <- strapplyc(EEMSfilename, "001(.*)PEM", simplify = TRUE)
-  samplename <- toString(data.3[i,1]) 
-  
-  # Blankfilename <- test2[i,2] # set blank file for the sample
-  Blankfilename <- toString(data.3[i,4]) 
-  #setwd(directoryblank) 
-  Blankfile <- read.delim(Blankfilename, header= FALSE, sep = "")
-  
-  #Absfile <- test2[i,3] # set Abs file for the sample
-  Absfilename <- toString(data.3[i,3]) 
-  #setwd(directoryAbs) 
-  Absfile <- read.delim(Absfilename, header= FALSE, sep = "")
-  
-  
-  ############## trim and arrange the abs, blank and eem files
-  # EEM file
-  #set em and ex based on the columns (emission) and rows (excitation) of the raw file
-  x = ncol(EEMSfile)
-  ex_initial = as.numeric(EEMSfile[1, c(4:x)])
-  ex = as.numeric((sort(EEMSfile[1, c(4:x)], decreasing = FALSE)))
-  ex_all[i,] = ex
-  
-  #emission = y axis
-  y = nrow(EEMSfile)
-  em = as.numeric(t(data.frame(EEMSfile[c(3:y), 1])))
-  em_all[i,] = em
-  
-  # take out the first three rows and first column of data in EEMS. These just contain text
-  EEMScut <- EEMSfile[c(3:y), c(2:x)]
-  colnames(EEMScut) <- ex_initial
-  rownames(EEMScut) <- em
-  
-  #### Blank
-  # take out the first three rows and first column of data in Blank
-  #emission = y axis
-  y = nrow(Blankfile)
-  #excitation - x axis
-  x = ncol(Blankfile) 
-  
-  Blkcor <- Blankfile[c(2:y), c(2:x)]
-  colnames(Blkcor) <- ex_initial
-  rownames(Blkcor) <- em
-  
-  ######## trim abs file
-  row.names(Absfile) <- Absfile[,1]
-  #Abs <- data.frame(Absfile[,-1])
-  Absfile1 = data.frame(t(Absfile))
-  Absfile2 = Absfile1[-1,]
   
   ##################################
   ########### Correct for Raman
@@ -178,20 +130,23 @@ for (i in 1:n){
   
   source("Ramancorrect_v1.R")
   
-  # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
-  em375 <-  as.numeric(grep(375.7, rownames(EEMScut)))
-  em430 <-  as.numeric(grep(429.8, rownames(EEMScut)))
-  ex350 <- as.numeric(match(350, colnames(EEMScut)))
+  ex = as.numeric((sort(colnames(EEM), decreasing = TRUE)))
+  em = as.numeric((sort(rownames(EEM), decreasing = FALSE)))
   
-  Raman.area <- Ramancor(blank = Blkcor) # get the Raman correction file from the Raman function stored
+  # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
+  em375 <-  as.numeric(grep(375.7, rownames(EEM)))
+  em430 <-  as.numeric(grep(429.8, rownames(EEM)))
+  ex350 <- as.numeric(match(350, colnames(EEM)))
+  
+  Raman.area <- Ramancor(blank = Blktrim) # get the Raman correction file from the Raman function stored
   
   # normalize all of the EEM file for the area underneath the raman file  
-  EEMram = EEMScut/Raman.area 
+  EEMram = EEM/Raman.area 
   
   ###########################
   ##### Apply dilution factor to EEM and to Abs file
   EEMdil = EEMram*dil 
-  Absdil = Absfile2*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
+  Absdil = Abstrim*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
   
   ##### Apply correction factor for Fe concentration
   #####TO DO!!!!!
@@ -211,7 +166,7 @@ for (i in 1:n){
   ###########
   # Calculating absorbance indicies
   # call function
-  #setwd("/Users/ashlee/Dropbox/R Scripts") 
+  setwd("/Users/ashlee/SpecScripts") 
   source("Aqualog_Absindicies_v1.R")
   
   #call the function to calculate indicies
@@ -221,7 +176,7 @@ for (i in 1:n){
   ##########
   # Calculating fluorescence indicies
   # call function
-  #setwd("/Users/ashlee/Dropbox/R Scripts") 
+  setwd("/Users/ashlee/SpecScripts") 
   source("Aqualog_Fluorindicies_v2.R")
   
   #below may need to be altered depending on the output of your scan
@@ -264,7 +219,7 @@ for (i in 1:n){
   library(gplots)
   
   # call contour plot function
-  #setwd("/Users/ashlee/Dropbox/R Scripts") 
+  setwd("/Users/ashlee/SpecScripts") 
   source("EEM_contour_v1.R")
   
   #Plot contours and save in correction file
@@ -276,10 +231,11 @@ for (i in 1:n){
   # create new dataset without missing data 
   
   EEMplot[EEMplot<0]=0 # have line so that if fluorescence is less than 0, becomes 0.
-  explot = ex[c(1:(length(ex)-2))] #cut out the last two wavelengths.. these are filled with Nas and cut out before saving EEMS
+  explot = as.numeric(colnames(EEMplot)) #cut out the last two wavelengths.. these are filled with Nas and cut out before saving EEMS
+  emplot = as.numeric(row.names(EEMplot))
   
   jpeg(file=plotpath)
-  contour.plots(eems = as.matrix(EEMplot), Title = samplename, ex = explot)  
+  contour.plots(eems = as.matrix(EEMplot), Title = samplename, ex = explot, em = emplot)  
   dev.off()
   
   # note that the above is meant to be a crude graphing - better graphing done in matlab once
@@ -287,25 +243,25 @@ for (i in 1:n){
   
 }
 
-####
+#### End of loop!
 #write file containing spectral indicies + sample IDs
 #after loop is finished with all samples
 corrpath <- file.path(directoryCorrectedEEMS, paste("SpectralIndicies.csv", sep = ""))
 write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = TRUE, sep = ",")
 
-############################
+############################ Cutting EEMS for Cory McKnight and DOM Fluor toolbox
 ########
-# Ensure that EEMS are all the same size + works for both the CM code as well as the DOMFluor toolbox
+# Ensure that EEMS are all the same size + works for both the CM code as well as the DOMFluor toolbox to code together
 # For DBP, this means ex = 240-800 in 2 nm incrmenets, noting that the  
-#filelist of corrected EEMS
+# filelist of corrected EEMS
 
 setwd(directoryCorrectedEEMS) 
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 
 n = length(filelist_EEMScor)
 
-######## 
-# Prepping files for CM modelling in Matlab
+######## Prepping files for Cory McKnight modelling in Matlab
+########
 # CM - take out row and column names in first column and row and save in CM folder
 
 for (i in 1:n){
@@ -335,15 +291,17 @@ for (i in 1:n){
 }
 
 # save ex and em in two separate files, to make it easier to read into CM PARAFAC files
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste("DBPpre","em",".csv", sep = ""))
+corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"em",".csv", sep = ""))
 write.table(em, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
 
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste("DBPpre","ex",".csv", sep = ""))
+corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
 ex.PARAFAC <- seq(240, 796, by = 2)
 write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
 
 ######### DOM Fluor
-# get files ready for DOMFLuor toolbox. Need .csv file for ex, em and one csv file containing all of the fluorescence compiled
+########
+# Get files ready for DOMFLuor toolbox. 
+# Need .csv file for ex, em and one csv file containing all of the fluorescence compiled
 
 #compiled file containing all fluorescence data
 # first, cut files so that they go from 240 - 800 nm
@@ -351,6 +309,7 @@ write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, se
 #filelist_EEMScorr <- list.files(path = directoryCorrectedEEMS, pattern = "Corrected.csv$")
 #x = length(filelist_EEMScorr)
 
+n = length(filelist_EEMScor)
 for (i in 1:n){
   temp.EEMS <- read.delim(filelist_EEMScor[i], header= TRUE, sep = ",")
   
@@ -392,17 +351,19 @@ y <- dim(dataset.2)[1]
 remove(x)
 remove(y)
 
-write.table(dataset.2, file = "/Users/ashlee/Documents/MATLAB/DOMFluor/DBP_pre/fl.csv", 
+corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
+
+write.table(dataset.2, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", paste(project, "/fl.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
 #Ex file
-write.table(ex.PARAFAC, file = "/Users/ashlee/Documents/MATLAB/DOMFluor/DBP_pre/Ex.csv", 
+write.table(ex.PARAFAC, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", paste(project,"/Ex.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
 #Em
-write.table(em, file = "/Users/ashlee/Documents/MATLAB/DOMFluor/DBP_pre/Em.csv", 
+write.table(em, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", paste(project,"/Em.csv", sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
 #File containing sample names
-write.table(sample.ID, file = "/Users/ashlee/Documents/MATLAB/DOMFluor/DBP_pre/01key.csv", 
+write.table(sample.ID, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", paste(project,"/01key.csv",sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
