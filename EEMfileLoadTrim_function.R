@@ -5,7 +5,6 @@
 # 29june2015
 ########
 
-
 EEMtrim <- function(graphheadings, samplewd) {
   
   #set wd where all of the EEM files are located. Note in .dat format
@@ -14,7 +13,7 @@ EEMtrim <- function(graphheadings, samplewd) {
   # Read in the EEM file
   EEMSfilename <- toString(graphheadings[i,2]) # where the EEMS file are located in the graph headings file 
   
-  #setwd(directoryEEMS) 
+  # read in EEM file
   EEMSfile <- read.delim(EEMSfilename, header= FALSE, sep = "")
   #samplename <- strapplyc(EEMSfilename, "001(.*)PEM", simplify = TRUE)
   samplename <- toString(graphheadings[i,1]) #column with the sample IDs
@@ -37,10 +36,5 @@ EEMtrim <- function(graphheadings, samplewd) {
   colnames(EEMScut) <- ex_initial
   rownames(EEMScut) <- em
 
-
-
-
-
-
-return 
+  return(EEMScut)
 }
