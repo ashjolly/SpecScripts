@@ -95,21 +95,22 @@ for (i in 1:n){
   
   # functions to load and trim EEMS data - blank, EEM and files
   
-  # load and trim EEMS
+  #### load and trim EEMS
   #call function. Note that wd will change to sample WD in function
   setwd("/Users/ashlee/SpecScripts") 
-  source("")
-  
+  source("EEMfileLoadTrim_function.R")
+  EEMtrim(graphheadings = data.3, directoryall)
+    
   #### load and trim ABS
   # call function. Note that wd will change to sample WD in function
   setwd("/Users/ashlee/SpecScripts") 
   source("")
   Abstrim <- ABStrim(graphheadings = data.3, samplewd = directoryall)
   
-  # load and trim blank
+  #### load and trim blank
   Blktrim <- BLANKtrim(graphheadings = data.3, samplewd = directoryall)
   
-  # identify dilution factor in master file
+  #### identify dilution factor in master file
   # Dilution = column 5 in data.3
   dil = data.3[i,5]
   
