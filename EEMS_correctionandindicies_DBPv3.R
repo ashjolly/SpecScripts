@@ -99,15 +99,17 @@ for (i in 1:n){
   #call function. Note that wd will change to sample WD in function
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMfileLoadTrim_function.R")
-  EEMtrim(graphheadings = data.3, directoryall)
+  EEMtrim(graphheadings = data.3, samplewd = directoryall)
     
   #### load and trim ABS
   # call function. Note that wd will change to sample WD in function
   setwd("/Users/ashlee/SpecScripts") 
-  source("")
+  source("EEMAbsLoadTrim_function.R")
   Abstrim <- ABStrim(graphheadings = data.3, samplewd = directoryall)
   
   #### load and trim blank
+  setwd("/Users/ashlee/SpecScripts")
+  source("EEMBlankLoadTrim_function.R")
   Blktrim <- BLANKtrim(graphheadings = data.3, samplewd = directoryall)
   
   #### identify dilution factor in master file
