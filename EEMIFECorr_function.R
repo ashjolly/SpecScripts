@@ -24,6 +24,7 @@ innerfilter <- function(eem, abs, em) {
   #em_abs(2:125) = em_abs(1:124);
   #em_abs(1) = 0.1705;
 
+  #loop adapted from CM file
   for (f in 1:length(em_abs)) {
      for (b in 1:length(ex_abs)) {
          IFC(f,b)=ex_abs(f)+em_abs(b)
@@ -31,5 +32,4 @@ innerfilter <- function(eem, abs, em) {
   }  
   
   return(IFC)
-
 }
