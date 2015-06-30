@@ -1,5 +1,5 @@
 #Function for plotting contour
-contour.plots <- function(eems, Title, ex) {
+contour.plots <- function(eems, Title, ex, em) {
   filled.contour(x = em, y = ex,z = eems, 
                  xlim = xlimit,
                  #ylim = range(ext, finite=TRUE),
