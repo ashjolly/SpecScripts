@@ -12,6 +12,14 @@
 # actual calculations are done in this script, other than dilution factor. Everything else written 
 # in another script
 
+#   #Recommended progress of corrections from McKnight Lab:
+# Instrument Correct the Raman file - done in software
+# Instrument Correct and Raman Normalize the Blank
+# Instrument Correct the Sample - done in software
+# Inner filter Correct the Sample
+# Raman Normalize the Sample
+# Blank Subtract
+
 ## To do's - 
 # Fe Corrections
 # Investigate why it is cutting out the end of two columns
@@ -96,8 +104,9 @@ em_blank = data.frame(matrix(vector(), 0, n))
 
 for (i in 1:n){
   
-  # functions to load and trim EEMS data - blank, EEM and files
+  # functions to load, trim and correct EEMS data - blank, EEM and files
   
+  #### load an trim files
   #sample name
   samplename <- toString(data.3[i,1]) #column with the sample IDs
   
@@ -122,39 +131,67 @@ for (i in 1:n){
   # Dilution = column 5 in data.3
   dil = data.3[i,5]
   
-  ##################################
-  ########### Correct for Raman
-  # call function
-  #setwd("/Users/ashlee/Dropbox/R Scripts")
-  setwd("/Users/ashlee/SpecScripts") 
-  
-  source("Ramancorrect_v1.R")
-  
+  #ex and em wavelengths
   ex = as.numeric((sort(colnames(EEM), decreasing = TRUE)))
   em = as.numeric((sort(rownames(EEM), decreasing = FALSE)))
   
+  ################################## Corrections
+  ########### Correct raw EEM for IFE
+  # call function
+  setwd("/Users/ashlee/SpecScripts") 
+  source("EEMIFECorr_function.R")
+  
+  IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em)
+  
+  EEM.IFC = EEM*10.^(0.5*IFC) #perform inner filter calculation
+
+  ########### Normalize IFE EEM and blank file according to area under Raman peak
+  # call function
+  #setwd("/Users/ashlee/Dropbox/R Scripts")
+  setwd("/Users/ashlee/SpecScripts") 
+  source("Ramancorrect_v1.R")
+
   # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
   em375 <-  as.numeric(grep(375.7, rownames(EEM)))
   em430 <-  as.numeric(grep(429.8, rownames(EEM)))
   ex350 <- as.numeric(match(350, colnames(EEM)))
   
-  Raman.area <- Ramancor(blank = Blktrim) # get the Raman correction file from the Raman function stored
+  # get the Raman correction file from the Raman function stored
+  Raman.area <- Ramancor(blank = Blktrim) 
   
-  # normalize all of the EEM file for the area underneath the raman file  
-  EEMram = EEM/Raman.area 
+  # normalize the EEM file for the area underneath the raman curve calculated above 
+  # Raman normalize the raw EEM
+  EEMram = EEM.IFC/Raman.area 
+  
+  # Raman normalize the blank file (important for blank correction)
+  blankram = Blktrim/Raman.area
+  
+  ##################################
+  ########### Correct for Raleigh Masking
+  # call function
+  setwd("/Users/ashlee/SpecScripts") 
+  source("EEMRaleigh_function.R")
+  
+  EEM.rm <- raleigh(eem = EEMram, slitwidth = 10, ex = ex, em = em)
+  
+  ##################################
+  ########### Correct for Blank
+  # Sample - blank = corrected EEM
+  EEM.blk <- EEM.rm - blankram
   
   ###########################
   ##### Apply dilution factor to EEM and to Abs file
-  EEMdil = EEMram*dil 
+  EEMdil = EEM.blk*dil 
   Absdil = Abstrim*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
   
   ##### Apply correction factor for Fe concentration
-  #####TO DO!!!!!
+  ##### TO DO!!!!!
   
   # change the corrected EEM so that excitation goes from 200-800, rather than 800-200
   EEMcorr <- EEMdil[,sort(names(EEMdil), decreasing = FALSE)]
   # cutting out two columns - 200 and 202? ***************************
   
+  ###########
   ##### Save the corrected EEM
   #x <- length(EEMcorr)
   #EEMcorr1 <- EEMcorr[,c(1:(x-4))] #cut out last three columns of Na data. Remove this line eventually ;)
