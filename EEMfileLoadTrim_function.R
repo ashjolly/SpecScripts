@@ -15,9 +15,7 @@ EEMtrim <- function(graphheadings, samplewd, loopnum) {
   
   # read in EEM file
   EEMSfile <- read.delim(EEMSfilename, header= FALSE, sep = "")
-  #samplename <- strapplyc(EEMSfilename, "001(.*)PEM", simplify = TRUE)
-  samplename <- toString(graphheadings[loopnum,1]) #column with the sample IDs
-
+  
   ############## trim and arrange the eem files
   # EEM file
   #set em and ex based on the columns (emission) and rows (excitation) of the raw file
