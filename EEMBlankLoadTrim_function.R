@@ -5,14 +5,14 @@
 # 29june2015
 ########
 
-BLANKtrim <- function(graphheadings, samplewd) {
+BLANKtrim <- function(graphheadings, samplewd, loopnum) {
   
   #set wd where all of the blank files are located. Note in .dat format
   setwd(samplewd)
   
   #read in blank file
   # Blankfilename <- test2[i,2] # set blank file for the sample
-  Blankfilename <- toString(graphheadings[i,4]) 
+  Blankfilename <- toString(graphheadings[loopnum,4]) 
   
   # Read in blank file according to name in graph headings 
   Blankfile <- read.delim(Blankfilename, header= FALSE, sep = "")
@@ -23,21 +23,22 @@ BLANKtrim <- function(graphheadings, samplewd) {
   
   #emission = y axis. get as row names
   y = nrow(Blankfile)
-  em = as.numeric(t(data.frame(Blankfile[c(2:y), 1])))
-  em_all[i,] = em
+  em.b = as.numeric(t(data.frame(Blankfile[c(2:y), 1])))
+  #ex and em_all are variables that output the complete ex and em
+  em_blank[loopnum,] = em.b
   
   #excitation - x axis. Get as column names.
   x = ncol(Blankfile) 
-  #ex_initial = as.numeric(Blankfile[1, c(2:x)])
-  ex = as.numeric((sort(Blankfile[1, c(2:x)], decreasing = FALSE)))
-  ex_all[i,] = ex
+  ex.b_initial = as.numeric(Blankfile[1, c(2:x)])
+  ex.b = as.numeric((sort(Blankfile[1, c(2:x)], decreasing = FALSE)))
+  ex_blank[loopnum,] = ex.b
   
-  # cut Blank files
+  # cut Blank files - first row and first column is ex and em wavelengths
   Blkcor <- Blankfile[c(2:y), c(2:x)]  
   
   #Assign col names as ex and row names as emission
-  colnames(Blkcor) <- ex_initial
-  rownames(Blkcor) <- em
+  colnames(Blkcor) <- ex.b_initial
+  rownames(Blkcor) <- em.b
   
   return(Blkcor)
 }
