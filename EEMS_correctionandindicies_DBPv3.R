@@ -151,11 +151,9 @@ for (i in 1:n){
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMIFECorr_function.R")
   
-  IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em)
+  EEM.IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em, ex = ex)
   # note that IFE should be between 0.4 and  0.98 according to McKnight 2001 (doi: 10.4319/lo.2001.46.1.0038)
   
-  EEM.IFC = EEM*10.^(0.5*IFC) #perform inner filter calculation
-
   ########### Normalize IFE EEM and blank file according to area under Raman peak
   # call function
   #setwd("/Users/ashlee/Dropbox/R Scripts")
