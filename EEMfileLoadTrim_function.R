@@ -28,7 +28,7 @@ EEMtrim <- function(graphheadings, samplewd, loopnum) {
   em = as.numeric(t(data.frame(EEMSfile[c(3:y), 1])))
   
   # take out the first three rows and first column of data in EEMS. These just contain text
-  EEMScut <- EEMSfile[c(3:y), c(2:x)]
+  EEMScut <- EEMSfile[c(3:y), c(2:(x-2))]
   colnames(EEMScut) <- ex_initial
   rownames(EEMScut) <- em
 
