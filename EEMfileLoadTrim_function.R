@@ -23,16 +23,10 @@ EEMtrim <- function(graphheadings, samplewd, loopnum) {
   ex_initial = as.numeric(EEMSfile[1, c(4:x)])
   ex = as.numeric((sort(EEMSfile[1, c(4:x)], decreasing = FALSE)))
   
-  #ex_all is a variable that holds all of the ex wavelengths. It's a way of seeing if ex wavelengths are different between samples
-  ex_all[loopnum,] = ex
-
   #emission = y axis
-  y = nrow(EEMSfile)
-  em = as.numeric(t(data.frame(EEMSfile[c(3:y), 1])))
+  x = nrow(EEMSfile)
+  em = as.numeric(t(data.frame(EEMSfile[c(3:x), 1])))
   
-  #em_all is a variable that holds all of the em wavelengths. It's a way of seeing if em wavelengths are different between samples
-  em_all[loopnum,] = em
-
   # take out the first three rows and first column of data in EEMS. These just contain text
   EEMScut <- EEMSfile[c(3:y), c(2:x)]
   colnames(EEMScut) <- ex_initial
