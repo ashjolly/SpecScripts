@@ -24,14 +24,11 @@ BLANKtrim <- function(graphheadings, samplewd, loopnum) {
   #emission = y axis. get as row names
   y = nrow(Blankfile)
   em.b = as.numeric(t(data.frame(Blankfile[c(2:y), 1])))
-  #ex and em_all are variables that output the complete ex and em
-  em_blank[loopnum,] = em.b
   
   #excitation - x axis. Get as column names.
   x = ncol(Blankfile) 
   ex.b_initial = as.numeric(Blankfile[1, c(2:x)])
   ex.b = as.numeric((sort(Blankfile[1, c(2:x)], decreasing = FALSE)))
-  ex_blank[loopnum,] = ex.b
   
   # cut Blank files - first row and first column is ex and em wavelengths
   Blkcor <- Blankfile[c(2:y), c(2:x)]  
