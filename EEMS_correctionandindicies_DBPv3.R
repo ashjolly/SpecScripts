@@ -92,10 +92,11 @@ data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution)
 Spectral.Indicies = data.frame(matrix(vector(), 0, 16)) #creating an empty vector
 
 n = nrow(data.3)
-ex_all = data.frame(matrix(vector(), 0, n))
-em_all = data.frame(matrix(vector(), 0, n))
 
-#blank
+ex_all = data.frame(matrix(vector(), 0, n))
+em_all = data.frame(matrix(vector(), 0, n))  
+
+#blank - create dataframe
 ex_blank = data.frame(matrix(vector(), 0, n))
 em_blank = data.frame(matrix(vector(), 0, n))
 
@@ -115,7 +116,12 @@ for (i in 1:n){
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMfileLoadTrim_function.R")
   EEM <- EEMtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
-    
+
+  #em_all is a variable that holds all of the em wavelengths. It's a way of seeing if em wavelengths are different between samples
+  em_all = rbind(em_all, rownames(EEM))
+  #ex_all is a variable that holds all of the ex wavelengths. It's a way of seeing if ex wavelengths are different between samples
+  ex_all= rbind(ex_all, colnames(EEM))
+  
   #### load and trim ABS
   # call function. Note that wd will change to sample WD in function
   setwd("/Users/ashlee/SpecScripts") 
@@ -127,6 +133,10 @@ for (i in 1:n){
   source("EEMBlankLoadTrim_function.R")
   Blktrim <- BLANKtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
   
+  #ex and em_all are variables that output the complete ex and em
+  ex_blank = rbind(ex_blank, colnames(Blktrim))
+  em_blank = rbind(em_blank, rownames(Blktrim))
+
   #### identify dilution factor in master file
   # Dilution = column 5 in data.3
   dil = data.3[i,5]
