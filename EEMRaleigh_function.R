@@ -20,7 +20,7 @@ raleigh <- function(eem, slitwidth){
   
   for (f in 1:length(ex)) {
     # identify first order, where em = ex +/- slitwidth
-    tempem = (em>(ex[f]+slitwidth))
+    tempem = (em<(ex[f]+slitwidth))
     Acut[tempem,f]= 0
   }
   
