@@ -17,17 +17,17 @@ raleigh <- function(eem, slitwidth){
   em = as.numeric(rownames(Acut))
   
   for (f in 1:length(ex)) {
-    tempem = (em>(ex[f]+slitwidth))
+    tempem = (em<(ex[f]+slitwidth))
     Acut[tempem,f]= 0
   }
   
   #second order
-  for (j in 1:length(ex)) {
+  for (f in 1:length(ex)) {
   #temp = find(em>(ex(f)*2-slitwidth));
-    temp = (em>(ex[j]*2-slitwidth))
+    temp = (em>(ex[f]*2-slitwidth))
     Acut[temp,j]= 0
   }
 
   return(Acut)  
-  
+
 }
