@@ -31,6 +31,9 @@ EEMtrim <- function(graphheadings, samplewd, loopnum) {
   EEMScut <- EEMSfile[c(3:y), c(2:(x-2))]
   colnames(EEMScut) <- ex_initial
   rownames(EEMScut) <- em
-
+  
+  # first two columns are characters - return to numeric
+  EEMScut[,c(1,2)] <- sapply(EEMScut[,c(1,2)],as.numeric)
+  
   return(EEMScut)
 }
