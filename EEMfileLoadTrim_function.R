@@ -14,7 +14,7 @@ EEMtrim <- function(graphheadings, samplewd, loopnum) {
   EEMSfilename <- toString(graphheadings[loopnum,2]) # where the EEMS file are located in the graph headings file 
   
   # read in EEM file
-  EEMSfile <- read.delim(EEMSfilename, header= FALSE, sep = "")
+  EEMSfile <- read.delim(EEMSfilename, header= FALSE, sep = "", stringsAsFactors=FALSE)
   
   ############## trim and arrange the eem files
   # EEM file
