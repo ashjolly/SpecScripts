@@ -16,16 +16,23 @@ raleigh <- function(eem, slitwidth){
   ex = as.numeric(colnames(Acut))
   em = as.numeric(rownames(Acut))
   
+  # identify first order Raleigh and replaced with 0's
+  
   for (f in 1:length(ex)) {
-    tempem = (em<(ex[f]+slitwidth))
+    # identify first order, where em = ex +/- slitwidth
+    tempem = (em>(ex[f]+slitwidth))
     Acut[tempem,f]= 0
   }
   
   #second order
   for (j in 1:length(ex)) {
   #temp = find(em>(ex(f)*2-slitwidth));
-    temp = (em>(ex[j]*2-slitwidth))
-    Acut[temp,j]= 0
+    # upper limit = ex*2 + slitwidth
+    # lower limit = ex*2 - slitwidth
+    upper = (ex[j]*2)+slitwidth
+    lower = (ex[j]*2)-slitwidth
+    tempem = subset(em, em >=lower & em <= upper)
+    Acut[tempem,j]= 0
   }
 
   return(Acut)  
