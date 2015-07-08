@@ -15,7 +15,7 @@ BLANKtrim <- function(graphheadings, samplewd, loopnum) {
   Blankfilename <- toString(graphheadings[loopnum,4]) 
   
   # Read in blank file according to name in graph headings 
-  Blankfile <- read.delim(Blankfilename, header= FALSE, sep = "")
+  Blankfile <- as.data.frame(read.delim(Blankfilename, header= FALSE, sep = "", stringsAsFactors=FALSE))
   
   #### Blank file trimming
   # take out the first two rows and first two columns of data in Blank - these contain text
