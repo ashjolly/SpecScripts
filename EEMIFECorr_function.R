@@ -56,7 +56,8 @@ innerfilter <- function(eem, abs, emfluor, exfluor) {
   IFC.2[is.na(IFC.2)] <- 1
   
   # get corrected fluorescence
-  EEM.IFC <- as.matrix(eem) * as.matrix(IFC.2) #creating two columns of nas?!!?
+  #eem[,c(1:2)] <- as.numeric(as.character(eem[,c(1:2)]))
+  EEM.IFC <- eem * IFC.2 #creating two columns of nas?!!?
   
   return(EEM.IFC)
   
