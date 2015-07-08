@@ -22,9 +22,9 @@ raleigh <- function(eem, slitwidth){
   }
   
   #second order
-  for (f in 1:length(ex)) {
+  for (j in 1:length(ex)) {
   #temp = find(em>(ex(f)*2-slitwidth));
-    temp = (em>(ex[f]*2-slitwidth))
+    temp = (em>(ex[j]*2-slitwidth))
     Acut[temp,j]= 0
   }
 
