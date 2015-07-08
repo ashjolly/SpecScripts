@@ -7,24 +7,25 @@
 # Ashlee Jollymore
 #####################
 
-raleigh <- function(eem, slitwidth, ex, em){
+raleigh <- function(eem, slitwidth){
   
   #Cut out the Rayleigh scattering
   #slitwidth or bandwidth (nmm) of the scan should be either 12 or 10
   
   Acut = eem
+  ex = as.numeric(colnames(Acut))
+  em = as.numeric(rownames(Acut))
   
-  for (f in 1:length(ex)){
-  #temp = find(em<(ex(f)+slitwidth));
-  temp =  match(em %in% (em>(ex(f)+slitwidth)))
-  Acut(temp,f)=NaN
+  for (f in 1:length(ex)) {
+    tempem = (em>(ex[f]+slitwidth))
+    Acut[tempem,f]=NaN
   }
   
   #second order
-  for (f in 1:length(ex)) {
+  for (j in 1:length(ex)) {
   #temp = find(em>(ex(f)*2-slitwidth));
-  temp = match(em %in% (em>(ex(f)*2-slitwidth)))
-  Acut(temp,f)=NaN;
+    temp = (em>(ex[j]*2-slitwidth))
+    Acut[temp,j]=NaN
   }
 
   return(Acut)  
