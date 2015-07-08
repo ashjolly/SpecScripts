@@ -17,7 +17,7 @@ ABStrim <- function(graphheadings, samplewd, loopnum) {
   Absfilename <- toString(graphheadings[loopnum,3]) 
   
   # Read in particular abs filename 
-  Absfile <- read.delim(Absfilename, header= FALSE, sep = "")
+  Absfile <- as.data.frame(read.delim(Absfilename, header= FALSE, sep = "", stringsAsFactors=FALSE))
   
   ############## trim and arrange the abs files
   ######## trim abs file
