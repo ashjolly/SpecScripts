@@ -31,8 +31,8 @@ raleigh <- function(eem, slitwidth){
     # lower limit = ex*2 - slitwidth
     upper = (ex[j]*2)+slitwidth
     lower = (ex[j]*2)-slitwidth
-    tempem = subset(em, em >=lower & em <= upper)
-    Acut[tempem,j]= 0
+    tempem = as.character(subset(em, em >=lower & em <= upper))
+    Acut[c(tempem),j]= 0
   }
 
   return(Acut)  
