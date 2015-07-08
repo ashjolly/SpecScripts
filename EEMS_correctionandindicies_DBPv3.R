@@ -176,21 +176,21 @@ for (i in 1:n){
   blankram = Blktrim/Raman.area
   
   ##################################
+  ########### Correct for Blank
+  # Sample - blank = corrected EEM
+  EEM.blk <- EEM.rm - blankram
+  
+  ##################################
   ########### Correct for Raleigh Masking
   # call function
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMRaleigh_function.R")
   
-  EEM.rm <- raleigh(eem = EEMram, slitwidth = 10, ex = ex, em = em)
-  
-  ##################################
-  ########### Correct for Blank
-  # Sample - blank = corrected EEM
-  EEM.blk <- EEM.rm - blankram
+  EEM.rm <- raleigh(eem = EEM.blk, slitwidth = 10)
   
   ###########################
   ##### Apply dilution factor to EEM and to Abs file
-  EEMdil = EEM.blk*dil 
+  EEMdil = EEM.rm*dil 
   Absdil = Abstrim*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
   
   ##### Apply correction factor for Fe concentration
@@ -198,7 +198,6 @@ for (i in 1:n){
   
   # change the corrected EEM so that excitation goes from 200-800, rather than 800-200
   EEMcorr <- EEMdil[,sort(names(EEMdil), decreasing = FALSE)]
-  # cutting out two columns - 200 and 202? ***************************
   
   ###########
   ##### Save the corrected EEM
@@ -206,7 +205,7 @@ for (i in 1:n){
   #EEMcorr1 <- EEMcorr[,c(1:(x-4))] #cut out last three columns of Na data. Remove this line eventually ;)
   # Note that the file still contains two columns of Na's. Will save the original file, and remove this after corrections (saving for PARAFAC)
   
-  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_Corrected",".csv", sep = ""))
+  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_CorrectedNEW",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
   ###########
