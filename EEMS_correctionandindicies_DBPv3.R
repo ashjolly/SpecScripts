@@ -418,7 +418,7 @@ remove(y)
 
 corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
 
-write.table(dataset.2, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", paste(project, "/fl.csv", sep = "")),
+write.table(dataset.2, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor", paste(project, "/fl.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
 #Ex file
@@ -430,5 +430,5 @@ write.table(em, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", pas
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
 #File containing sample names
-write.table(sample.ID, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", paste(project,"/01key.csv",sep = "")), 
+write.table(samplename, file = file.path("/Users/ashlee/Documents/MATLAB/DOMFluor/", paste(project,"/01key.csv",sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
