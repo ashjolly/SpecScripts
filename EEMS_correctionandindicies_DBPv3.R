@@ -89,7 +89,7 @@ data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution)
 
 #############################################################################
 ### set up loop for all files in folders
-Spectral.Indicies = data.frame(matrix(vector(), 0, 16)) #creating an empty vector
+Spectral.Indicies = data.frame(matrix(vector(), 0, 17)) #creating an empty vector
 
 n = nrow(data.3)
 
@@ -107,7 +107,7 @@ for (i in 1:n){
   
   # functions to load, trim and correct EEMS data - blank, EEM and files
   
-  #### load an trim files
+  #### load and trim files
   #sample name
   samplename <- toString(data.3[i,1]) #column with the sample IDs
   
@@ -170,7 +170,7 @@ for (i in 1:n){
   
   # normalize the EEM file for the area underneath the raman curve calculated above 
   # Raman normalize the raw EEM
-  EEMram = EEM.IFC/Raman.area 
+  EEM.ram = EEM.IFC/Raman.area 
   
   # Raman normalize the blank file (important for blank correction)
   blankram = Blktrim/Raman.area
@@ -178,7 +178,12 @@ for (i in 1:n){
   ##################################
   ########### Correct for Blank
   # Sample - blank = corrected EEM
-  EEM.blk <- EEM.rm - blankram
+  EEM.blk <- EEM.ram - blankram
+  
+  ###########################
+  ##### Apply dilution factor to EEM and to Abs file
+  EEM.dil = EEM.blk*dil 
+  Absdil = Abstrim*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
   
   ##################################
   ########### Correct for Raleigh Masking
@@ -186,18 +191,13 @@ for (i in 1:n){
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMRaleigh_function.R")
   
-  EEM.rm <- raleigh(eem = EEM.blk, slitwidth = 10)
-  
-  ###########################
-  ##### Apply dilution factor to EEM and to Abs file
-  EEMdil = EEM.rm*dil 
-  Absdil = Abstrim*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
+  EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
   
   ##### Apply correction factor for Fe concentration
   ##### TO DO!!!!!
   
   # change the corrected EEM so that excitation goes from 200-800, rather than 800-200
-  EEMcorr <- EEMdil[,sort(names(EEMdil), decreasing = FALSE)]
+  EEMcorr <- EEM.rm[,sort(names(EEM.rm), decreasing = FALSE)]
   
   ###########
   ##### Save the corrected EEM
@@ -225,18 +225,28 @@ for (i in 1:n){
   source("Aqualog_Fluorindicies_v2.R")
   
   #below may need to be altered depending on the output of your scan
+  # ex wavelengths
   ex370 <- as.numeric(grep(370, colnames(EEMcorr)))
+  ex254 <- as.numeric(grep(254, colnames(EEMcorr)))
+  ex310 <- as.numeric(grep(310, colnames(EEMcorr)))
+  ex274 <- as.numeric(grep(274, colnames(EEMcorr)))
+  ex276 <- as.numeric(grep(276, colnames(EEMcorr)))
+  ex320 <- as.numeric(grep(320, colnames(EEMcorr)))
+  ex340 <- as.numeric(grep(340, colnames(EEMcorr)))
+  
+  # em wavelengths
   em470 <- as.numeric(grep(470.394, rownames(EEMcorr)))
   em520 <- as.numeric(grep(520.522, rownames(EEMcorr))) 
   em435 <- as.numeric(grep(435.609, rownames(EEMcorr))) 
   em480 <- as.numeric(grep(479.697, rownames(EEMcorr)))
-  ex254 <- as.numeric(grep(254, colnames(EEMcorr)))
   em300 <- as.numeric(grep(300.484, rownames(EEMcorr)))
   em345 <- as.numeric(grep(344.826, rownames(EEMcorr)))
-  ex310 <- as.numeric(grep(310, colnames(EEMcorr)))
   em380 <- as.numeric(grep(380.302, rownames(EEMcorr)))
   em420 <- as.numeric(grep(420.587, rownames(EEMcorr)))
   em436 <- as.numeric(grep(436.766, rownames(EEMcorr)))
+  em350 <- as.numeric(grep(350., rownames(EEMcorr)))
+  em410 <- as.numeric(grep(410., rownames(EEMcorr)))
+  em430 <- as.numeric(grep(430., rownames(EEMcorr)))
   
   # call function that calculates fluorescent indicies
   Fluor.ind <- Fluor(eem = EEMcorr)
@@ -271,8 +281,9 @@ for (i in 1:n){
   plotpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project, "_Contour",".jpeg", sep = ""))
   
   g <- length(EEMcorr)
-  EEMplot <- EEMcorr[,c(1:(g-4))] #cut out last three columns of Na data. Remove this line eventually ;)
-  #EEMplot <- EEMcorr[,complete.cases(EEMcorr)] omits everything
+  EEMplot <- EEMcorr # not cutting out the last two columns
+  # EEMplot <- EEMcorr[,c(1:(g-4))] #cut out last three columns of Na data. Remove this line eventually ;)
+  # EEMplot <- EEMcorr[,complete.cases(EEMcorr)] omits everything
   # create new dataset without missing data 
   
   EEMplot[EEMplot<0]=0 # have line so that if fluorescence is less than 0, becomes 0.
@@ -299,6 +310,15 @@ write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = T
 # Ensure that EEMS are all the same size + works for both the CM code as well as the DOMFluor toolbox to code together
 # For DBP, this means ex = 240-800 in 2 nm incrmenets, noting that the  
 # filelist of corrected EEMS
+
+# call function that trims EEMS according to the min ex wavelength that you specify.
+# note that you have to look at teh files to see what the ex and em ranges of the samples are.
+# These are held in em_all and ex_all
+
+setwd("/Users/ashlee/SpecScripts") 
+source("EEMCMtrim_function.R")
+
+CMsave <- CMtrim(directory = directoryCorrectedEEMS, projectname = project, minex = "X240")
 
 setwd(directoryCorrectedEEMS) 
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
