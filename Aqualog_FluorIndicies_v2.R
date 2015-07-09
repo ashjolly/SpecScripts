@@ -65,9 +65,10 @@ Fluor <- function(eem) {
   # Used to identify the impact of sewer effluent on a river. 
   # Indicates biochemical oxygen demand relative to DOC
   
-  # must interpolate to get ex275 from ex 274 and ex276
-
-  peakt.peakC <- eem[em350, ex274]/max((eem[(em410:em430), (ex320:ex340)]))
+  # must interpolate to get ex275 from ex 274 and ex276...
+  em.ex275 = (eem[,ex274])+(eem[,ex276]-eem[,ex274])*((275-274)/(276-274))
+  peakt.peakC <- em.ex275[em350]/max((eem[(em410:em430), (ex320:ex340)]))
+  
   ############ 
   # bind all indicies together
   fl.out <- cbind(FI, HIX_ohno_area, HIX_Zsonlay_area, HIX_Ohno_sum, HIX_Zsonlay_sum, FrI, peakt.peakC)
