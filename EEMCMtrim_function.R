@@ -44,7 +44,7 @@ CMtrim <- function(directory, projectname, minex){
   #temp.EEMS.1 <- temp.EEMS[,c(1:(g-4))] #cut out the last four colomns manually
   
   #resave without the row and column names
-  samplename <- strapplyc(filelist_EEMScor[i], projectname, simplify = TRUE)
+  samplename <- strapplyc(filelist_EEMScor[i], "(.*)Prechlor", simplify = TRUE)
   corrpath <- file.path(directoryCM, paste(samplename,"CorrCM_",i,".csv", sep = ""))
   write.table(temp.EEMS.1, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
   

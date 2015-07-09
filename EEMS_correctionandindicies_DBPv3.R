@@ -315,10 +315,10 @@ write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = T
 # note that you have to look at teh files to see what the ex and em ranges of the samples are.
 # These are held in em_all and ex_all
 
-setwd("/Users/ashlee/SpecScripts") 
-source("EEMCMtrim_function.R")
+#setwd("/Users/ashlee/SpecScripts") 
+#source("EEMCMtrim_function.R")
 
-CMsave <- CMtrim(directory = directoryCorrectedEEMS, projectname = project, minex = "X240")
+#CMsave <- CMtrim(directory = directoryCorrectedEEMS, projectname = project, minex = "X240")
 
 setwd(directoryCorrectedEEMS) 
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
@@ -345,12 +345,12 @@ for (i in 1:n){
   
   # cut out any columns containing Nas- this is 798 and 800 nm. Must cut last four rows of data from 20april2015
   #temp.EEMS.1 <- na.omit(temp.EEMS)
-  g <- length(temp.EEMS)
-  temp.EEMS.1 <- temp.EEMS[,c(1:(g-4))] #cut out the last four colomns manually
+  #g <- length(temp.EEMS)
+  #temp.EEMS.1 <- temp.EEMS[,c(1:(g-4))] #cut out the last four colomns manually
   
   #resave without the row and column names
-  samplename <- strapplyc(filelist_EEMScor[i], "(.*)Prechlor", simplify = TRUE)
-  corrpath <- file.path(directoryCM, paste(samplename,"PrechlorCorrCM_",i,".csv", sep = ""))
+  samplename <- strapplyc(filelist_EEMScor[i], "(.*)_DBPPost", simplify = TRUE)
+  corrpath <- file.path(directoryCM, paste(samplename, project,"CorrCM_",i,".csv", sep = ""))
   write.table(temp.EEMS.1, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
   
 }
