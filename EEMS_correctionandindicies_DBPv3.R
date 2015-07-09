@@ -302,7 +302,7 @@ for (i in 1:n){
 #### End of loop!
 #write file containing spectral indicies + sample IDs
 #after loop is finished with all samples
-corrpath <- file.path(directoryCorrectedEEMS, paste("SpectralIndicies.csv", sep = ""))
+corrpath <- file.path(directoryCorrectedEEMS, paste(project, "SpectralIndicies.csv", sep = ""))
 write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = TRUE, sep = ",")
 
 ############################ Cutting EEMS for Cory McKnight and DOM Fluor toolbox
