@@ -324,6 +324,8 @@ setwd(directoryCorrectedEEMS)
 filelist_EEMScor <- list.files(pattern = "_CorrectedNEW.csv$")
 
 n = length(filelist_EEMScor)
+# graph heading variable
+graphheadings = data.frame((0))
 
 ######## Prepping files for Cory McKnight modelling in Matlab
 ########
@@ -352,6 +354,8 @@ for (i in 1:n){
   # Also insert "_i" to use in CM modelling
   
   samplename <- strapplyc(filelist_EEMScor[i], "(.*)_DBPPost", simplify = TRUE)
+  graphheadings[i,] <-paste(samplename, project,"CorrCM_",i, sep = "")
+  
   corrpath <- file.path(directoryCM, paste(samplename, project,"CorrCM_",i,".csv", sep = ""))
   write.table(temp.EEMS, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
   
@@ -364,6 +368,11 @@ write.table(em, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
 corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
 ex.PARAFAC <- seq(240, 800, by = 2)
 write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
+
+# write graph headings file
+corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".csv", sep = ""))
+write.table(t(graphheadings), file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
+
 
 ######### DOM Fluor
 ########
