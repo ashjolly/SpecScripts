@@ -34,10 +34,13 @@ setwd(postchlor.files)
 filelist_post <- list.files(pattern = "CorrectedNEW.csv$")
 
 #get sample ID from both files
+sample.ID <- 0 #create sample ID variable
 n = length(filelist_pre)
 for (i in 1:n){
   sampleID.pre.temp <- strapplyc(filelist_pre[i,], "(.*)_DBPPre", simplify = TRUE)
-  filelist_pre$sampleID[i] <- sampleID.pre.temp 
+  sample.ID[i] <- sampleID.pre.temp 
 }
+
+filelist_pre <- cbind(filelist_pre, as.data.frame(sample.ID))
 
 sampleID.post <- 
