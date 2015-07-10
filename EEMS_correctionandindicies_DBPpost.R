@@ -371,7 +371,7 @@ write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, se
 
 # write graph headings file
 corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".csv", sep = ""))
-write.table(t(graphheadings), file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
+write.table(graphheadings, file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
 
 
 ######### DOM Fluor
