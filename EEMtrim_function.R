@@ -20,6 +20,10 @@ EEMtrim <- function(eem, minex) {
     trim.EEMS <- eem[,c(xmin:ex.length)]
   } 
   
+  if (ex.temp[1] == minex){
+    trim.EEMS <- eem
+  }
+  
   return(trim.EEMS)
 }
 
