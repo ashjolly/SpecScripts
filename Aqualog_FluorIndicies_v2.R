@@ -6,6 +6,7 @@
 
 Fluor <- function(eem) {
   
+  em <- as.numeric(rownames(eem))
   #############
   #calculate the fluorescence index
   #eem = EEMcorr
