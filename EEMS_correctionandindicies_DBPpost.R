@@ -320,7 +320,7 @@ write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = T
 #CMsave <- CMtrim(directory = directoryCorrectedEEMS, projectname = project, minex = "X240")
 
 setwd(directoryCorrectedEEMS) 
-filelist_EEMScor <- list.files(pattern = "_CorrectedNEW.csv$")
+filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 
 n = length(filelist_EEMScor)
 # graph heading variable
@@ -352,7 +352,7 @@ for (i in 1:n){
   #resave without the row and column names
   # Also insert "_i" to use in CM modelling
   
-  samplename <- strapplyc(filelist_EEMScor[i], "(.*)_DBPPost", simplify = TRUE)
+  samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", project, sep = ""), simplify = TRUE)
   graphheadings[i,] <-paste(samplename, project,"CorrCM_",i, sep = "")
   
   corrpath <- file.path(directoryCM, paste(samplename, project,"CorrCM_",i,".csv", sep = ""))
