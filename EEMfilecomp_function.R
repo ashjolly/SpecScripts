@@ -2,7 +2,7 @@
 # 22June2015 Ashlee
 #############
 
-EEMfilecomp <- function(workdir, dil) {
+EEMfilecomp <- function(workdir, dil, EEMfiletype) {
   
   setwd(workdir)
   #above directory contains all blank, Abs and EEM files for correction and calculation from Aqualog
@@ -39,7 +39,7 @@ EEMfilecomp <- function(workdir, dil) {
   #filelist_EEMS <- list.files(pattern = "PEM.dat$")
   
   #below is raw eem without any corrections
-  filelist_EEMS <- list.files(pattern = "SYM.dat$")
+  filelist_EEMS <- list.files(pattern = EEMfilecomp)
   
   #create column with sample ID - extracted from EEMS filename
   y = length(filelist_EEMS)
