@@ -39,13 +39,13 @@ EEMfilecomp <- function(workdir, dil, EEMfiletype) {
   #filelist_EEMS <- list.files(pattern = "PEM.dat$")
   
   #below is raw eem without any corrections
-  filelist_EEMS <- list.files(pattern = EEMfilecomp)
+  filelist_EEMS <- list.files(pattern = EEMfiletype)
   
   #create column with sample ID - extracted from EEMS filename
   y = length(filelist_EEMS)
   
   for (i in 1:y){
-    sample.ID.temp <- strapplyc(filelist_EEMS[i], "001(.*)", simplify = TRUE)
+    sample.ID.temp <- strapplyc(filelist_EEMS[i], paste("001(.*)", EEMfiletype, sep = ""), simplify = TRUE)
     sample.ID[i] <- sample.ID.temp
   }
   filelist_EEMS <- cbind(filelist_EEMS, sample.ID)
