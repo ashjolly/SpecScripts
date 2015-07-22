@@ -1,18 +1,10 @@
-###
-# things that Script needs to do
+# File for correcting EEMS from DBP post chlorination
+# Note that this script is very similat to 'EEMS_Correctionandindicies_DBPpost" previously file (overwritten) 
+# with the exception that you now specify whether you want to load corrected EEM files ("PEM.dat") files, or raw EEMS without any corrections 
+# done in the software ("SYM.dat")
 
-# 1. Correct EEMS for Raman
-# 2. Correct EEMS and absorbance for dilution factor as well as iron interferences
-# 2. Calculate absorbance indicies from absorbance file
-# 4. Calculate fluorescence indicies (FI, Humification, freshness)
-# 5. Save corrected file and file containing parameters
-# 6. Plot contour and save as jpeg file
-
-# Note that this script just calls multiple scripts in which the actual calculation is done. No
-# actual calculations are done in this script, other than dilution factor. Everything else written 
-# in another script
-
-#   #Recommended progress of corrections from McKnight Lab:
+# The code will then correct SYM according to this order:
+# (Note that the CDOM community typically corrects in the following order):
 # Instrument Correct the Raman file - done in software
 # Instrument Correct and Raman Normalize the Blank
 # Instrument Correct the Sample - done in software
@@ -20,14 +12,22 @@
 # Raman Normalize the Sample
 # Blank Subtract
 
-## To do's - 
-# Fe Corrections
-# Investigate why it is cutting out the end of two columns
-# also add in BIX to fluorescence indicies scrip
-# Saves having to rename files as in matlab script! as well as copy them into matlab folder
-###########
+# PEM.dat files have been corrected by AJ for blank, IFE and Raleigh (just needs Raman)
+# there was some question in summer 2015 about the order of this correction versus that accepted by the CDOM community
+# (Aqualog software = blank, IFE, Raleigh and then Raman)
+# According to Adam Gimore from Horiba, as well as from studies done by Rose Cory, the fact that Aqualog does the blank correctio
+# prior to others shouldn't matter, and doesn't affect the calculation of inidicies or modelling
+# Also, they showed that doing the blank correction first is more accurate if the quality of the blank is called into question
+# Specifically, that doing the blank subtraction after Raman, etc can introduce negatives if there are elements in the blank
+# and that this can amplify artifacts present within the blank...
 
-## set working directory
+# Code allows user to specify which type of EEM is used.
+
+# 22july2015
+# fudge I hope this is the last time I dos this... :0
+######################
+
+## clear workspace
 rm(list = ls())
 ls()
 
@@ -37,18 +37,6 @@ ls()
 library(reshape)
 library(plyr)
 library(gsubfn)
-
-######
-# directories for different projects
-# DBP Pre chlorination
-#blank directory
-#directoryblank <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_blank" 
-#abs directory
-#directoryAbs <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Abs" 
-# raw EEMS directory
-#directoryEEMS <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBPS_prechlor_EEM" 
-# directory for corrected EEMS
-#directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
 
 ####
 # DBP Post chlorination
@@ -66,48 +54,37 @@ directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS"
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
-
-#DBP pre
-#dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
-#                                  sep=",", header = TRUE, col.names = top))
-
-#DBP post
+#DBP post dilution file
 dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_Aqualogdilution.csv", 
                                   sep=",", header = TRUE, col.names = top))
 
-#project -> "DBPPre"
 project = "DBPPost"
-
-### Should not have to change anything beyond this
 
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
 setwd("/Users/ashlee/SpecScripts") 
 source("EEMfilecomp_function.R")
 
-data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution)
+data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution, EEMfiletype = "PEM.dat")
 
 #############################################################################
-### set up loop for all files in folders
-Spectral.Indicies = data.frame(matrix(vector(), 0, 17)) #creating an empty vector
-
+# insert empty variables for populating with spectral indicies as well as ex an em vectors
 n = nrow(data.3)
+Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty vector
+ex_all = data.frame(matrix(vector(), 5000, n))
+em_all = data.frame(matrix(vector(), 5000, n))  
 
-ex_all = data.frame(matrix(vector(), 0, n))
-em_all = data.frame(matrix(vector(), 0, n))  
+#ex and em from blank - create dataframe
+ex_blank = data.frame(matrix(vector(), 5000, n))
+em_blank = data.frame(matrix(vector(), 5000, n)) 
 
-#blank - create dataframe
-ex_blank = data.frame(matrix(vector(), 0, n))
-em_blank = data.frame(matrix(vector(), 0, n))
+# 5000 is a placeholder for the number of rows. Note that this speeds the loop in comparison to leaving it as zero.
 
-#set working directory for scripts that have corrections etc
-#note that column 1 in data must be = 
+### set up loop to correct and calculate indicies from all files in folder
 
 for (i in 1:n){
   
-  # functions to load, trim and correct EEMS data - blank, EEM and files
-  
-  #### load and trim files
+  #### load and trim files: functions to load, trim and correct EEMS data - blank, EEM and files
   #sample name
   samplename <- toString(data.3[i,1]) #column with the sample IDs
   
@@ -116,7 +93,7 @@ for (i in 1:n){
   setwd("/Users/ashlee/SpecScripts") 
   source("EEMfileLoadTrim_function.R")
   EEM <- EEMtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
-
+  
   #em_all is a variable that holds all of the em wavelengths. It's a way of seeing if em wavelengths are different between samples
   em_all = rbind(em_all, rownames(EEM))
   #ex_all is a variable that holds all of the ex wavelengths. It's a way of seeing if ex wavelengths are different between samples
@@ -136,7 +113,7 @@ for (i in 1:n){
   #ex and em_all are variables that output the complete ex and em
   ex_blank = rbind(ex_blank, colnames(Blktrim))
   em_blank = rbind(em_blank, rownames(Blktrim))
-
+  
   #### identify dilution factor in master file
   # Dilution = column 5 in data.3
   dil = data.3[i,5]
@@ -146,20 +123,32 @@ for (i in 1:n){
   em = as.numeric((sort(rownames(EEM), decreasing = FALSE)))
   
   ################################## Corrections
-  ########### Correct raw EEM for IFE
-  # call function
-  setwd("/Users/ashlee/SpecScripts") 
-  source("EEMIFECorr_function.R")
+  ########### Correct raw EEM for IFE if sample has not been corrected for this
+  # Determine if needs IFE done if EEM samplename is SYM.dat
+  # Otherwise, if sample name is PEM, IFE has been done in the software
+  EEMsampletype <- strapplyc(as.character(data.3[i,2]), paste(samplename, "(.*).dat", sep = ""), simplify = TRUE)
   
-  EEM.IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em, ex = ex)
-  # note that IFE should be between 0.4 and  0.98 according to McKnight 2001 (doi: 10.4319/lo.2001.46.1.0038)
+  if (EEMsampletype == "SYM") {
+    # call function
+    setwd("/Users/ashlee/SpecScripts") 
+    source("EEMIFECorr_function.R")
+    
+    EEM.IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em, ex = ex)
+    # note that IFE should be between 0.4 and  0.98 according to McKnight 2001 (doi: 10.4319/lo.2001.46.1.0038)
+  }
+  
+  # if sample type = PEM, do NOT do IFE correction
+  if (EEMsampletype == "PEM"){
+    EEM.IFC <- EEM
+  }
   
   ########### Normalize IFE EEM and blank file according to area under Raman peak
+  # Need to do for all EEMs exported from Aqualog
   # call function
   #setwd("/Users/ashlee/Dropbox/R Scripts")
   setwd("/Users/ashlee/SpecScripts") 
   source("Ramancorrect_v1.R")
-
+  
   # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
   em375 <-  as.numeric(grep(375.7, rownames(EEM)))
   em430 <-  as.numeric(grep(429.8, rownames(EEM)))
@@ -177,8 +166,17 @@ for (i in 1:n){
   
   ##################################
   ########### Correct for Blank
-  # Sample - blank = corrected EEM
-  EEM.blk <- EEM.ram - blankram
+  # Only if have not been done in software
+  # corrected EEM = Sample - blank 
+  
+  if (EEMsampletype == "SYM") {
+    EEM.blk <- EEM.ram - blankram
+  }
+  
+  # if sample type = PEM, do NOT do blank correction
+  if (EEMsampletype == "PEM"){
+    EEM.blk <- EEM.ram
+  }
   
   ###########################
   ##### Apply dilution factor to EEM and to Abs file
@@ -187,11 +185,20 @@ for (i in 1:n){
   
   ##################################
   ########### Correct for Raleigh Masking
-  # call function
-  setwd("/Users/ashlee/SpecScripts") 
-  source("EEMRaleigh_function.R")
+  # only if this has not been done within the Aqualog software
   
-  EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
+  if (EEMsampletype == "SYM"){
+    # call function
+    setwd("/Users/ashlee/SpecScripts") 
+    source("EEMRaleigh_function.R")
+  
+    EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
+  }
+  
+  # if Raleigh has already been done in Aqualog software
+  if(EEMsampletype == "PEM"){
+    EEM.rm <- EEM.dil
+  }
   
   ##### Apply correction factor for Fe concentration
   ##### TO DO!!!!!
@@ -201,11 +208,7 @@ for (i in 1:n){
   
   ###########
   ##### Save the corrected EEM
-  #x <- length(EEMcorr)
-  #EEMcorr1 <- EEMcorr[,c(1:(x-4))] #cut out last three columns of Na data. Remove this line eventually ;)
-  # Note that the file still contains two columns of Na's. Will save the original file, and remove this after corrections (saving for PARAFAC)
-  
-  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_CorrectedNEW",".csv", sep = ""))
+  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_Corrected",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
   ###########
@@ -269,7 +272,7 @@ for (i in 1:n){
   ylimit <- range(240, 450, finite = TRUE)
   
   numcont = 100 # number of contour levels you want: Change if you want
- 
+  
   ##### contour plotting function
   library(gplots)
   
@@ -282,12 +285,9 @@ for (i in 1:n){
   
   g <- length(EEMcorr)
   EEMplot <- EEMcorr # not cutting out the last two columns
-  # EEMplot <- EEMcorr[,c(1:(g-4))] #cut out last three columns of Na data. Remove this line eventually ;)
-  # EEMplot <- EEMcorr[,complete.cases(EEMcorr)] omits everything
-  # create new dataset without missing data 
-  
   EEMplot[EEMplot<0]=0 # have line so that if fluorescence is less than 0, becomes 0.
-  explot = as.numeric(colnames(EEMplot)) #cut out the last two wavelengths.. these are filled with Nas and cut out before saving EEMS
+  
+  explot = as.numeric(colnames(EEMplot)) 
   emplot = as.numeric(row.names(EEMplot))
   
   jpeg(file=plotpath)
@@ -296,7 +296,6 @@ for (i in 1:n){
   
   # note that the above is meant to be a crude graphing - better graphing done in matlab once
   # you figure out the max emission for your dataset (normalize all of the plots to this)
-  
 }
 
 #### End of loop!
