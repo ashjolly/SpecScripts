@@ -45,7 +45,7 @@ EEMfilecomp <- function(workdir, dil, EEMfiletype) {
   y = length(filelist_EEMS)
   
   for (i in 1:y){
-    sample.ID.temp <- strapplyc(filelist_EEMS[i], "001(.*)SYM", simplify = TRUE)
+    sample.ID.temp <- strapplyc(filelist_EEMS[i], "001(.*)", simplify = TRUE)
     sample.ID[i] <- sample.ID.temp
   }
   filelist_EEMS <- cbind(filelist_EEMS, sample.ID)
