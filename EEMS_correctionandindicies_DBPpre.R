@@ -1,19 +1,10 @@
-###
-# DBP prechlorination files
-# things that Script needs to do
+# File for correcting EEMS from DBP pre chlorination
+# Note that this script is very similat to 'EEMS_Correctionandindicies_DBPpost" previously file (overwritten) 
+# with the exception that you now specify whether you want to load corrected EEM files ("PEM.dat") files, or raw EEMS without any corrections 
+# done in the software ("SYM.dat")
 
-# 1. Correct EEMS for Raman
-# 2. Correct EEMS and absorbance for dilution factor as well as iron interferences
-# 2. Calculate absorbance indicies from absorbance file
-# 4. Calculate fluorescence indicies (FI, Humification, freshness)
-# 5. Save corrected file and file containing parameters
-# 6. Plot contour and save as jpeg file
-
-# Note that this script just calls multiple scripts in which the actual calculation is done. No
-# actual calculations are done in this script, other than dilution factor. Everything else written 
-# in another script
-
-## Recommended progress of corrections from McKnight Lab:
+# The code will then correct SYM according to this order:
+# (Note that the CDOM community typically corrects in the following order):
 # Instrument Correct the Raman file - done in software
 # Instrument Correct and Raman Normalize the Blank
 # Instrument Correct the Sample - done in software
@@ -21,14 +12,21 @@
 # Raman Normalize the Sample
 # Blank Subtract
 
-## To do's - 
-# Fe Corrections
-# Investigate why it is cutting out the end of two columns
-# also add in BIX to fluorescence indicies script - same as FrI!
-# Saves having to rename files as in matlab script! as well as copy them into matlab folder
-###########
+# PEM.dat files have been corrected by AJ for blank, IFE and Raleigh (just needs Raman)
+# there was some question in summer 2015 about the order of this correction versus that accepted by the CDOM community
+# (Aqualog software = blank, IFE, Raleigh and then Raman)
+# According to Adam Gimore from Horiba, as well as from studies done by Rose Cory, the fact that Aqualog does the blank correctio
+# prior to others shouldn't matter, and doesn't affect the calculation of inidicies or modelling
+# Also, they showed that doing the blank correction first is more accurate if the quality of the blank is called into question
+# Specifically, that doing the blank subtraction after Raman, etc can introduce negatives if there are elements in the blank
+# and that this can amplify artifacts present within the blank...
 
-## set working directory
+# Code allows user to specify which type of EEM is used.
+
+# 22july2015
+# fudge I hope this is the last time I dos this... :0
+######################
+## clear workspace
 rm(list = ls())
 ls()
 
@@ -39,9 +37,8 @@ library(reshape)
 library(plyr)
 library(gsubfn)
 
-######
 ####
-# DBP Prechlorination folders
+# DBP Pre chlorination
 # directory with all of the fluorescence files
 directoryall <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
 
@@ -56,42 +53,37 @@ directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS"
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
-
-#DBP pre
+#DBP pre dilution file
 dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
                                   sep=",", header = TRUE, col.names = top))
 
 project = "DBPPre"
-
-### Should not have to change anything beyond this
 
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
 setwd("/Users/ashlee/SpecScripts") 
 source("EEMfilecomp_function.R")
 
-data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution)
+data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution, EEMfiletype = "PEM.dat")
 
 #############################################################################
-### set up loop for all files in folders
-Spectral.Indicies = data.frame(matrix(vector(), 0, 17)) #creating an empty vector
-
+# insert empty variables for populating with spectral indicies as well as ex an em vectors
 n = nrow(data.3)
+Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty vector
+ex_all = data.frame(matrix(vector(), 5000, n))
+em_all = data.frame(matrix(vector(), 5000, n))  
 
-ex_all = data.frame(matrix(vector(), 0, n))
-em_all = data.frame(matrix(vector(), 0, n))  
+#ex and em from blank - create dataframe
+ex_blank = data.frame(matrix(vector(), 5000, n))
+em_blank = data.frame(matrix(vector(), 5000, n)) 
 
-#blank - create dataframe
-ex_blank = data.frame(matrix(vector(), 0, n))
-em_blank = data.frame(matrix(vector(), 0, n))
+# 5000 is a placeholder for the number of rows. Note that this speeds the loop in comparison to leaving it as zero.
 
-# Ensure that data.3 table is complete and free of errors before proceeding with loop, otheriwse it won't work.
+### set up loop to correct and calculate indicies from all files in folder
 
 for (i in 1:n){
   
-  # functions to load, trim and correct EEMS data - blank, EEM and files
-  
-  #### load and trim files
+  #### load and trim files: functions to load, trim and correct EEMS data - blank, EEM and files
   #sample name
   samplename <- toString(data.3[i,1]) #column with the sample IDs
   
@@ -130,15 +122,27 @@ for (i in 1:n){
   em = as.numeric((sort(rownames(EEM), decreasing = FALSE)))
   
   ################################## Corrections
-  ########### Correct raw EEM for IFE
-  # call function
-  setwd("/Users/ashlee/SpecScripts") 
-  source("EEMIFECorr_function.R")
+  ########### Correct raw EEM for IFE if sample has not been corrected for this
+  # Determine if needs IFE done if EEM samplename is SYM.dat
+  # Otherwise, if sample name is PEM, IFE has been done in the software
+  EEMsampletype <- strapplyc(as.character(data.3[i,2]), paste(samplename, "(.*).dat", sep = ""), simplify = TRUE)
   
-  EEM.IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em, ex = ex)
-  # note that IFE should be between 0.4 and  0.98 according to McKnight 2001 (doi: 10.4319/lo.2001.46.1.0038)
+  if (EEMsampletype == "SYM") {
+    # call function
+    setwd("/Users/ashlee/SpecScripts") 
+    source("EEMIFECorr_function.R")
+    
+    EEM.IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em, ex = ex)
+    # note that IFE should be between 0.4 and  0.98 according to McKnight 2001 (doi: 10.4319/lo.2001.46.1.0038)
+  }
+  
+  # if sample type = PEM, do NOT do IFE correction
+  if (EEMsampletype == "PEM"){
+    EEM.IFC <- EEM
+  }
   
   ########### Normalize IFE EEM and blank file according to area under Raman peak
+  # Need to do for all EEMs exported from Aqualog
   # call function
   #setwd("/Users/ashlee/Dropbox/R Scripts")
   setwd("/Users/ashlee/SpecScripts") 
@@ -161,8 +165,17 @@ for (i in 1:n){
   
   ##################################
   ########### Correct for Blank
-  # Sample - blank = corrected EEM
-  EEM.blk <- EEM.ram - blankram
+  # Only if have not been done in software
+  # corrected EEM = Sample - blank 
+  
+  if (EEMsampletype == "SYM") {
+    EEM.blk <- EEM.ram - blankram
+  }
+  
+  # if sample type = PEM, do NOT do blank correction
+  if (EEMsampletype == "PEM"){
+    EEM.blk <- EEM.ram
+  }
   
   ###########################
   ##### Apply dilution factor to EEM and to Abs file
@@ -171,11 +184,20 @@ for (i in 1:n){
   
   ##################################
   ########### Correct for Raleigh Masking
-  # call function
-  setwd("/Users/ashlee/SpecScripts") 
-  source("EEMRaleigh_function.R")
+  # only if this has not been done within the Aqualog software
   
-  EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
+  if (EEMsampletype == "SYM"){
+    # call function
+    setwd("/Users/ashlee/SpecScripts") 
+    source("EEMRaleigh_function.R")
+    
+    EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
+  }
+  
+  # if Raleigh has already been done in Aqualog software
+  if(EEMsampletype == "PEM"){
+    EEM.rm <- EEM.dil
+  }
   
   ##### Apply correction factor for Fe concentration
   ##### TO DO!!!!!
@@ -185,11 +207,7 @@ for (i in 1:n){
   
   ###########
   ##### Save the corrected EEM
-  #x <- length(EEMcorr)
-  #EEMcorr1 <- EEMcorr[,c(1:(x-4))] #cut out last three columns of Na data. Remove this line eventually ;)
-  # Note that the file still contains two columns of Na's. Will save the original file, and remove this after corrections (saving for PARAFAC)
-  
-  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_CorrectedNEW",".csv", sep = ""))
+  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_Corrected",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
   ###########
@@ -266,12 +284,9 @@ for (i in 1:n){
   
   g <- length(EEMcorr)
   EEMplot <- EEMcorr # not cutting out the last two columns
-  # EEMplot <- EEMcorr[,c(1:(g-4))] #cut out last three columns of Na data. Remove this line eventually ;)
-  # EEMplot <- EEMcorr[,complete.cases(EEMcorr)] omits everything
-  # create new dataset without missing data 
-  
   EEMplot[EEMplot<0]=0 # have line so that if fluorescence is less than 0, becomes 0.
-  explot = as.numeric(colnames(EEMplot)) #cut out the last two wavelengths.. these are filled with Nas and cut out before saving EEMS
+  
+  explot = as.numeric(colnames(EEMplot)) 
   emplot = as.numeric(row.names(EEMplot))
   
   jpeg(file=plotpath)
@@ -280,7 +295,6 @@ for (i in 1:n){
   
   # note that the above is meant to be a crude graphing - better graphing done in matlab once
   # you figure out the max emission for your dataset (normalize all of the plots to this)
-  
 }
 
 #### End of loop!
@@ -305,9 +319,11 @@ write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = T
 #CMsave <- CMtrim(directory = directoryCorrectedEEMS, projectname = project, minex = "X240")
 
 setwd(directoryCorrectedEEMS) 
-filelist_EEMScor <- list.files(pattern = "_CorrectedNEW.csv$")
-graphheadings = data.frame((0))
+filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
+
 n = length(filelist_EEMScor)
+# graph heading variable
+graphheadings = data.frame((0))
 
 ######## Prepping files for Cory McKnight modelling in Matlab
 ########
@@ -332,16 +348,16 @@ for (i in 1:n){
   #g <- length(temp.EEMS)
   #temp.EEMS.1 <- temp.EEMS[,c(1:(g-4))] #cut out the last four colomns manually
   
-  # resave without the row and column names
+  #resave without the row and column names
   # Also insert "_i" to use in CM modelling
-  samplename <- strapplyc(filelist_EEMScor[i], "(.*)_DBPPre", simplify = TRUE)
   
-  # create graph headings file
-  graphheadings[i] <-paste(samplename, project,"CorrCM_",i, sep = "")
+  samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
+  graphheadings[i,] <-paste(samplename, project,"CorrCM_",i, sep = "")
   
   corrpath <- file.path(directoryCM, paste(samplename, project,"CorrCM_",i,".csv", sep = ""))
   write.table(temp.EEMS, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
-  }
+  
+}
 
 # save ex and em in two separate files, to make it easier to read into CM PARAFAC files
 corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"em",".csv", sep = ""))
@@ -353,7 +369,8 @@ write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, se
 
 # write graph headings file
 corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".csv", sep = ""))
-write.table(t(graphheadings), file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
+write.table(graphheadings, file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
+
 
 ######### DOM Fluor
 ########
@@ -367,8 +384,6 @@ write.table(t(graphheadings), file = corrpath, row.names= FALSE, col.names = FAL
 #x = length(filelist_EEMScorr)
 
 n = length(filelist_EEMScor)
-
-
 for (i in 1:n){
   temp.EEMS <- read.delim(filelist_EEMScor[i], header= TRUE, sep = ",")
   
@@ -403,8 +418,8 @@ for (i in 1:n){
   }
 }
 #seems to have doubled first dataset, remove?
-x = length(em)
-y = dim(dataset)[1]
+x <- length(em)
+y <- dim(dataset)[1]
 dataset.2 <- dataset[c((x+1):y),]
 y <- dim(dataset.2)[1]
 remove(x)
