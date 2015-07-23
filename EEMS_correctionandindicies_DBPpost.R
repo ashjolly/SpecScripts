@@ -352,7 +352,7 @@ for (i in 1:n){
   #resave without the row and column names
   # Also insert "_i" to use in CM modelling
   
-  samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", project, "_Corrected" sep = ""), simplify = TRUE)
+  samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
   graphheadings[i,] <-paste(samplename, project,"CorrCM_",i, sep = "")
   
   corrpath <- file.path(directoryCM, paste(samplename, project,"CorrCM_",i,".csv", sep = ""))
