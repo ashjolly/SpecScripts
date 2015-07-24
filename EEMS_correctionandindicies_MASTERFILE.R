@@ -56,7 +56,7 @@ library(R.matlab)
 # directory with all of the fluorescence files
 directoryall <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
 
-# directory for corrected EEMS
+# directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
 directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMs"
 
 #######
@@ -82,8 +82,7 @@ em375 <-  as.numeric(grep(375.7, rownames(EEM)))
 em430 <-  as.numeric(grep(429.8, rownames(EEM)))
 ex350 <- as.numeric(match(350, colnames(EEM)))
 
-
-# wavlengths for Fluorescence indicies calculation
+# wavelengths for Fluorescence indicies calculation
 # ex wavelengths
 ex370 <- as.numeric(grep(370, colnames(EEMcorr)))
 ex254 <- as.numeric(grep(254, colnames(EEMcorr)))
@@ -260,6 +259,11 @@ for (i in 1:n){
   corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_Corrected",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
+  ###########
+  ##### Save the corrected absorbance file (trimmed and dilution factor accounted for). In same folder as EEMS
+  abscorrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_AbsCorrected",".csv", sep = ""))
+  write.table(Absdil, file = abscorrpath, row.names = TRUE,col.names = TRUE, sep = ",")
+  
   ##########
   # last - plot corrected eems as a contour plot
   #variables to change
@@ -302,11 +306,27 @@ Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty ve
 setwd(directoryCorrectedEEMS) # set directory with EEMS that you corrected according to the loop above
 
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
+filelist_Abscor <- list.files(pattern = "_AbsCorrected.csv$")
+
+# create master file
+#create column with sample ID - extracted from blank filename
+y = length(filelist_Blank)
+
+sample.ID <- 0 #create sample ID variable
+
+for (i in 1:y){
+  sample.ID.temp <- strapplyc(filelist_Blank[i], "001(.*)BEM", simplify = TRUE)
+  sample.ID[i] <- sample.ID.temp
+}
+filelist_Blank <- cbind(filelist_Blank, sample.ID)
+
+
 n = length(filelist_EEMScor)
 for (i in i:n){
   ###########
   # Calculating absorbance indicies
-  # load the 
+  # load the Abs file
+  abs.temp <-as.data.frame(read.delim(filelist, header= FALSE, sep = "", stringsAsFactors=FALSE))
   
   # call function
   setwd("/Users/ashlee/SpecScripts") 
