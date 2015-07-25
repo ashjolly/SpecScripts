@@ -26,22 +26,27 @@
 # 2. Raman correct them
 # 3. IFE correct them
 # 4. account for dilution factor. 
-# 5. Run eemscat.m file from matlab
-
-# After this 
-
-# Note that Raleigh corrections are done in Matlab with "eemscat.m" file from Rasmus Bro et al. 
-# This file interpolates in Raleigh and Raman regions, rather than
-# Code allows user to specify which type of EEM is used.
+# 5. Run eemscat.m file from matlab IN THE FUTURE. for now it doesn't
+# 6. Calculate Abs and Fluor indicies from corrected files
+# Trim and save files in correct locations for CM and Dr EEMS modelling
 
 # 22july2015
 # fudge I hope this is the last time I dos this... :0
+
+# TO DOS:
+# 1. INTERFACE WITH script for interpolating Raleigh data in Matlab. Call matlab from the script in correction loop and use to correct
+# Note that Raleigh corrections are done in Matlab with "eemscat.m" file from Rasmus Bro et al. 
+# This file interpolates in Raleigh and Raman regions, rather than
+# Code allows user to specify which type of EEM is used. Ultimatley it would be great to run this from here, but not Raleigh correcting prior to 
+# calculating indicies shouldn't matter
+
+#2. Fe corrections?
+
 ######################
 
 ## clear workspace
 rm(list = ls())
 ls()
-
 #######
 # get file list for the blank, absorbance and EEMS file
 
@@ -244,42 +249,50 @@ for (i in 1:n){
   
   # this portion of the script runs the eemscat.m function to get the interpolated spectra. Last correction before saving
   
-  if (EEMsampletype == "SYM"){
+  #if (EEMsampletype == "SYM"){
     # call matlab to run 'eemscat.m' file
-    library(R.matlab)
+    #library(R.matlab)
     # Communicate with Matlab. Note that you have to start server in matlab, see(matlab(help()))
     # start matlab server
     #Matlab$startServer()
-    matlab <- Matlab()
-    isOpen <- open(matlab)
+    #matlab <- Matlab()
+    #isOpen <- open(matlab)
     
     #  Create array from corrected EEMS to run in matlab script
-    X = as.array(EEM.dil)
+    #X = as.matrix(EEM.dil)
+    #X = as.array(X)
     # open the eemscat file in matlab
     
+    #test send variable to matlab
+
+    #setVariable(matlab, x = X)
+    #evaluate(matlab, "x")
     #evaluate(matlab, 
              
-             #"[EEM_correct,EEM_Cutted_rrr2]=eemscat2(X,MissRayleh,MissRaman,MissRayleh2);")
+     #"[EEM_correct,EEM_Cutted_rrr2]=eemscat2(X,MissRayleh,MissRaman,MissRayleh2);")
     
     # When done, close the MATLAB client, which will also shutdown
     # the MATLAB server and the connection to it.
-    close(matlab)
+    #close(matlab)
     
     # Check status of MATLAB connection (now disconnected)
-    print(matlab)
+    #print(matlab)
     
     # call function
-    setwd("/Users/ashlee/SpecScripts") 
-    source("EEMRaleigh_function.R")
+    #setwd("/Users/ashlee/SpecScripts") 
+    #source("EEMRaleigh_function.R")
   
-    EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
-  }
+    #EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
+  #}
   
   # if Raleigh has already been done in Aqualog software (inserted 0's, not the best option)
-  if(EEMsampletype == "PEM"){
-    EEM.rm <- EEM.dil
-  }
+  #if(EEMsampletype == "PEM"){
+  #  EEM.rm <- EEM.dil
+  #}
   
+    #temp line as a placeholder until you can get R to run matlab script
+    EEM.rm <- EEM.dil
+    
   ##### Apply correction factor for Fe concentration
   ##### TO DO!!!!!
   
