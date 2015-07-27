@@ -360,7 +360,7 @@ filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, pr
 
 n = dim(filelist_EEMScor)[1]
 
-for (i in i:n){
+for (i in 1:n){
   
   ###########
   # Calculating absorbance indicies
