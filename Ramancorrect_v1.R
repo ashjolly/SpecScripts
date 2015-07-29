@@ -1,7 +1,8 @@
 ###
-# function for Raman correcting file
+# function for correcting EEMS according to area under Raman peak of water blank
 # Adapted from matlab script
-# March 11 2015
+# March 11 2015#
+# Ashlee Jollymore's PhD project
 ############
 
 #get correction factor
