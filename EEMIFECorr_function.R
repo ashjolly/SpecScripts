@@ -6,6 +6,7 @@
 # 2. 
 # 30June2015
 # Note that this gives the IFE correction factor, with the actual correction calculated in the loop
+# Ashlee Jollymore's PhD project
 ############
 
 # EEM.IFC = EEM*10.^(0.5*IFC) #perform inner filter calculation
