@@ -495,7 +495,7 @@ ex.PARAFAC <- seq(240, 800, by = 2)
 write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
 
 # write graph headings file
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".csv", sep = ""))
+corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".txt", sep = ""))
 write.table(graphheadings, file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
 
 
