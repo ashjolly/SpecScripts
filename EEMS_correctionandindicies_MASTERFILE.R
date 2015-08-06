@@ -260,7 +260,7 @@ for (i in 1:n){
     setwd("/Users/ashlee/SpecScripts") 
     source("EEMRaleigh_function.R")
   # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
-    EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 20)
+    EEM.rm <- raleigh(eem = EEM.dil, slitwidth1 = 20, slitwidth2 = 20)
   }
   
   # if Raleigh has already been done in Aqualog software (inserted 0's, not the best option)
