@@ -55,6 +55,7 @@ library(plyr)
 library(gsubfn)
 library(gplots)
 library(R.matlab)
+library(zoo)
 
 ####
 # DBP Post chlorination
@@ -247,51 +248,24 @@ for (i in 1:n){
   # Also see DOI http://dx.doi.org/10.1016/j.chemolab.2015.01.017 explaination of why interpolating
   # through the Raleigh scatter is the best option in terms of PARAFAC modelling
   
+  # R script emulates the interpolation script found here (interpolation according to the matlab file above)
+  # Don't know why I can;t get that gawd damned script to work. Oh well ;)
+  
   # this portion of the script runs the eemscat.m function to get the interpolated spectra. Last correction before saving
   
-  #if (EEMsampletype == "SYM"){
-    # call matlab to run 'eemscat.m' file
-    #library(R.matlab)
-    # Communicate with Matlab. Note that you have to start server in matlab, see(matlab(help()))
-    # start matlab server
-    #Matlab$startServer()
-    #matlab <- Matlab()
-    #isOpen <- open(matlab)
-    
-    #  Create array from corrected EEMS to run in matlab script
-    #X = as.matrix(EEM.dil)
-    #X = as.array(X)
-    # open the eemscat file in matlab
-    
-    #test send variable to matlab
-
-    #setVariable(matlab, x = X)
-    #evaluate(matlab, "x")
-    #evaluate(matlab, 
-             
-     #"[EEM_correct,EEM_Cutted_rrr2]=eemscat2(X,MissRayleh,MissRaman,MissRayleh2);")
-    
-    # When done, close the MATLAB client, which will also shutdown
-    # the MATLAB server and the connection to it.
-    #close(matlab)
-    
-    # Check status of MATLAB connection (now disconnected)
-    #print(matlab)
-    
-    # call function
-    #setwd("/Users/ashlee/SpecScripts") 
-    #source("EEMRaleigh_function.R")
+  if (EEMsampletype == "SYM"){
   
-    #EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 10)
-  #}
+    # call function
+    setwd("/Users/ashlee/SpecScripts") 
+    source("EEMRaleigh_function.R")
+  # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
+    EEM.rm <- raleigh(eem = EEM.dil, slitwidth = 20)
+  }
   
   # if Raleigh has already been done in Aqualog software (inserted 0's, not the best option)
-  #if(EEMsampletype == "PEM"){
-  #  EEM.rm <- EEM.dil
-  #}
-  
-    #temp line as a placeholder until you can get R to run matlab script
+  if(EEMsampletype == "PEM"){
     EEM.rm <- EEM.dil
+  }
     
   ##### Apply correction factor for Fe concentration
   ##### TO DO!!!!!
@@ -301,7 +275,7 @@ for (i in 1:n){
   
   ###########
   ##### Save the corrected EEM
-  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_Corrected",".csv", sep = ""))
+  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_CorrectedNEW",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
   ###########
@@ -325,7 +299,7 @@ for (i in 1:n){
   source("EEM_contour_v1.R")
   
   #Plot contours and save in correction file
-  plotpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project, "_Contour",".jpeg", sep = ""))
+  plotpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project, "_ContourNEW",".jpeg", sep = ""))
   
   g <- length(EEMcorr)
   EEMplot <- EEMcorr # not cutting out the last two columns
