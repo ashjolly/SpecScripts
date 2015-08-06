@@ -54,18 +54,13 @@ raleigh <- function(eem, slitwidth){
     tempem = as.character(subset(em, em >=lower & em <= upper))
     
     # Cut out the zeros, replace with NaN
-    Acut[c(tempem),j]= 0
-    temp.data = cbind(em, Acut[,j])
-    rownames(temp.data) = em
-    
+    Acut[c(tempem),j]= NaN
+
     #interpolate 
-    #interp1(x, y, xi = x,
-    #        method = c("constant", "linear", "nearest", "spline", "cubic"))
-    test = interp1(temp.data[,1], temp.data[,2], temp.data[(tempem),2], method = c("cubic"), extrap = 'extrap')
+    # gap fill using na.spline function n zoo package. Uses polynomical gap filling
+    library('zoo')
     
-    Acut[tempem,j]= interp1(em, Acut[,j], as.numeric(tempem), 
-                            method = c("cubic"), 'extrap')
-    
+    Acut[,j]= na.spline(Acut[,j])
     
   }
 
