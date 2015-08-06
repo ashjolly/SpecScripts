@@ -47,6 +47,8 @@ raleigh <- function(eem, slitwidth){
 
   # Interpolate second order Raleigh lines
   library('pracma')
+  library('zoo')
+  
   for (j in 1:length(ex)){
     
     upper = (ex[j]*2)+slitwidth
@@ -58,7 +60,6 @@ raleigh <- function(eem, slitwidth){
 
     #interpolate 
     # gap fill using na.spline function n zoo package. Uses polynomical gap filling
-    library('zoo')
     
     Acut[,j]= na.spline(Acut[,j])
     
