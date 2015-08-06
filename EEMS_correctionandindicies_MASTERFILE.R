@@ -56,6 +56,7 @@ library(gsubfn)
 library(gplots)
 library(R.matlab)
 library(zoo)
+library(pracma)
 
 ####
 # DBP Post chlorination
