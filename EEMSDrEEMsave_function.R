@@ -4,10 +4,13 @@
 # Ashlee Jollymore's PhD Project
 ##################
 
-DrEEM = function(filelist, project, samplename, exmin, filedirectory, ex) {
+DrEEM = function(filelist, project, exmin, filedirectory, ex) {
 
   # set working directory with sample files
   setwd(filedirectory) 
+  
+  # create sample ID list to populate
+  sampleID = data.frame((0))
   
   n = length(filelist)
   for (i in 1:n){
@@ -38,7 +41,11 @@ DrEEM = function(filelist, project, samplename, exmin, filedirectory, ex) {
      temp_dataset <-temp.EEMS
       dataset<-rbind(dataset, temp_dataset)
       rm(temp_dataset)
-      }
+    }
+    
+    # create list with sample IDs in it
+    samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
+    sampleID[i] <- samplename
   }
   
   #seems to have doubled first dataset, remove?
@@ -64,7 +71,7 @@ DrEEM = function(filelist, project, samplename, exmin, filedirectory, ex) {
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #File containing sample names
-  write.table(samplename, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/01key.csv",sep = "")), 
+  write.table(sampleID, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/01key.csv",sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   return(dataset.2)
