@@ -258,7 +258,7 @@ for (i in 1:n){
     setwd("/Users/ashlee/SpecScripts") 
     source("EEMRaleigh_function.R")
     # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
-    EEM.rm <- raleigh(eem = EEM.dil, slitwidth1 = 20, slitwidth2 = 20)
+    EEM.rm <- raleigh(eem = EEM.dil, slitwidth1 = 15, slitwidth2 = 15)
   }
   
   # if Raleigh has already been done in Aqualog software (inserted 0's, not the best option)
@@ -274,7 +274,7 @@ for (i in 1:n){
   
   ###########
   ##### Save the corrected EEM
-  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_Corrected",".csv", sep = ""))
+  corrpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project,"_CorrectedInterp",".csv", sep = ""))
   write.table(EEMcorr, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
   
   ###########
@@ -298,7 +298,7 @@ for (i in 1:n){
   source("EEM_contour_v1.R")
   
   #Plot contours and save in correction file
-  plotpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project, "_Contour",".jpeg", sep = ""))
+  plotpath <- file.path(directoryCorrectedEEMS, paste(samplename,"_", project, "_ContourInterp",".jpeg", sep = ""))
   
   g <- length(EEMcorr)
   EEMplot <- EEMcorr # not cutting out the last two columns
