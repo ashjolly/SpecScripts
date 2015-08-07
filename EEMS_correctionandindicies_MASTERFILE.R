@@ -122,7 +122,7 @@ source("EEMfilecomp_function.R")
 # or files processed in Aqualog software (EEMfiletype ="PEM.dat")
 
 data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution, EEMfiletype = "SYM.dat")
-
+sampleID <- data.3$sample.ID
 # Should not have to change anything below this!
 ##########################################################################################################################################################
 
@@ -318,7 +318,7 @@ for (i in 1:n){
 }
 #### End of corrections loop!
 
-######################
+########################################################################################
 ######### Loop over corrected files in the to calculate indicies
 
 Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty vector
@@ -332,7 +332,6 @@ filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, pr
 
 # set directory with EEMS that you corrected according to the loop above
  
-
 n = dim(filelist_EEMScor)[1]
 
 for (i in 1:n){
@@ -405,6 +404,7 @@ for (i in 1:n){
 corrpath <- file.path(directoryCorrectedEEMS, paste(project, "SpectralIndicies.csv", sep = ""))
 write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = TRUE, sep = ",")
 
+####################################################################################################################################
 ############################ Cutting EEMS for Cory McKnight and DOM Fluor toolbox
 ########
 # Ensure that EEMS are all the same size + works for both the CM code as well as the DOMFluor toolbox to code together
@@ -424,12 +424,13 @@ setwd(directoryCorrectedEEMS)
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 
 n = length(filelist_EEMScor)
-# graph heading variable
-graphheadings = data.frame((0))
 
 ######## Prepping files for Cory McKnight modelling in Matlab
 ########
 # CM - take out row and column names in first column and row and save in CM folder
+
+# graph heading variable
+graphheadings = data.frame((0))
 
 for (i in 1:n){
   temp.EEMS <- read.delim(filelist_EEMScor[i], header= TRUE, sep = ",")
@@ -473,7 +474,7 @@ write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, se
 corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".txt", sep = ""))
 write.table(graphheadings, file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
 
-
+####################################################################################################################################
 ######### DOM Fluor
 ########
 # Get files ready for DOMFLuor toolbox. 
@@ -484,6 +485,16 @@ write.table(graphheadings, file = corrpath, row.names= FALSE, col.names = FALSE,
 #setwd(directoryCorrectedEEMS) 
 #filelist_EEMScorr <- list.files(path = directoryCorrectedEEMS, pattern = "Corrected.csv$")
 #x = length(filelist_EEMScorr)
+
+# Use Save Dr EEMS function
+# Inputs include the filelist, the project, the vector containing sample names, and the excitation wavelength min you want to trim to
+
+setwd("/Users/ashlee/SpecScripts") 
+source("EEMSDrEEMsave_function.R")
+
+ex.DrEEMS = seq(240, 800, by = 2)
+DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
+                   samplename = sampleID, exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS)
 
 n = length(filelist_EEMScor)
 for (i in 1:n){
