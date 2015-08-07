@@ -32,14 +32,14 @@ project <- "DBPdelta"
 # create file that matches the pre and post files together
 ######## Prechlor files
 setwd(prechlor.files)
-filelist_pre <- list.files(pattern = "_Corrected.csv$")
+filelist_pre <- list.files(pattern = "_CorrectedInterp.csv$")
 filelist_preAbs <- list.files(pattern = "AbsCorrected.csv$")
 
 # Get sample ID from pre chlor files - EEMS
 sample.ID <- 0 #create sample ID variable
 n = length(filelist_pre)
 for (i in 1:n){
-  sampleID.pre.temp <- strapplyc(filelist_pre[i], "DBP(.*)_DBPPre_Corrected.csv", simplify = TRUE)
+  sampleID.pre.temp <- strapplyc(filelist_pre[i], "DBP(.*)_DBPPre_CorrectedInterp.csv", simplify = TRUE)
   sample.ID[i] <- sampleID.pre.temp 
 }
 
@@ -62,14 +62,14 @@ filelist_pre <- as.data.frame(merge(filelist_preEEMS, filelist_preAbs, by = "sam
 # Get sample ID from post chlor files
 #postchlor
 setwd(postchlor.files)
-filelist_post <- list.files(pattern = "_Corrected.csv$")
+filelist_post <- list.files(pattern = "_CorrectedInterp.csv$")
 filelist_postAbs <- list.files(pattern = "AbsCorrected.csv$")
 
 # get sample ID from EEMS
 sample.ID <- 0 #reset sample ID variable
 n = length(filelist_post)
 for (i in 1:n){
-  sampleID.post.temp <- strapplyc(filelist_post[i], "DBPChlor(.*)_DBPPost_Corrected.csv", simplify = TRUE)
+  sampleID.post.temp <- strapplyc(filelist_post[i], "DBPChlor(.*)_DBPPost_CorrectedInterp.csv", simplify = TRUE)
   sample.ID[i] <- sampleID.post.temp 
 }
 
@@ -229,5 +229,10 @@ for (i in 1:n){
 corrpath <- file.path(delta.eems, paste(project, "FluorIndicies.csv", sep = ""))
 write.table(Spec.ind, file = corrpath, row.names = FALSE, col.names = TRUE, sep = ",")
 
+##############
+# Compile for CM Modelling
+# Compile the delta EEMS for modelling with CM model
 
-
+##############
+# Compile for DrEEMs modelling
+# Compile the delta EEMS file so that can use the DrEEMS package to model
