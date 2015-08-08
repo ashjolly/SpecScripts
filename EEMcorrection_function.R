@@ -6,7 +6,7 @@
 # Ashlee Jollymore's PhD project
 ################
 
-corrections = function(data.3, directoryall, directoryCorrectedEEMS) {
+corrections = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth1, slitwidth2, em.375, em.430, ex.350) {
   
   # set working directory where all uncorrected EEMS, blank and absorbance files are
   setwd(directoryall)
@@ -38,6 +38,10 @@ corrections = function(data.3, directoryall, directoryCorrectedEEMS) {
     source("EEMfileLoadTrim_function.R")
     EEM <- EEMtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
     
+    #ex and em wavelengths
+    ex = as.numeric((sort(colnames(EEM), decreasing = TRUE)))
+    em = as.numeric((sort(rownames(EEM), decreasing = FALSE)))
+    
     #em_all is a variable that holds all of the em wavelengths. It's a way of seeing if em wavelengths are different between samples
     em_all = rbind(em_all, rownames(EEM))
     #ex_all is a variable that holds all of the ex wavelengths. It's a way of seeing if ex wavelengths are different between samples
@@ -61,10 +65,6 @@ corrections = function(data.3, directoryall, directoryCorrectedEEMS) {
     #### identify dilution factor in master file
     # Dilution = column 5 in data.3
     dil = data.3[i,5]
-    
-    #ex and em wavelengths
-    ex = as.numeric((sort(colnames(EEM), decreasing = TRUE)))
-    em = as.numeric((sort(rownames(EEM), decreasing = FALSE)))
     
     ################################## Corrections
     ########### IFE: Correct raw EEM for IFE if sample has not been corrected for this
@@ -146,7 +146,7 @@ corrections = function(data.3, directoryall, directoryCorrectedEEMS) {
       setwd("/Users/ashlee/SpecScripts") 
       source("EEMRaleigh_function.R")
       # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
-      EEM.rm <- raleigh(eem = EEM.dil, slitwidth1 = 15, slitwidth2 = 15)
+      EEM.rm <- raleigh(eem = EEM.dil, slitwidth1, slitwidth2)
     }
     
     # if Raleigh has already been done in Aqualog software (inserted 0's, not the best option)

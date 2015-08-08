@@ -11,7 +11,7 @@
 
 # EEM.IFC = EEM*10.^(0.5*IFC) #perform inner filter calculation
 
-innerfilter <- function(eem, abs, emfluor, exfluor) {
+innerfilter <- function(eem, abs, em, ex) {
   
   # em fluor = emission wavelength at which fluorescence EEM was collected
   # ex fluor = excitation wavelength at which fluorescence EEM was collected

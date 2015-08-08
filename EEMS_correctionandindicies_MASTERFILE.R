@@ -42,7 +42,7 @@
 
 #2. Fe corrections?
 
-######################
+##############################################################################################################
 
 ## clear workspace
 rm(list = ls())
@@ -122,9 +122,23 @@ source("EEMfilecomp_function.R")
 # or files processed in Aqualog software (EEMfiletype ="PEM.dat")
 
 data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution, EEMfiletype = "SYM.dat")
-sampleID <- data.3$sample.ID
+
 # Should not have to change anything below this!
+
 ##########################################################################################################################################################
+# Run corrections on all files contained within the data.3 vector
+# This function will basically run different functions for running corrections
+# Basically will take all uncorrected EEMS within a folder, and apply functions for corrections
+# Avoids having the loop within the script - idea is to make corrections more adaptable between different projects and easier to apply
+
+setwd("/Users/ashlee/SpecScripts") 
+source("EEMcorrection_function.R")
+wavelengths = corrections(data.3 = data.3, directoryall = directoryall, directoryCorrectedEEMS = directoryCorrectedEEMS, 
+                          slitwidth1 = 15, slitwidth2 = 15,
+                          em.375 = em.375, em.430 = em.430, ex.350 = ex.350)
+
+# will return vector with ex and em wavlenegths for samplesa s well as for blank. Check?
+wavelengths
 
 # insert empty variables for populating with ex an em vectors
 n = nrow(data.3) #number of files you are going to correct in the file. Double check ths prior to proceeding
@@ -320,7 +334,6 @@ for (i in 1:n){
 
 ########################################################################################
 ######### Loop over corrected files in the to calculate indicies
-
 Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty vector
 
 # create master file with abs and EEMs corrected file names aligned according to sample ID
@@ -409,148 +422,46 @@ write.table(Spectral.Indicies, file = corrpath, row.names = FALSE, col.names = T
 ########
 # Ensure that EEMS are all the same size + works for both the CM code as well as the DOMFluor toolbox to code together
 # For DBP, this means ex = 240-800 in 2 nm incrmenets, noting that the  
-# filelist of corrected EEMS
 
-# call function that trims EEMS according to the min ex wavelength that you specify.
-# note that you have to look at teh files to see what the ex and em ranges of the samples are.
-# These are held in em_all and ex_all
-
-#setwd("/Users/ashlee/SpecScripts") 
-#source("EEMCMtrim_function.R")
-
-#CMsave <- CMtrim(directory = directoryCorrectedEEMS, projectname = project, minex = "X240")
+# filelist of corrected EEMS - for both types of PARAFAC modelling
 
 setwd(directoryCorrectedEEMS) 
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 
-n = length(filelist_EEMScor)
-
 ######## Prepping files for Cory McKnight modelling in Matlab
 ########
-# CM - take out row and column names in first column and row and save in CM folder
+# CM - prepping for CM PARAFAC model
+# Function does three things: trims EEMS according to specified min eexitation wavlenegth
+# take out row and column names in first column and row and save in CM folder with _i as per graph headins file
+# Also creates ex and em files, as well as graph headings file as txt file and saves in CM file
+# Lastly, creates and saves graph headings file as txt file, which the function returns to double check
 
-# graph heading variable
-graphheadings = data.frame((0))
+ex.PARAFAC <- seq(240, 800, by = 2) #change if excitation wavlenegths are different
 
-for (i in 1:n){
-  temp.EEMS <- read.delim(filelist_EEMScor[i], header= TRUE, sep = ",")
-  
-  #trim so that exitation and emission goes from the same
-  ex.temp <- colnames(temp.EEMS)
-  
-  if(ex.temp[1] != "X240") {
-    # if first value in ex.temp is not 240, trim 
-    ex.length <- length(ex.temp)
-    # find column where the exitation wavelength is 240 to cut from
-    x240 = as.numeric(match("X240",names(temp.EEMS)))
-    temp.EEMS <- temp.EEMS[,c(x240:ex.length)]
-  } 
-  
-  # cut out any columns containing Nas- this is 798 and 800 nm. Must cut last four rows of data from 20april2015
-  #temp.EEMS.1 <- na.omit(temp.EEMS)
-  #g <- length(temp.EEMS)
-  #temp.EEMS.1 <- temp.EEMS[,c(1:(g-4))] #cut out the last four colomns manually
-  
-  #resave without the row and column names
-  # Also insert "_i" to use in CM modelling
-  
-  samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
-  graphheadings[i,] <-paste(samplename, project,"CorrCM_",i, sep = "")
-  
-  corrpath <- file.path(directoryCM, paste(samplename, project,"CorrCM_",i,".csv", sep = ""))
-  write.table(temp.EEMS, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
-  
-}
+# call function
+setwd("/Users/ashlee/SpecScripts") 
+source("EEMCMtrim_function.R")
+CMsave <- CMtrim(filedirectory = directoryCorrectedEEMS, filelist = filelist_EEMScor, project = project, exmin = "X240",
+                 directoryCM = directoryCM, ex = ex.PARAFAC)
 
-# save ex and em in two separate files, to make it easier to read into CM PARAFAC files
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"em",".csv", sep = ""))
-write.table(em, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
-
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
-ex.PARAFAC <- seq(240, 800, by = 2)
-write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
-
-# write graph headings file
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".txt", sep = ""))
-write.table(graphheadings, file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
+# check graph headings file returned by function
+CMsave
 
 ####################################################################################################################################
 ######### DOM Fluor
 ########
 # Get files ready for DOMFLuor toolbox. 
-# Need .csv file for ex, em and one csv file containing all of the fluorescence compiled
-
-#compiled file containing all fluorescence data
-# first, cut files so that they go from 240 - 800 nm
-#setwd(directoryCorrectedEEMS) 
-#filelist_EEMScorr <- list.files(path = directoryCorrectedEEMS, pattern = "Corrected.csv$")
-#x = length(filelist_EEMScorr)
-
+# Need .csv file for ex, em and one csv file containing all of the fluorescence EEMS compiled
 # Use Save Dr EEMS function
 # Inputs include the filelist, the project, the vector containing sample names, and the excitation wavelength min you want to trim to
+# File cuts EEMs from ex min that you want to
 
 setwd("/Users/ashlee/SpecScripts") 
 source("EEMSDrEEMsave_function.R")
 
 ex.DrEEMS = seq(240, 800, by = 2)
 DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
-                   samplename = sampleID, exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS)
+                  exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS)
 
-n = length(filelist_EEMScor)
-for (i in 1:n){
-  temp.EEMS <- read.delim(filelist_EEMScor[i], header= TRUE, sep = ",")
-  
-  #trim so that exitation and emission goes from the same
-  ex.temp <- colnames(temp.EEMS)
-  
-  if(ex.temp[1] != "X240") {
-    # if first value in ex.temp is not 240, trim 
-    ex.length <- length(ex.temp)
-    # find column where the exitation wavelength is 240 to cut from
-    x240 = as.numeric(match("X240",names(temp.EEMS)))
-    temp.EEMS <- temp.EEMS[,c(x240:ex.length)]
-  } 
-  
-  # cut out any columns containing Nas- this is 798 and 800 nm. Must cut last four rows of data from 20april2015
-  #temp.EEMS.1 <- na.omit(temp.EEMS) #DOESN'T WORK!! omits everything
-  #g <- length(temp.EEMS)
-  #temp.EEMS.1 <- temp.EEMS[,c(1:(g-4))] #cut out the last four colomns manually
-  
-  # create a new dataset where the post-cut EEMS are compiled together by rows
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("dataset")){
-    dataset <- temp.EEMS
-  }
-  
-  # if the merged dataset does exist, append to it
-  if (exists("dataset")){
-    temp_dataset <-temp.EEMS
-    dataset<-rbind(dataset, temp_dataset)
-    rm(temp_dataset)
-  }
-}
-#seems to have doubled first dataset, remove?
-x <- length(em)
-y <- dim(dataset)[1]
-dataset.2 <- dataset[c((x+1):y),]
-y <- dim(dataset.2)[1]
-remove(x)
-remove(y)
-
-corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
-
-write.table(dataset.2, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project, "/fl.csv", sep = "")),
-            row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
-
-#Ex file
-write.table(ex.PARAFAC, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/Ex.csv", sep = "")),
-            row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
-
-#Em
-write.table(em, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/Em.csv", sep = "")), 
-            row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
-
-#File containing sample names
-write.table(samplename, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/01key.csv",sep = "")), 
-            row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
+# check DrEEM.data. This is the compiled EEMS for DrEEM PARAFAC modelling
+head(DrEEM.data)
