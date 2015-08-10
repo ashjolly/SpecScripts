@@ -5,11 +5,11 @@
 # AJ PhD project
 ##################
 
-abseemfilecomp <- function(directoryAbsEEMs, projectname){
+abseemfilecomp <- function(directoryAbsEEMs, projectname, filelist_EEMScor){
   
   setwd(directoryAbsEEMs)
   #create column with sample ID - extracted from corrected EEMS filename
-  filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
+  
   y = length(filelist_EEMScor)
   
   sample.ID <- 0 #create sample ID variable
