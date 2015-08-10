@@ -6,7 +6,8 @@
 # Ashlee Jollymore's PhD project
 ################
 
-EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth1, slitwidth2, em.375, em.430, ex.350){
+EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth1, slitwidth2, 
+                         ex.wavelengths, em.wavelengths){
   
   # set working directory where all uncorrected EEMS, blank and absorbance files are
   setwd(directoryall)
@@ -92,11 +93,11 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     setwd("/Users/ashlee/SpecScripts") 
     source("Ramancorrect_v1.R")
     
-    # wavlengths for Raman corrections
+    # wavelengths for Raman corrections
     # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
-    em375 <-  as.numeric(grep(em.375, rownames(EEM)))
-    em430 <-  as.numeric(grep(em.430, rownames(EEM)))
-    ex350 <- as.numeric(match(ex.350, colnames(EEM)))
+    em375 <- as.numeric(grep(em.wavelengths[c("em.375"),], rownames(EEM)))
+    em430 <- as.numeric(grep(em.wavelengths[c("em.430"),], rownames(EEM)))
+    ex350 <- as.numeric(match(ex.wavelengths[c("ex.350"),], colnames(EEM)))
     
     # get the Raman correction file from the Raman function stored
     Raman.area <- Ramancor(blank = Blktrim) 
