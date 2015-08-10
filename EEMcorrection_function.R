@@ -6,7 +6,7 @@
 # Ashlee Jollymore's PhD project
 ################
 
-corrections = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth1, slitwidth2, em.375, em.430, ex.350) {
+EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth1, slitwidth2, em.375, em.430, ex.350){
   
   # set working directory where all uncorrected EEMS, blank and absorbance files are
   setwd(directoryall)
