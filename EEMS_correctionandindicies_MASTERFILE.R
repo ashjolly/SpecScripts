@@ -113,6 +113,9 @@ em.350 <- 350
 em.410 <- 410
 em.430 <- 430
 
+waves <- data.frame(rbind(ex.370, ex.254, ex.310,ex.274,ex.276,ex.320,ex.340,
+                                em.470,em.520,em.435,em.480,em.300,em.345,em.380,em.420,em.436,em.350,em.410,em.430))
+
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
 setwd("/Users/ashlee/SpecScripts") 
@@ -133,12 +136,12 @@ data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution, EEMfiletype = "SYM.
 
 setwd("/Users/ashlee/SpecScripts") 
 source("EEMcorrection_function.R")
-wavelengths = corrections(data.3 = data.3, directoryall = directoryall, directoryCorrectedEEMS = directoryCorrectedEEMS, 
+EEMcorrect = EEMcorrection(data.3 = data.3, directoryall = directoryall, directoryCorrectedEEMS = directoryCorrectedEEMS, 
                           slitwidth1 = 15, slitwidth2 = 15,
                           em.375 = em.375, em.430 = em.430, ex.350 = ex.350)
 
 # will return vector with ex and em wavlenegths for samplesa s well as for blank. Check?
-wavelengths
+EEMcorrect
 
 # insert empty variables for populating with ex an em vectors
 n = nrow(data.3) #number of files you are going to correct in the file. Double check ths prior to proceeding
@@ -344,7 +347,12 @@ source("AbsEEMSfilecomp_function.R")
 filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, projectname = project)
 
 # set directory with EEMS that you corrected according to the loop above
- 
+# Call function that will loop over the files in this folder and apply abs and fluor correction indicies
+setwd("/Users/ashlee/SpecScripts") 
+source("AbsEEMSfilecomp_function.R")
+
+spec.indicies = calc.indicies(fileist_EEMScor = filelist_EEMScor, directoryCorrectedEEMS = directoryCorrectedEEMS, waves = waves)
+
 n = dim(filelist_EEMScor)[1]
 
 for (i in 1:n){
