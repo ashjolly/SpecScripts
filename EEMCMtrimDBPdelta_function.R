@@ -31,7 +31,7 @@ CMtrim <- function(filedirectory, filelist, project, exmin, directoryCM, ex){
     } 
     
     # Create graph headings variable. Also insert "_i" to use in CM modelling
-    samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
+    samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", "DBPdelta", sep = ""), simplify = TRUE)
     graphheadings[i,] <-paste(samplename, project,"CorrCM_",i, sep = "")
     
     # Resave trimmed EEM without the row and column names

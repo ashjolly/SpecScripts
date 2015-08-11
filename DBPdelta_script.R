@@ -26,20 +26,23 @@ postchlor.files <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/D
 # directory where the delta eems will go
 delta.eems <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_delta"
 
+# CM directory
+directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS" 
+
 project <- "DBPdelta"
 
 ##################
 # create file that matches the pre and post files together
 ######## Prechlor files
 setwd(prechlor.files)
-filelist_pre <- list.files(pattern = "_CorrectedInterp.csv$")
+filelist_pre <- list.files(pattern = "_Corrected.csv$")
 filelist_preAbs <- list.files(pattern = "AbsCorrected.csv$")
 
 # Get sample ID from pre chlor files - EEMS
 sample.ID <- 0 #create sample ID variable
 n = length(filelist_pre)
 for (i in 1:n){
-  sampleID.pre.temp <- strapplyc(filelist_pre[i], "DBP(.*)_DBPPre_CorrectedInterp.csv", simplify = TRUE)
+  sampleID.pre.temp <- strapplyc(filelist_pre[i], "DBP(.*)_DBPPre_Corrected.csv", simplify = TRUE)
   sample.ID[i] <- sampleID.pre.temp 
 }
 
@@ -62,14 +65,14 @@ filelist_pre <- as.data.frame(merge(filelist_preEEMS, filelist_preAbs, by = "sam
 # Get sample ID from post chlor files
 #postchlor
 setwd(postchlor.files)
-filelist_post <- list.files(pattern = "_CorrectedInterp.csv$")
+filelist_post <- list.files(pattern = "_Corrected.csv$")
 filelist_postAbs <- list.files(pattern = "AbsCorrected.csv$")
 
 # get sample ID from EEMS
 sample.ID <- 0 #reset sample ID variable
 n = length(filelist_post)
 for (i in 1:n){
-  sampleID.post.temp <- strapplyc(filelist_post[i], "DBPChlor(.*)_DBPPost_CorrectedInterp.csv", simplify = TRUE)
+  sampleID.post.temp <- strapplyc(filelist_post[i], "DBPChlor(.*)_DBPPost_Corrected.csv", simplify = TRUE)
   sample.ID[i] <- sampleID.post.temp 
 }
 
@@ -229,10 +232,44 @@ for (i in 1:n){
 corrpath <- file.path(delta.eems, paste(project, "FluorIndicies.csv", sep = ""))
 write.table(Spec.ind, file = corrpath, row.names = FALSE, col.names = TRUE, sep = ",")
 
-##############
-# Compile for CM Modelling
-# Compile the delta EEMS for modelling with CM model
+######## Prepping files for Cory McKnight modelling in Matlab
+########
 
-##############
-# Compile for DrEEMs modelling
-# Compile the delta EEMS file so that can use the DrEEMS package to model
+setwd(delta.eems) 
+filelist_EEMScor <- list.files(pattern = "_DBPdelta.csv$")
+
+# CM - prepping for CM PARAFAC model
+# Function does three things: trims EEMS according to specified min eexitation wavlenegth
+# take out row and column names in first column and row and save in CM folder with _i as per graph headins file
+# Also creates ex and em files, as well as graph headings file as txt file and saves in CM file
+# Lastly, creates and saves graph headings file as txt file, which the function returns to double check
+
+ex.PARAFAC <- seq(240, 800, by = 2) #change if excitation wavlenegths are different
+
+# call function
+setwd("/Users/ashlee/SpecScripts") 
+source("EEMCMtrimDBPdelta_function.R")
+CMsave <- CMtrim(filedirectory = delta.eems, filelist = filelist_EEMScor, project = project, exmin = "X240",
+                 directoryCM = directoryCM, ex = ex.PARAFAC)
+
+# check graph headings file returned by function
+CMsave
+
+####################################################################################################################################
+######### DOM Fluor
+########
+# Get files ready for DOMFLuor toolbox. 
+# Need .csv file for ex, em and one csv file containing all of the fluorescence EEMS compiled
+# Use Save Dr EEMS function
+# Inputs include the filelist, the project, the vector containing sample names, and the excitation wavelength min you want to trim to
+# File cuts EEMs from ex min that you want to
+
+setwd("/Users/ashlee/SpecScripts") 
+source("EEMSDrEEMsaveDBPDelta_function.R")
+
+ex.DrEEMS = seq(240, 800, by = 2)
+DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
+                   exmin = 'X240', filedirectory = delta.eems, ex = ex.DrEEMS)
+
+# check DrEEM.data. This is the compiled EEMS for DrEEM PARAFAC modelling
+head(DrEEM.data)
