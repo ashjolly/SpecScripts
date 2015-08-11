@@ -48,7 +48,7 @@ source("EEMSDrEEMsaveDBPall_function.R")
 
 ex.DrEEMS = seq(240, 800, by = 2)
 DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
-                   exmin = 'X240', filedirectory = delta.eems, ex = ex.DrEEMS)
+                   exmin = 'X240', filedirectory = all.EEMS, ex = ex.DrEEMS)
 
 # check DrEEM.data. This is the compiled EEMS for DrEEM PARAFAC modelling
 head(DrEEM.data)
