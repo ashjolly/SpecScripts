@@ -165,7 +165,7 @@ spec.indicies = calc.indicies(filelist_EEMScor = filelist_EEMScor,
                               ex.wavelengths =ex.wavelengths , em.wavelengths = em.wavelengths)
 
 # Check spectral indicies
-spec.indicies
+spec.indicies = Spectral.Indicies
 
 ######## end of loop!
 #write file containing spectral indicies + sample IDs
