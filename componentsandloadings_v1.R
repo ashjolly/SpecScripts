@@ -16,14 +16,20 @@ ls()
 # First, save the A B and C text files ffrom PARAFAC in a specific folder.
 #Directory
 #DBP
-directoryCMresults <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_CM_Preandpostmodelled" 
+#directoryCMresults <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_CMPARAFAC" 
 #directoryCMresults <-"/Users/ashlee/Documents/UBC Data/WL_data/WL_Fluorescence/WL_CMParafac_Results/" 
+#directoryCMresults <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_pre_CM_PARAFAC/DBP_pre_CM_PARAFACresults" 
+#directoryCMresults <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_delta/DBP_delta_CMPARAFACresults"
+directoryCMresults <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected/DBP_all_CMPARAFACresults"
 
 setwd(directoryCMresults) 
 #sample type
 #sample.type <- "DBP"
 #sample.type <- "WL"
-sample.type <- "DBP_pre"
+#sample.type <- "DBPpre"
+#sample.type <- "DBPpost"
+#sample.type <- "DBPdelta"
+sample.type <- "DBPall"
 
 # Read in the A file
 #afile = "A_DBPpostandpre.txt"
@@ -42,7 +48,7 @@ C = read.table(cpath, header= FALSE, sep = "")
 
 #read in the graph headings file used to identify the samples in the A file
 gH <- paste("GraphHeadings_", sample.type, ".txt", sep = "")
-gHpath <- file.path("/Users/ashlee/Documents/MATLAB/CorrectedEEMS", paste(gH, sep = ""))
+gHpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste(gH, sep = ""))
 sample.ID <- read.table(gHpath, header= FALSE, sep = "")
 sample.ID <- subset(sample.ID, !duplicated(sample.ID))
 
@@ -82,12 +88,14 @@ temprow <- matrix(c(rep.int(NA,length(Fmax))),nrow=(dim(A)[1]),ncol=(dim(A)[2]))
 loadings <- data.frame(temprow)
 remove(temprow)
 
-
+# Multiply each column by corresponding fmax file
 n <- length(Fmax)
+g = dim(A)[1]
 
-for (i in 1:n){
-  #must convert factors in A!
-  loadings[,i] <-  as.numeric(levels(A[,i]))[A[,i]] * as.numeric(Fmax[i])
+for (i in 1:g){
+  for (j in 1:n){
+    loadings[i,j] <- A[i,j]*Fmax[j]
+  }
 }
 
 ##################
