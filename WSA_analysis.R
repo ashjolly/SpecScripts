@@ -33,12 +33,12 @@ test <- subset(data1, data1$Policy == policy.areas[1])
 normalize <- test[c(1:3), c(3:18)]/test[4, c(3:18)]
 
 # normalize by ddply
-f <- function {
-  # get total responses for each
-  aggregate(data[,3:18], by = by=list(Policy = data$Policy))
+#f <- function {
+#  # get total responses for each
+#  aggregate(data[,3:18], by = by=list(Policy = data$Policy))
   
-}
-normalize <- apply(data[,3:18], 2, function)
+#}
+#normalize <- apply(data[,3:18], 2, function)
 
 # merge first two columns into third column
 data$Policy_response <- paste(data$Policy, data$status, sep="_")
