@@ -86,3 +86,6 @@ d3heatmap(mat.data, scale = "column",
           key = TRUE
           )
 
+# categorize according to the
+# allocate weighting to each categorization
+
