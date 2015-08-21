@@ -141,20 +141,21 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     
     # this portion of the script runs the eemscat.m function to get the interpolated spectra. Last correction before saving
     
-    if (EEMsampletype == "SYM"){
+    #if (EEMsampletype == "SYM"){
       
-      # call function
-      setwd("/Users/ashlee/SpecScripts") 
-      source("EEMRaleigh_function.R")
-      # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
-      EEM.rm <- raleigh(eem = EEM.dil, slitwidth1, slitwidth2)
-    }
+    #  # call function
+     # setwd("/Users/ashlee/SpecScripts") 
+    #  source("EEMRaleigh_function.R")
+    #  # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
+    #  EEM.rm <- raleigh(eem = EEM.dil, slitwidth1, slitwidth2)
+   # }
     
     # if Raleigh has already been done in Aqualog software (inserted 0's, not the best option)
-    if(EEMsampletype == "PEM"){
-      EEM.rm <- EEM.dil
-    }
+   # if(EEMsampletype == "PEM"){
+     # EEM.rm <- EEM.dil
+   # }
     
+    EEM.rm <- EEM.dil
     ##### Apply correction factor for Fe concentration
     ##### TO DO!!!!!
     
