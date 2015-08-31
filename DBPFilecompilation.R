@@ -14,13 +14,14 @@ library(plyr)
 library(gsubfn)
 
 ##########
-all.EEMS <- prechlor.files <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected"
+#all.EEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected"
+all.EEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_preandpost"
 
 # CM directory
 directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS" 
 
-project <- "DBPall"
-
+#project <- "DBPall"
+project <- "DBPprepost"
 ##########################################################################
 # Compile all files and make graph headings file for running CM on all EEMS
 setwd(all.EEMS) 
