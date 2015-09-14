@@ -17,43 +17,56 @@ library('plyr')
 library("d3heatmap")
 
 ## load data
-data <- as.data.frame(read.csv(paste(directory, 'test_heatmap.csv', sep = ''), sep = ",", header = TRUE))
+data.original <- as.data.frame(read.csv(paste(directory, 'codestats_heatmap.csv', sep = ''), sep = ",", header = TRUE))
 
-## Normalize data by the total number of responses within a group
+# take out the 'all' categories from the data
+data <- subset(data.original, data.original$Status != "All")
 
+# Make two new columns that contain the Main, Sub and status of the policy areas
+data$Policy_response <- paste(data$Main_Policy, data$Sub_Policy, data$Status, sep="_") # merge first three columns into third column
+data$Policy_only <- paste(data$Main_Policy, data$Sub_Policy, sep="_")
+
+## Normalize data by the total number of responses within a policy area
+# First, by the main policy area
 # group by policy group + count total number of responses
-total.responses <- aggregate(data[,3:18], by=list(Policy = data$Policy), FUN = sum)
-total.responses$status <- 'total'
+# According to the seven main policy areas
+total.responses <- aggregate(data[,5:23], by=list(Policy = data$Main_Policy), FUN = sum)
 
-data$Policy_response <- paste(data$Policy, data$status, sep="_") # merge first two columns into third column
+# According to the sub policy areas within the larger policy area
+subpolicy.responses <- aggregate(data[,5:23], by=list(Policy = data$Policy_only), FUN = sum)
 
-policy.areas <- unique(data$Policy)      # find the total number of unique policy areas
-stakeholders <- unique(colnames(data[,3:18]))
+main.policyareas <- unique(data$Main_Policy)    # find the total number of unique main policy areas
+sub.policyareas <- unique(data$Policy_only)     # find the total number of unique sub piolicy areas
+
+stakeholders <- unique(colnames(data[,5:23]))   # find the total number of stakeholder groups
 
 #############################################
 # normalize by the total number of responses within a category
 # create a new dataframe with the normalized responses
+# Note that you want to normalize according to the sub policy area, to get what percent wanted a certain level of legislation
 
-j = length(policy.areas)
+j = length(sub.policyareas)
 
 for(i in 1:j){
   
-  polarea.temp <- policy.areas[i]   # get specific policy area
+  polarea.temp <- sub.policyareas[i]   # get specific policy area
   
   #get sum of each column for the policy area
-  temp.sum <- total.responses[total.responses$Policy == polarea.temp,]
+  temp.sum <- subpolicy.responses[subpolicy.responses$Policy == polarea.temp,]
 
   # take subset of data according to policy area
-  temp.subset <- subset(data, data$Policy == polarea.temp)
+  temp.subset <- subset(data, data$Policy_only == polarea.temp)
   
   # normalize subset across columns in subset of data
-  temp.normalize <- as.data.frame(sweep(as.matrix(temp.subset[,3:18]), 2, as.matrix(temp.sum[,2:17]), "/"))
+  temp.normalize <- as.data.frame(sweep(as.matrix(temp.subset[,5:23]), 2, as.matrix(temp.sum[,2:20]), "/"))
   
   # bring back in Policy and status columns
-  temp.normalize$Policy <- temp.subset$Policy
-  temp.normalize$status <- temp.subset$status
-  temp.normalize$Policy_response <- paste(temp.normalize$Policy, temp.normalize$status, sep = "_")
-  
+  temp.normalize$Policy_only <- temp.subset$Policy_only
+  temp.normalize$Main_Policy <- temp.subset$Main_Policy 
+  temp.normalize$Sub_Policy <- temp.subset$Sub_Policy 
+  temp.normalize$Status <- temp.subset$Status 
+  temp.normalize$Policy_response <- temp.subset$Policy_response
+    
   # create a new dataset where the normalized data together by rows
   # if the merged dataset doesn't exist, create it
   # if the normalized dataset does exist, append to it
@@ -73,10 +86,12 @@ for(i in 1:j){
 normalized[is.na(normalized)] = 0
 
 ####################### Graphing
-###### preprocessing for all data
+###### preprocessing for all data. 
+# This is to create a heat map from all of the policy groups according to the number of submissions
+
 # find row names
 rnames <- data$Policy_response
-mat.data <- data.matrix(data[,3:18])          # convert data to matrix
+mat.data <- data.matrix(data[,5:22])          # convert data to matrix
 rownames(mat.data) <- rnames                  # assign row names 
 
 # do heat map
@@ -122,7 +137,7 @@ d3heatmap(mat.data, scale = "column",
 
 # find row names
 rnames <- normalized$Policy_response
-rounded.norm<- format(round(normalized[,1:16], 1), nsmall = 1)      # ensure that only have 1 decimal places
+rounded.norm<- format(round(normalized[,1:19], 1), nsmall = 1)      # ensure that only have 1 decimal places
 mat.data2 <- data.matrix(rounded.norm)          # convert data to matrix
 rownames(mat.data2) <- rnames                         # assign row names 
 
@@ -170,24 +185,24 @@ d3heatmap(mat.data2, scale = "column",
 
 #multiply each 'increase' segment by 3 in normalized
 
-increase = subset(normalized, normalized$status == 'Increase, strengthen regulation')
-increase.factor = data.frame(increase[,1:16]*3, increase[,17:19])
+increase = subset(normalized, normalized$Status == 'More, stronger regulation')
+increase.factor = data.frame(increase[,1:19]*101, increase[,20:24])
 
-decrease = subset(normalized, normalized$status == 'Decrease, weaken regulation')
-decrease.factor= data.frame(decrease[,1:16]*1, decrease[,17:19])
+maintain = subset(normalized, normalized$Status == 'Moderate regulation')
+maintain.factor= data.frame(maintain[,1:19]*51, maintain[,20:24])
 
-maintain = subset(normalized, normalized$status == 'Maintain status quo, minor changes')
-maintain.factor= data.frame(maintain[,1:16]*2, maintain[,17:19])
+decrease = subset(normalized, normalized$Status == 'Less, weaker regulation')
+decrease.factor= data.frame(decrease[,1:19]*1, decrease[,20:24])
 
 factor <- rbind(increase.factor, decrease.factor, maintain.factor) # bind all three subsets back together
 
 # sum all three groupings together by policy area
-total.factors<- data.frame(aggregate(factor[,1:16], by=list(Policy = factor$Policy), FUN = sum))
+total.factors<- data.frame(aggregate(factor[,1:19], by=list(Policy = factor$Main_Policy), FUN = sum))
 
 #### graph above
 # find row names
 rnames <- total.factors$Policy
-rounded.factors<- format(round(total.factors[,2:17], 1), nsmall = 1)      # ensure that only have 2 decimal places
+rounded.factors<- format(round(total.factors[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
 mat.data3 <- data.matrix(rounded.factors)            # convert data to matrix
 rownames(mat.data3) <- rnames                             # assign row names 
 
@@ -226,7 +241,7 @@ d3heatmap(mat.data3, scale = "column",
 
 
 ##### box plots - to answer   question of whether stakeholder groups called for more regulation uniformly along policy areas
-box.data <- data.frame(total.factors[,2:17])
+box.data <- data.frame(total.factors[,2:19])
 png(paste(directory, "WSA_normbox.png", sep = ""),    # create PNG for the heat map        
     width = 7*300,        # 5 x 300 pixels
     height = 7*300,
@@ -239,4 +254,12 @@ boxplot.matrix(as.matrix(box.data), use.cols = TRUE,
                col="darkgreen", las=3, margins =c(8,50)
                )
 
+# overlay where the act itself is in the boxplots?
+
+############### influence maps
+# Compare what was placed in the Act to pespectives of different groups
+
+##### Decision prediction
+# Try and use decision prediction
+# Assumes that decision made is a combination of different inputs
 
