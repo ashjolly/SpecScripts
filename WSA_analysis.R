@@ -97,6 +97,9 @@ rownames(mat.data) <- rnames                  # assign row names
 # do heat map
 # create colour palette
 my_palette <- colorRampPalette(c("red", "yellow", "green"))(n = 299)
+col_breaks = c(seq(-1,0,length=100),  # for red
+               seq(0,0.8,length=100),              # for yellow
+               seq(0.8,1,length=100))              # for green
 
 # creates a 5 x 5 inch image
 png(paste(directory, "WSA_heatmap_policyfocus_col.png", sep = ""),    # create PNG for the heat map        
@@ -116,7 +119,7 @@ heatmap.2(mat.data,
           col=my_palette,       # use on color palette defined earlier 
           cexCol=1, 
           cexRow = 0.6,          # decrease row font size to fit
-          #breaks=col_breaks,    # enable color transition at specified limits
+          breaks=col_breaks,    # enable color transition at specified limits
           dendrogram="row",     # only draw a row dendrogram
           Colv="NA")            # turn off column clustering
 
@@ -174,16 +177,57 @@ d3heatmap(mat.data2, scale = "column",
           key = TRUE
 )
 
-#####################
+## Second normalization method- normalize data to the total number of respondents within a stakeholder group
+# Row at bottom of CSV where Policy_general = Number of submissions
+# Aim is to normalize all of the responses within a column by the corresponding total number of submissions within a stakeholder group
+
+# Choose the row with the total nnumber of submissions
+no.submissions <- data[117,]
+
+# divide each row by the number of submissions
+norm.2 <- data.frame(lapply(data[, 5:22], function(x) x/tail(x,1)))
+# add back the row names
+norm.2 <- cbind(data[,c(1:3,24:25)], norm.2)
+
+## plot the second way of normalizing data
+# find row names
+rnames <- norm.2$Policy_response
+rounded.norm<- format(round(norm.2[,6:23], 1), nsmall = 1)      # ensure that only have 1 decimal places
+mat.data3 <- data.matrix(rounded.norm)          # convert data to matrix
+rownames(mat.data3) <- rnames                         # assign row names 
+
+# creates a 5 x 5 inch image
+png(paste(directory, "WSA_normalized2.png", sep = ""),    # create PNG for the heat map        
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data3,
+          cellnote = mat.data3,  # same data set for cell labels
+          main = "WSA paper 
+          (normalized by total submissions)", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="none",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          margins =c(8,20),     # widens margins around plot
+          col=my_palette,       # use on color palette defined earlier 
+          cexCol=1, 
+          cexRow = 0.6,          # decrease row font size to fit
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram="row",     # only draw a row dendrogram
+          Colv="NA")            # turn off column clustering
+
+#########################################################################################################
 # Categorize according to allocate weighting to each categorization
 # group according to each policy area. Multiply the number of respondents by..
 
 # final score (for stakeholder group for policy area) = 
-# (# respondents for increase/total number of respondents)*3 
-# + (# respondents for maintain/total number of respondents)*2
-# + (# respondents for decrease/total number of respondents)*1
+# (# respondents for increase/total number of respondents)*scalingfactor 1
+# + (# respondents for maintain/total number of respondents)*scalingfactor 2
+# + (# respondents for decrease/total number of respondents)*scalingfactor 3
 
-#multiply each 'increase' segment by 3 in normalized
+#multiply each 'increase' segment by 101 in normalized
 
 increase = subset(normalized, normalized$Status == 'More, stronger regulation')
 increase.factor = data.frame(increase[,1:19]*101, increase[,20:24])
@@ -196,10 +240,70 @@ decrease.factor= data.frame(decrease[,1:19]*1, decrease[,20:24])
 
 factor <- rbind(increase.factor, decrease.factor, maintain.factor) # bind all three subsets back together
 
+#### Graph heatmaps for the first normalization method (by number of responses within a specific policy focus)
+# First, graph according to sub policy areas
+total.factors<- data.frame(aggregate(factor[,1:19], by=list(Policy = factor$Sub_Policy), FUN = sum))
+
+# find row names
+rnames <- total.factors$Policy
+rounded.factors<- format(round(total.factors[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
+mat.data4 <- data.matrix(rounded.factors)                          # convert data to matrix
+rownames(mat.data4) <- rnames                                      # assign row names 
+
+# creates a 5 x 5 inch image
+png(paste(directory, "WSA_normfactor1_Sub.png", sep = ""),    # create PNG for the heat map        
+    width = 10*300,        # 5 x 300 pixels
+    height = 10*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data4,
+          cellnote = mat.data4,  # same data set for cell labels
+          main = "Response to policy areas - Sub policy areas (normalized by # respondents)", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="none",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          margins =c(10,20),     # widens margins around plot
+          col=my_palette,       # use on color palette defined earlier 
+          cexCol=1, 
+          cexRow = 1,          # decrease row font size to fit
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram="row",     # only draw a row dendrogram
+          Colv=TRUE)            # turn off column clustering
+
+###### Try where the stakeholder groups are the rows
+# find row names
+rnames <- colnames(total.factors)
+rounded.factors<- format(round(total.factors[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
+mat.data <- t(data.matrix(rounded.factors))                          # convert data to matrix
+colnames(mat.data) <- total.factors$Policy                                     # assign row names 
+
+# creates a 5 x 5 inch image
+png(paste(directory, "WSA_normfactor1_Sub_b.png", sep = ""),    # create PNG for the heat map        
+    width = 10*300,        # 5 x 300 pixels
+    height = 10*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          cellnote = mat.data,  # same data set for cell labels
+          main = "Response to policy areas - Sub policy areas (normalized by # respondents)", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="none",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          margins =c(10,20),     # widens margins around plot
+          col=my_palette,       # use on color palette defined earlier 
+          cexCol=1, 
+          cexRow = 1,          # decrease row font size to fit
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram="row",     # only draw a row dendrogram
+          Colv=TRUE)            # turn off column clustering
+
+
+##### Graph by the main policy areas (Seven in total)
 # sum all three groupings together by policy area
 total.factors<- data.frame(aggregate(factor[,1:19], by=list(Policy = factor$Main_Policy), FUN = sum))
 
-#### graph above
 # find row names
 rnames <- total.factors$Policy
 rounded.factors<- format(round(total.factors[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
@@ -207,25 +311,25 @@ mat.data3 <- data.matrix(rounded.factors)            # convert data to matrix
 rownames(mat.data3) <- rnames                             # assign row names 
 
 # creates a 5 x 5 inch image
-png(paste(directory, "WSA_normfactors.png", sep = ""),    # create PNG for the heat map        
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
+png(paste(directory, "WSA_normfactorsmain.png", sep = ""),    # create PNG for the heat map        
+    width = 10*300,        # 5 x 300 pixels
+    height = 10*300,
     res = 300,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
 heatmap.2(mat.data3,
           cellnote = mat.data3,  # same data set for cell labels
-          main = "test- Policy Areas Weighting Factors", # heat map title
+          main = "Response to policy areas - main policy areas", # heat map title
           notecol="black",      # change font color of cell labels to black
           density.info="none",  # turns off density plot inside color legend
           trace="none",         # turns off trace lines inside the heat map
-          margins =c(8,16),     # widens margins around plot
+          margins =c(10,10),     # widens margins around plot
           col=my_palette,       # use on color palette defined earlier 
           cexCol=1, 
           cexRow = 0.6,          # decrease row font size to fit
           #breaks=col_breaks,    # enable color transition at specified limits
           dendrogram="row",     # only draw a row dendrogram
-          Colv="NA")            # turn off column clustering
+          Colv=TRUE)            # turn off column clustering
 
 ####### second method
 # interactive heatmap
@@ -239,7 +343,83 @@ d3heatmap(mat.data3, scale = "column",
           main = "test- Policy Areas Weighting Factors"
 )
 
+################
+##### Influence maps - normalized according to the number of respondents (method 2)
+# multiply each 'increase' segment by 101 in normalized
 
+increase = subset(norm.2, norm.2$Status == 'More, stronger regulation')
+increase.factor = data.frame(increase[,6:23]*101, increase[,1:5])
+
+maintain = subset(norm.2, norm.2$Status == 'Moderate regulation')
+maintain.factor= data.frame(maintain[,6:23]*51, maintain[,1:5])
+
+decrease = subset(norm.2, norm.2$Status == 'Less, weaker regulation')
+decrease.factor= data.frame(decrease[,6:23]*1, decrease[,1:5])
+
+factor <- rbind(increase.factor, decrease.factor, maintain.factor) # bind all three subsets back together
+
+### Graph heatmaps according to specific policy approach - second normalization approach
+# First, graph according to sub policy areas
+total.factors<- data.frame(aggregate(factor[,1:18], by=list(Policy = factor$Sub_Policy), FUN = sum))
+
+# find row names
+rnames <- total.factors$Policy
+rounded.factors<- format(round(total.factors[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
+mat.data <- data.matrix(rounded.factors)                          # convert data to matrix
+rownames(mat.data) <- rnames                                      # assign row names 
+
+# creates a 5 x 5 inch image
+png(paste(directory, "WSA_normfactor2_Sub.png", sep = ""),    # create PNG for the heat map        
+    width = 10*300,        # 5 x 300 pixels
+    height = 10*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          cellnote = mat.data,  # same data set for cell labels
+          main = "Response to policy areas - Sub policy areas (normalized by # stakeholders)", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="none",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          margins =c(10,20),     # widens margins around plot
+          col=my_palette,       # use on color palette defined earlier 
+          cexCol=1, 
+          cexRow = 1,          # decrease row font size to fit
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram="row",     # only draw a row dendrogram
+          Colv=TRUE)            # turn off column clustering
+
+###### Try where the stakeholder groups are the rows - norm method 2
+# find row names
+rnames <- colnames(total.factors)
+rounded.factors<- format(round(total.factors[,2:19], 1), nsmall = 1) # ensure that only have 2 decimal places
+mat.data <- t(data.matrix(rounded.factors))                          # convert data to matrix
+colnames(mat.data) <- total.factors$Policy                           # assign row names 
+
+# creates a 5 x 5 inch image
+png(paste(directory, "WSA_normfactor2_Sub_b.png", sep = ""),    # create PNG for the heat map        
+    width = 10*300,        # 5 x 300 pixels
+    height = 10*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          cellnote = mat.data,  # same data set for cell labels
+          main = "Response to policy areas - Sub policy areas (normalized by # stakeholders)", # heat map title
+          notecol="black",      # change font color of cell labels to black
+          density.info="none",  # turns off density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          margins =c(10,20),     # widens margins around plot
+          col=my_palette,       # use on color palette defined earlier 
+          cexCol=1, 
+          cexRow = 1,          # decrease row font size to fit
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram="row",     # only draw a row dendrogram
+          Colv=TRUE)            # turn off column clustering
+
+
+
+############################################
 ##### box plots - to answer   question of whether stakeholder groups called for more regulation uniformly along policy areas
 box.data <- data.frame(total.factors[,2:19])
 png(paste(directory, "WSA_normbox.png", sep = ""),    # create PNG for the heat map        
