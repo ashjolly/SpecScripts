@@ -451,6 +451,10 @@ boxplot.matrix(as.matrix(box.data.2), use.cols = TRUE,
 
 ############### influence maps
 # Compare what was placed in the Act to pespectives of different groups
+# Calculate according to:
+# Influence = What the group wanted for that policy area - what was in the WSA
+
+
 
 ##### Decision prediction
 # Try and use decision prediction
