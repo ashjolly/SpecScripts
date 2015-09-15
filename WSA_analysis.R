@@ -422,14 +422,14 @@ heatmap.2(mat.data,
 ############################################
 ##### box plots - to answer   question of whether stakeholder groups called for more regulation uniformly along policy areas
 box.data <- data.frame(total.factors[,2:19])
-png(paste(directory, "WSA_normbox.png", sep = ""),    # create PNG for the heat map        
+png(paste(directory, "WSA_norm2_boxplot.png", sep = ""),    # create PNG for the heat map        
     width = 7*300,        # 5 x 300 pixels
     height = 7*300,
     res = 300,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
 boxplot.matrix(as.matrix(box.data), use.cols = TRUE, 
-               main=toupper("Distribution - Weighted Response Factor"), font.main=10, 
+               main=toupper("Distribution - Weighted Response Factor (normalization method 1"), font.main=10, 
                cex.main=1.2, xlab="Stakeholder", ylab="Response factor", font.lab=10, 
                col="darkgreen", las=3, margins =c(8,50)
                )
