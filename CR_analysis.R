@@ -3,19 +3,26 @@
 
 # Timeseries analysis of DOC trends
 # Multiple Linear Regression to model [DOC]
-
+# God. Begun fuck knows when. Continued ad nauseum, but relaunched with aplomb and excitement 22sept2015
+# Ashlee Jollymore's PhD project
 
 ##
 # purpose: to analyze DOC accoridng to timeseries 
 # references: 'The R Book" Michael J Crawley, WIly
 # 
 
+############################################################################################
+# Initial stage
 rm(list = ls())
 ls()
 
+###### Necessary toolboxes
+
+###### Set paths for data
 # set path
 setwd("/Users/ashlee/Dropbox/par and fp compilation")
 
+##### Read in data
 # read in spectro.all data (all variables)
 spectro.all<- read.csv(file = "/Users/ashlee/Dropbox/par and fp compilation/spectro.all.csv", head=TRUE,sep=",")
 attach(spectro.all)
@@ -23,7 +30,9 @@ names(spectro.all)
 spectro.all$date <- as.POSIXct(strptime(spectro.all$date, format = "%Y-%m-%d %H:%M:%S", tz = "America/Los_Angeles"))
 data.frame(spectro.all)
 
-#####
+############################################################################################
+# Homemade functions
+
 # function for three point moving average
 tpma = function(test){
   y <- as.numeric(length(test)-2)
@@ -32,7 +41,7 @@ tpma = function(test){
   }
   return (y)
 }
-#################
+############################################################################################
 # Time series analysis - 
 # see http://a-little-book-of-r-for-time-series.readthedocs.org/en/latest/src/timeseries.html
 # http://cran.r-project.org/web/packages/deseasonalize/deseasonalize.pdf
@@ -82,8 +91,8 @@ ma.weekly.ground <- ts(tpma(weekly.ground $x), frequency=52, start=c(2010,09))
 plot(ma.weekly.ground)
 
 
-#############
-#Relationship between groundwater and streamwater discharge
+############################################################################################
+# Relationship between groundwater level and streamwater discharge
 # plot discharge versus groundwater
 install.packages('ggplot2')
 require(ggplot2)
@@ -223,10 +232,10 @@ legend ("topleft", c("30 minute data", "Three point average (monthly mean)"),pch
 #d.list <- seq(d.range[1], d.range[2], by='week')
 
 #######
-#Timeseries analysis: looking at seasonality, correlation etc
+# Timeseries analysis: looking at seasonality, correlation etc
 # correlation and autocorrlation
 
-#autocorrleaction behavior
+# autocorrleaction behavior
 acf(ts.DOC.30min, main ="30 min data", na.action = na.pass)
 acf(daily.ts , main ="daily data", na.action = na.pass)
 acf(ts.weekly, main ="weekly data", na.action = na.pass)
@@ -320,7 +329,14 @@ is.regular(zoo.all)
 plot.ts(DOC)
 plot(zoo.all$date, zoo.all$DOCcorr)
 
-#########################################
+############################################################################################
+# Compare DOC quality metrics to soil leechate qualities
+# Aim is to quantify DOC quality metrics from lysimeter and soil extracts
+# Determine what the trends are in DOC metrics with soil depth
+# Used as apreliminary stage for quantifying flowpaths of DOC into stream - will compare trends to streamwater DOC quality
+
+
+############################################################################################
 # Multiple linear regression
 # Aim is to model [DOC] according to climatic and hydrologic variables.
 # [DOC] = f1*discharge + f2*solarradiation + f3*airtemp + f4*precip..etc
@@ -332,9 +348,10 @@ plot(zoo.all$date, zoo.all$DOCcorr)
 # May have to partition into pre and post logging periods. Could examine how factors change in terms of the effect of harvest
 # - Also, use this approach to predict the concentration of various DOM elements 
 #              - question being can you model DOM fraction on the basis of the same variables as DOC, and what does this say about hydrologic flowpaths?
-##
+#              - compare to soil water DOC qualities to assign hydrologic flowpaths
+
 # see http://www.r-bloggers.com/regression-via-gradient-descent-in-r/
 
 
 
-###################################
+
