@@ -346,9 +346,9 @@ plot(zoo.all$date, zoo.all$DOCcorr)
 
 # Thoughts:
 # May have to partition into pre and post logging periods. Could examine how factors change in terms of the effect of harvest
-# - Also, use this approach to predict the concentration of various DOM elements 
-#              - question being can you model DOM fraction on the basis of the same variables as DOC, and what does this say about hydrologic flowpaths?
-#              - compare to soil water DOC qualities to assign hydrologic flowpaths
+# Also, use this approach to predict the concentration of various DOM elements 
+#        - question being can you model DOM fraction on the basis of the same variables as DOC, and what does this say about hydrologic flowpaths?
+#        - compare to soil water DOC qualities to assign hydrologic flowpaths
 
 # see http://www.r-bloggers.com/regression-via-gradient-descent-in-r/
 
