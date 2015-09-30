@@ -59,10 +59,11 @@ library(R.matlab)
 ####
 # DBP Pre chlorination
 # directory with all of the fluorescence files
-directoryall <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
+
+directoryall <- "/Users/ashlee/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
 
 # directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
-directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+directoryCorrectedEEMS <- "/Users/ashlee/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
 
 #######
 # directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
@@ -73,7 +74,7 @@ directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS"
 #dilution file
 top = c("sample.ID", "dilutionfactor")
 #DBP pre dilution file
-dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
+dilution <-as.data.frame(read.csv("/Users/ashlee/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_Aqualogdilution.csv", 
                                   sep=",", header = TRUE, col.names = top))
 
 project = "DBPPre"
