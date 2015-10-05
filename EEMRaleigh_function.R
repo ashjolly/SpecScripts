@@ -11,7 +11,7 @@ raleigh <- function(eem, slitwidth1, slitwidth2){
   #slitwidth or bandwidth (nmm) of the scan should be either 12 or 10. May have to change dending on whether the script cuts out enough of the band.
   
   Acut = eem
-  ex = as.numeric(colnames(Acut))
+  ex = seq(240, 800, by = 2)
   em = as.numeric(rownames(Acut))
   
   # identify first order Raleigh and replaced with 0's
@@ -63,7 +63,6 @@ raleigh <- function(eem, slitwidth1, slitwidth2){
   }
   
   # Interpolate second order Raleigh lines
-
   for (j in 1:length(ex)){
     
     upper = (ex[j]*2)+slitwidth2
