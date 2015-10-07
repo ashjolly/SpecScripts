@@ -59,6 +59,7 @@ graphheadings = data.frame((0))
 # compile all of the corrected pre chlorination EEMS and  correct from Raman and Raleigh scatter
 n = length(filelist_DBPpre)
 exmin = 'X240'
+project = 'DBPPre'
 
 # run loop over all files within the corrected file list
 for (i in 1:n){
@@ -86,26 +87,44 @@ for (i in 1:n){
   # get the excitation variables from the cut EEMS
   ex = colnames(temp.cut)
   
-  # compile the EEMS together in one array - bind ex by em matrix to rest of sample matricies
-  # if the merged dataset does exist, append to it
-  if (exists("dataset.pre")){
+  #save as a array
+  # if the merged dataset does exist, append to it by column
+  if (exists("EEM.dataset")){
     #temp_dataset <- temp.cut
-    dataset.pre<-abind(dataset.pre, temp.cut, along = 3)
+    EEM.dataset <- abind(EEM.dataset, temp.cut, along = 3)
     #rm(temp.cut)
   }
   
   # if the merged dataset doesn't exist, create it
-  if (!exists("dataset.pre")){
-    dataset.pre <- temp.cut
+  if (!exists("EEM.dataset")){
+    EEM.dataset <- temp.cut
   }
   
   # Create graph headings variable to identify samples
-  samplename <- strapplyc(filelist_DBPpre[i], paste("(.*)_", "DBPPre_Corrected", sep = ""), simplify = TRUE)
+  samplename <- strapplyc(filelist_DBPpre[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
   graphheadings[i,] <-samplename
+  
 }
 
+# Compile and decompose EEM in array such that ex-em pairs are the columns and the sample ID is the row prior to pCA
+
+n = dim(EEM.dataset)[3]
+
+for (i in 1:n){
+  temp.EEM <- as.data.frame(EEM.dataset[,,i])
+  
+  # Use function to unfold the EEM
+  setwd("/Users/ashlee/SpecScripts") 
+  source("EEMPCAcompile_function.R")
+  PCA.data <- PCA.EEM(EEM = temp.EEM)
+  
+}
+
+# add sample ID to first column of the PCA.data dataset
+PCA.data <- cbind(graphheadings, PCA.data)
+
 ## Do PCA on the compiled pre-chlorinated data
-pca.pre <- prcomp(dataset.pre[,,], center = TRUE, scale. = TRUE)
+pca.pre <- prcomp(PCA.data, center = TRUE, scale. = TRUE)
 
 # Analyze PCA results
 # print method
@@ -128,8 +147,8 @@ g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
 
-## PCA on the Pre and POst chlorintaed EEMS
-# Aim is to see where in the spectra you see the greatest changes between the pre and po=st chlorinated samples
+## PCA on the Pre and Post chlorinated EEMS
+# Aim is to see where in the spectra you see the greatest changes between the pre and post chlorinated samples
 
 
 ###### PCA on PARAFAC results - CM model and DOMFluor model
