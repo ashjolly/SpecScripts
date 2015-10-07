@@ -2,7 +2,7 @@
 #
 # Script for analyzing DBP data
 # 29sept2015
-# FOr analyzxing data 
+# For analyzxing data 
 ################################################################################
 # clean up list
 rm(list = ls())
@@ -107,6 +107,7 @@ for (i in 1:n){
 }
 
 # Compile and decompose EEM in array such that ex-em pairs are the columns and the sample ID is the row prior to pCA
+# Use apply in order to speed this up? very slow as a loop?
 
 n = dim(EEM.dataset)[3]
 
