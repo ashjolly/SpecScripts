@@ -19,9 +19,10 @@ library('zoo')
 
 ############ Fluorescence data
 ## Prechlorinated EEMS
-pre.directory <- '/Users/ashlee/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs'
+pre.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs'
 
 ## post Chlorinated EEMS
+post.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMs'
 
 # prechlorination indicies
 # postchlorination indicies
@@ -78,7 +79,7 @@ for (i in 1:n){
   } 
   
   # Correct for Raleigh scatter using function - interpolates for first and second Raleigh
-  setwd("/Users/ashlee/SpecScripts") 
+  setwd("/Users/user/SpecScripts") 
   source("EEMRaleigh_function.R")
   temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 15, slitwidth2 = 15)
   
@@ -111,21 +112,43 @@ for (i in 1:n){
 
 n = dim(EEM.dataset)[3]
 
-for (i in 1:n){
-  temp.EEM <- as.data.frame(EEM.dataset[,,i])
-  
-  # Use function to unfold the EEM
-  setwd("/Users/ashlee/SpecScripts") 
-  source("EEMPCAcompile_function.R")
-  PCA.data <- PCA.EEM(EEM = temp.EEM)
-  
+#function for transposing and compiling EEMS according to column
+PCA.EEM <- function(EEM){
+  # Compile and decompose EEM such that ex-em pairs are the columns and the sample ID is the row
+    temp.PCA = data.frame(t(EEM))
+    colnames(temp.PCA) = (paste(colnames(EEM), row.names(EEM), sep = '_'))
+    
+    # if the merged dataset does exist, append to it by column
+    if (exists("PCA.data")){
+      #temp_dataset <- temp.cut
+      PCA.data<-cbind(PCA.data, temp.PCA)
+      #rm(temp.cut)
+    }
+    
+    # if the merged dataset doesn't exist, create it
+    if (!exists("PCA.data")){
+      PCA.data <- temp.PCA
+    }
 }
 
-# add sample ID to first column of the PCA.data dataset
-PCA.data <- cbind(graphheadings, PCA.data)
+# create empty vector
+EEM.row = data.frame(matrix(vector(), 5000, 200000))
+
+# try vectorized solution
+for (i in 1:n){
+  # get the sample data frame
+  temp.EEM <- EEM.dataset[,,i]
+  
+  # use function and apply to reorganize for PCA
+  EEM.row[i,] <- as.data.frame(apply(temp.EEM, 2, PCA.EEM))
+}
+
+# ensure that the column names are properly named
+colnames(EEM.row) = (paste(colnames(EEM.row), row.names(EEM.dataset[,,1]), sep = '_'))
+row.names(EEM.row) = graphheadings[,1]
 
 ## Do PCA on the compiled pre-chlorinated data
-pca.pre <- prcomp(PCA.data, center = TRUE, scale. = TRUE)
+pca.pre <- prcomp(EEM.row, center = TRUE, scale. = TRUE)
 
 # Analyze PCA results
 # print method
@@ -141,9 +164,9 @@ summary(pca.pre)
 library('devtools')
 install_github("ggbiplot", "vqv")
 library(ggbiplot)
-g <- ggbiplot(pca.pre, obs.scale = 1, var.scale = 1, 
-              groups = ir.species, ellipse = TRUE, 
-              circle = TRUE)
+g <- ggbiplot(pca.pre), obs.scale = 1, var.scale = 1) 
+              #groups = ir.species, ellipse = TRUE, 
+              #circle = TRUE)
 g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
