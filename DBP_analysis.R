@@ -39,7 +39,7 @@ post.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescen
 # HAA data
 
 ################################################################################
-# Pt 1 - how does chlorination change the spectral composition of EEMS?
+# Pt **** - how does chlorination change the spectral composition of EEMS?
 # princip-al component analysis to look at how chlorination altered spectral characteristics (EEMS)
 # References:
 # http://www.r-bloggers.com/computing-and-visualizing-pca-in-r/
@@ -134,7 +134,7 @@ PCA.EEM <- function(EEM){
 # create empty vector
 EEM.row = data.frame(matrix(vector(), 5000, 200000))
 
-# try vectorized solution
+# assemble using vectorized solution
 for (i in 1:n){
   # get the sample data frame
   temp.EEM <- EEM.dataset[,,i]
@@ -143,10 +143,15 @@ for (i in 1:n){
   EEM.row[i,] <- as.data.frame(apply(temp.EEM, 2, PCA.EEM))
 }
 
+# Cut out the NAs inserted when you created a dataframe to put the PCA formatted data into
+PCA.pre <- EEM.row[rowSums(is.na(EEM.row)) != ncol(EEM.row),]
+PCA.pre <- EEM.row[colSums(is.na(EEM.row)) != nrow(EEM.row),]
+
 # ensure that the column names are properly named
 colnames(EEM.row) = (paste(colnames(EEM.row), row.names(EEM.dataset[,,1]), sep = '_'))
 row.names(EEM.row) = graphheadings[,1]
 
+#######################
 ## Do PCA on the compiled pre-chlorinated data
 pca.pre <- prcomp(EEM.row, center = TRUE, scale. = TRUE)
 
@@ -171,8 +176,24 @@ g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
 
-## PCA on the Pre and Post chlorinated EEMS
+######################################## 
+# Comparing pre to post chlorinated EEMS
+
+#### 
+# first add column to sample ID that specarates unchlorinated or chlorinated EEMS
+
+
+######
+# PCA on the Pre and Post chlorinated EEMS
 # Aim is to see where in the spectra you see the greatest changes between the pre and post chlorinated samples
+
+
+
+
+####
+# Self organizing maps - pre and post chlorination EEMS
+# Use to look at how chlorination affects the spectral characteristics of 
+
 
 
 ###### PCA on PARAFAC results - CM model and DOMFluor model
