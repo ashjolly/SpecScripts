@@ -30,9 +30,8 @@ post.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescen
 # Prechlorination CM Model
 # Post clorination CM model
 
-#Prechlorination PARAFAC model
+# Prechlorination PARAFAC model
 # post chlorination PARAFAC model
-
 
 ################## DBP concentration
 # THM data
