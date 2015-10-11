@@ -42,6 +42,7 @@ PCA.EEM <- function(EEM){
     PCA.data <- temp.PCA
   }
 }
+
 ###############################
 # Prechlorinated EEMS
 # locate the prechlorinated corrected eems within the file
@@ -98,11 +99,11 @@ for (i in 1:n){
   # Create graph headings variable to identify samples
   samplename <- strapplyc(filelist_DBPpre[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
   graphheadingspre[i,] <-samplename
-  
 }
 
 # Compile and decompose EEM in array such that ex-em pairs are the columns and the sample ID is the row prior to pCA
 EEM.pre <- EEM.dataset
+remove(EEM.dataset)
 
 n = dim(EEM.pre)[3]
 
@@ -122,16 +123,33 @@ for (i in 1:n){
 PCA.pre <- EEM.row[rowSums(is.na(EEM.row)) != ncol(EEM.row),]
 PCA.pre <- PCA.pre[colSums(is.na(PCA.pre)) != nrow(PCA.pre),]
 
-# ensure that the column names are properly named
-row.names(PCA.pre) = graphheadingspre[,1] #asample names
-# create column names
+# ensure that the rows are properly named
+row.names(PCA.pre) = graphheadingspre[,1] #sample names
 
-#colnames(PCA.pre) = (paste(colnames(EEM.row), row.names(EEM.dataset[,,1]), sep = '_'))
+# create column names
+ex = colnames(temp.cut)
+em = row.names(temp.cut)
+
+for (i in length(ex)){
+  ex.temp <- paste(ex[i], em, sep="_")
+  
+  # if the merged dataset does exist, append to it by column
+  if (exists("ex_em")){
+    ex_em <- cbind(ex_em, ex.temp)
+  }
+  
+  # if the merged dataset doesn't exist, create it
+  if (!exists("ex_em")){
+    ex_em <- ex.temp
+  }
+}
+
+colnames(PCA.pre) = ex_em
 
 #### save because vectorizing takes forever!
-save(PCA.pre, paste(save.directory, "/PCApost.csv", sep = ""))
+save(PCA.pre, paste(save.directory, "/PCApre.csv", sep = ""))
 saveRDS(EEM.pre, paste(save.directory, "/EEMpre.rds", sep = ""))
-save(graphheadingspre, paste(save.directory, "/EEMpresample.csv", sep = ""))
+save(graphheadingspre, paste(save.directory, "/EEMpresampleID.csv", sep = ""))
 
 ##################################
 # read in the post chlorinated EEMS, correct for Raleigh and assemble for 

@@ -16,28 +16,14 @@ library('zoo')
 ################################################################################
 # Read in data used for analysis
 ## Water quality and location data
+# directory for data used for analysis
+save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisdata'
 
-############ Fluorescence data
-## Prechlorinated EEMS
-pre.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs'
-
-## post Chlorinated EEMS
-post.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMs'
-
-# prechlorination indicies
-# postchlorination indicies
-
-# Prechlorination CM Model
-# Post clorination CM model
-
-# Prechlorination PARAFAC model
-# post chlorination PARAFAC model
-
-################## DBP concentration
-# THM data
-# HAA data
+##############################################################
+# functions used in script
 
 ################################################################################
+# Analysis Script
 # Pt **** - how does chlorination change the spectral composition of EEMS?
 # princip-al component analysis to look at how chlorination altered spectral characteristics (EEMS)
 # References:
@@ -47,112 +33,18 @@ post.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescen
 ## PCA on raw EEMS 
 # Aim of this is to see regions that explain most of the variance within the pre chlorinated EEMS
 # Examine all data lumped together to see any alterations 
-# read in data - compiled data according to sample ID
 
-# locate the prechlorinated corrected eems within the file
-setwd(pre.directory) 
-filelist_DBPpre <- list.files(pattern = "_Corrected.csv$")
-
-# create graph heading variable
-graphheadings = data.frame((0))
-
-# compile all of the corrected pre chlorination EEMS and  correct from Raman and Raleigh scatter
-n = length(filelist_DBPpre)
-exmin = 'X240'
-project = 'DBPPre'
-
-# run loop over all files within the corrected file list
-for (i in 1:n){
-  # set working directory back to directory with sample ID + read in EEMs
-  setwd(pre.directory) 
-  temp.EEMS <- read.delim(filelist_DBPpre[i], header= TRUE, sep = ",")
-  
-  # ensure that the ex ranges are the same for all of the data - 240 to 200 nm in 2 nm increments
-  ex.temp <- colnames(temp.EEMS)
-  if(ex.temp[1] != exmin) {
-    # if first value in ex.temp is not 240, trim 
-    ex.length <- length(ex.temp)
-    # find column where the exitation wavelength is 240 to cut from
-    x240 = as.numeric(match(exmin,names(temp.EEMS)))
-    temp.EEMS <- temp.EEMS[,c(x240:ex.length)]
-  } 
-  
-  # Correct for Raleigh scatter using function - interpolates for first and second Raleigh
-  setwd("/Users/user/SpecScripts") 
-  source("EEMRaleigh_function.R")
-  temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 15, slitwidth2 = 15)
-  
-  # get the emission variables from the EEM
-  em = row.names(temp.cut)
-  # get the excitation variables from the cut EEMS
-  ex = colnames(temp.cut)
-  
-  #save as a array
-  # if the merged dataset does exist, append to it by column
-  if (exists("EEM.dataset")){
-    #temp_dataset <- temp.cut
-    EEM.dataset <- abind(EEM.dataset, temp.cut, along = 3)
-    #rm(temp.cut)
-  }
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("EEM.dataset")){
-    EEM.dataset <- temp.cut
-  }
-  
-  # Create graph headings variable to identify samples
-  samplename <- strapplyc(filelist_DBPpre[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
-  graphheadings[i,] <-samplename
-  
-}
-
-# Compile and decompose EEM in array such that ex-em pairs are the columns and the sample ID is the row prior to pCA
-# Use apply in order to speed this up? very slow as a loop?
-
-n = dim(EEM.dataset)[3]
-
-#function for transposing and compiling EEMS according to column
-PCA.EEM <- function(EEM){
-  # Compile and decompose EEM such that ex-em pairs are the columns and the sample ID is the row
-    temp.PCA = data.frame(t(EEM))
-    colnames(temp.PCA) = (paste(colnames(EEM), row.names(EEM), sep = '_'))
-    
-    # if the merged dataset does exist, append to it by column
-    if (exists("PCA.data")){
-      #temp_dataset <- temp.cut
-      PCA.data<-cbind(PCA.data, temp.PCA)
-      #rm(temp.cut)
-    }
-    
-    # if the merged dataset doesn't exist, create it
-    if (!exists("PCA.data")){
-      PCA.data <- temp.PCA
-    }
-}
-
-# create empty vector
-EEM.row = data.frame(matrix(vector(), 5000, 200000))
-
-# assemble using vectorized solution
-for (i in 1:n){
-  # get the sample data frame
-  temp.EEM <- EEM.dataset[,,i]
-  
-  # use function and apply to reorganize for PCA
-  EEM.row[i,] <- as.data.frame(apply(temp.EEM, 2, PCA.EEM))
-}
-
-# Cut out the NAs inserted when you created a dataframe to put the PCA formatted data into
-PCA.pre <- EEM.row[rowSums(is.na(EEM.row)) != ncol(EEM.row),]
-PCA.pre <- EEM.row[colSums(is.na(EEM.row)) != nrow(EEM.row),]
-
-# ensure that the column names are properly named
-colnames(EEM.row) = (paste(colnames(EEM.row), row.names(EEM.dataset[,,1]), sep = '_'))
-row.names(EEM.row) = graphheadings[,1]
-
-#######################
+#####################################################################
 ## Do PCA on the compiled pre-chlorinated data
+# read in data compiled for PCA analysis - note that data is in array
+EEM.pre <- readRDS(paste(save.directory, "/EEMpre.rds", sep = ""))
+# add in a variable that organizes according to which watersheds are drinking, which are protected, etc..
+# To cluster.. see if there is a pattern within watersheds that are protected
+
+# read in file containing pre chlor EEMs assembled for PCA analysis
 pca.pre <- prcomp(EEM.row, center = TRUE, scale. = TRUE)
+
+
 
 # Analyze PCA results
 # print method
@@ -168,7 +60,8 @@ summary(pca.pre)
 library('devtools')
 install_github("ggbiplot", "vqv")
 library(ggbiplot)
-g <- ggbiplot(pca.pre), obs.scale = 1, var.scale = 1) 
+g <- ggbiplot(pca.pre)
+#, obs.scale = 1, var.scale = 1) 
               #groups = ir.species, ellipse = TRUE, 
               #circle = TRUE)
 g <- g + scale_color_discrete(name = '')
@@ -177,9 +70,13 @@ g <- g + theme(legend.direction = 'horizontal',
 
 ######################################## 
 # Comparing pre to post chlorinated EEMS
-
 #### 
 # first add column to sample ID that specarates unchlorinated or chlorinated EEMS
+# EEM.pre = prechlorinated EEM array
+# EEM.post = post chlorinated EEM array
+ #no need to do this? Go by sample ID?
+# compile the pre and post chlorinated PCA data together
+
 
 
 ######
@@ -192,6 +89,8 @@ g <- g + theme(legend.direction = 'horizontal',
 ####
 # Self organizing maps - pre and post chlorination EEMS
 # Use to look at how chlorination affects the spectral characteristics of 
+# http://www.r-bloggers.com/self-organising-maps-for-customer-segmentation-using-r/
+# Use Data compiled for PCA analysis - samples on the rows, variables on the columns
 
 
 
