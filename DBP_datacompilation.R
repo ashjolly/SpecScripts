@@ -121,7 +121,9 @@ for (i in 1:n){
 
 # Cut out the NAs inserted when you created a dataframe to put the PCA formatted data into
 PCA.pre <- EEM.row[rowSums(is.na(EEM.row)) != ncol(EEM.row),]
-PCA.pre <- PCA.pre[colSums(is.na(PCA.pre)) != nrow(PCA.pre),]
+PCA.pre <- PCA.pre[,colSums(is.na(PCA.pre)) != nrow(PCA.pre)]
+#PCA.pre <- PCA.pre[,complete.cases(PCA.pre)]
+#PCA.pre <- PCA.pre[,colSums(is.na(PCA.pre))<nrow(PCA.pre)]
 
 # ensure that the rows are properly named
 row.names(PCA.pre) = graphheadingspre[,1] #sample names
@@ -130,28 +132,31 @@ row.names(PCA.pre) = graphheadingspre[,1] #sample names
 ex = colnames(temp.cut)
 em = row.names(temp.cut)
 
-for (i in length(ex)){
-  ex.temp <- paste(ex[i], em, sep="_")
+for (i in 1:length(ex)){
+  ex.temp <- t(as.data.frame(paste(ex[i], em, sep="_")))
   
-  # if the merged dataset does exist, append to it by column
-  if (exists("ex_em")){
-    ex_em <- cbind(ex_em, ex.temp)
+  # if the merged dataset exists, append to it by column
+  if (exists("exem")){
+    exem <- cbind(exem, ex.temp)
   }
   
   # if the merged dataset doesn't exist, create it
-  if (!exists("ex_em")){
-    ex_em <- ex.temp
+  if (!exists("exem")){
+    exem <- ex.temp
   }
 }
 
-colnames(PCA.pre) = ex_em
+colnames(PCA.pre) = exem
+
+PCA.pre.cut <- PCA.pre[,c(1:length(exem))]
 
 #### save because vectorizing takes forever!
-save(PCA.pre, paste(save.directory, "/PCApre.csv", sep = ""))
+saveRDS(PCA.pre.cut, paste(save.directory, "/PCApre.rds", sep = ""))
 saveRDS(EEM.pre, paste(save.directory, "/EEMpre.rds", sep = ""))
-save(graphheadingspre, paste(save.directory, "/EEMpresampleID.csv", sep = ""))
+write.table(graphheadingspre, paste(save.directory, "/EEMpresampleID.csv", sep = ""))
 
-##################################
+######################################################################################################
+# post chlorination
 # read in the post chlorinated EEMS, correct for Raleigh and assemble for 
 # locate the prechlorinated corrected eems within the file
 setwd(post.directory) 
@@ -206,33 +211,15 @@ for (i in 1:n){
   
   # Create graph headings variable to identify samples
   samplename <- strapplyc(filelist_DBPpost[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
-  graphheadingpost[i,] <-samplename
+  graphheadingspost[i,] <-samplename
   
 }
 
 # Compile and decompose EEM in array such that ex-em pairs are the columns and the sample ID is the row prior to pCA
 EEM.post <- EEM.dataset
+remove(EEM.dataset)
 
 n = dim(EEM.post)[3]
-
-#function for transposing and compiling EEMS according to column
-PCA.EEM <- function(EEM){
-  # Compile and decompose EEM such that ex-em pairs are the columns and the sample ID is the row
-  temp.PCA = data.frame(t(EEM))
-  colnames(temp.PCA) = (paste(colnames(EEM), row.names(EEM), sep = '_'))
-  
-  # if the merged dataset does exist, append to it by column
-  if (exists("PCA.data")){
-    #temp_dataset <- temp.cut
-    PCA.data<-cbind(PCA.data, temp.PCA)
-    #rm(temp.cut)
-  }
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("PCA.data")){
-    PCA.data <- temp.PCA
-  }
-}
 
 # create empty vector
 EEM.row = data.frame(matrix(vector(), 5000, 200000))
@@ -240,20 +227,45 @@ EEM.row = data.frame(matrix(vector(), 5000, 200000))
 # assemble using vectorized solution
 for (i in 1:n){
   # get the sample data frame
-  temp.EEM <- EEM.dataset[,,i]
+  temp.EEM <- EEM.post[,,i]
   
   # use function and apply to reorganize for PCA
   EEM.row[i,] <- as.data.frame(apply(temp.EEM, 2, PCA.EEM))
 }
 
-
 # Cut out the NAs inserted when you created a dataframe to put the PCA formatted data into
-PCA.pre <- EEM.row[rowSums(is.na(EEM.row)) != ncol(EEM.row),]
-PCA.pre <- PCA.pre[colSums(is.na(PCA.pre)) != nrow(PCA.pre),]
+PCA.post <- EEM.row[rowSums(is.na(EEM.row)) != ncol(EEM.row),]
+PCA.post <- PCA.post[,colSums(is.na(PCA.post)) != nrow(PCA.post)]
 
 # ensure that the column names are properly named
-row.names(PCA.pre) = graphheadings[,1] #asample names
-colnames(PCA.pre) = (paste(colnames(EEM.row), row.names(EEM.dataset[,,1]), sep = '_'))
+row.names(PCA.post) = graphheadingspost[,1] #asample names
 
-# save because vectorizing takes forever!
-saveRDS(PCA.post, paste(dat"PCApost.rds")
+# create column names
+ex = colnames(temp.cut)
+em = row.names(temp.cut)
+
+remove(exem)
+
+for (i in 1:length(ex)){
+  ex.temp <- t(as.data.frame(paste(ex[i], em, sep="_")))
+  
+  # if the merged dataset exists, append to it by column
+  if (exists("exem")){
+    exem <- cbind(exem, ex.temp)
+  }
+  
+  # if the merged dataset doesn't exist, create it
+  if (!exists("exem")){
+    exem <- ex.temp
+  }
+}
+
+colnames(PCA.post) = exem
+# cut out NA columns
+
+PCA.post.cut <- PCA.post[,c(1:length(exem))]
+
+#### save because vectorizing takes forever!
+saveRDS(PCA.post.cut, paste(save.directory, "/PCApost.rds", sep = ""))
+saveRDS(EEM.post, paste(save.directory, "/EEMpost.rds", sep = ""))
+write.table(graphheadingspost, paste(save.directory, "/EEMpostsampleID.csv", sep = ""))

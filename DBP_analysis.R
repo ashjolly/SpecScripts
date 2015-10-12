@@ -35,16 +35,15 @@ save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisda
 # Examine all data lumped together to see any alterations 
 
 #####################################################################
-## Do PCA on the compiled pre-chlorinated data
+## Do PCA  on the compiled pre-chlorinated data
 # read in data compiled for PCA analysis - note that data is in array
-EEM.pre <- readRDS(paste(save.directory, "/EEMpre.rds", sep = ""))
+PCA.pre <- readRDS(paste(save.directory, "/PCApre.rds", sep = ""))
 # add in a variable that organizes according to which watersheds are drinking, which are protected, etc..
 # To cluster.. see if there is a pattern within watersheds that are protected
 
 # read in file containing pre chlor EEMs assembled for PCA analysis
-pca.pre <- prcomp(EEM.row, center = TRUE, scale. = TRUE)
-
-
+# perofrm PCA analysis on all pre chlorinated EEMS
+pca.pre <- prcomp(PCA.pre, center = TRUE, scale. = TRUE)
 
 # Analyze PCA results
 # print method
@@ -52,9 +51,11 @@ print(pca.pre)
 
 # plot method - decide how many components to keep
 plot(pca.pre, type = "l")
+autoplot(prcomp(PCA.pre), data = PCA.pre)
 
 # summary method
 summary(pca.pre)
+head(pca.pre$rotation)
 
 # graph first principals of variation
 library('devtools')
@@ -67,6 +68,10 @@ g <- ggbiplot(pca.pre)
 g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
+### Post chlor eems
+
+PCA.post <- readRDS(paste(save.directory, "/PCApost.rds", sep = ""))
+
 
 ######################################## 
 # Comparing pre to post chlorinated EEMS
