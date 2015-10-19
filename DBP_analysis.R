@@ -123,7 +123,7 @@ plot(pcaall.loadings[,1:2], type = 'p')
 plot(pcaall.loadings[,3:4], type = 'p')
 
 g <- ggbiplot(pca.all, obs.scale = 1, var.scale = 1, 
-  groups = PCA.all[,1], ellipse = FALSE, circle = FALSE)
+  groups = PCA.all[,1], ellipse = TRUE, circle = TRUE)
 
 ####
 # Self organizing maps - pre and post chlorination EEMS
