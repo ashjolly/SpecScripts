@@ -9,7 +9,7 @@
 ## set working directory
 rm(list = ls())
 ls()
-directory <- "/Users/ashlee/Documents/WaterAct Paper/"
+directory <- "/Users/user/Dropbox/PhD Work/WaterAct Paper/"
 
 # libraries
 library('gplots')
@@ -19,6 +19,7 @@ library("d3heatmap")
 ## load data
 data.original <- as.data.frame(read.csv(paste(directory, 'codestats_heatmap.csv', sep = ''), sep = ",", header = TRUE))
 
+################# Data Preprocessing
 # take out the 'all' categories from the data
 data <- subset(data.original, data.original$Status != "All")
 
@@ -26,21 +27,30 @@ data <- subset(data.original, data.original$Status != "All")
 data$Policy_response <- paste(data$Main_Policy, data$Sub_Policy, data$Status, sep="_") # merge first three columns into third column
 data$Policy_only <- paste(data$Main_Policy, data$Sub_Policy, sep="_")
 
+# combine 'health' with community groups (only one respondent in 'health')
+data$Community.Groups <- data$Community.Groups + data$Health
+data$Health <- NULL
+
+# combine the two individual groups
+data$all_individual <- data$Individual.form.submissions.total..10..+data$Individual.non.form.submissions.total..10..
+
+# Get rid of mining?
+##################### Data normalization
 ## Normalize data by the total number of responses within a policy area
 # First, by the main policy area
 # group by policy group + count total number of responses
 # According to the seven main policy areas
-total.responses <- aggregate(data[,5:23], by=list(Policy = data$Main_Policy), FUN = sum)
+total.responses <- aggregate(data[,c(7:21, 26)], by=list(Policy = data$Main_Policy), FUN = sum)
 
 # According to the sub policy areas within the larger policy area
-subpolicy.responses <- aggregate(data[,5:23], by=list(Policy = data$Policy_only), FUN = sum)
+subpolicy.responses <- aggregate(data[,c(7:21, 26)], by=list(Policy = data$Policy_only), FUN = sum)
 
 main.policyareas <- unique(data$Main_Policy)    # find the total number of unique main policy areas
-sub.policyareas <- unique(data$Policy_only)     # find the total number of unique sub piolicy areas
+sub.policyareas <- unique(data$Policy_only)     # find the total number of unique sub policy areas
 
-stakeholders <- unique(colnames(data[,5:23]))   # find the total number of stakeholder groups
+stakeholders <- unique(colnames(data[,c(7:21, 26)]))   # find the total number of stakeholder groups
 
-#############################################
+########
 # normalize by the total number of responses within a category
 # create a new dataframe with the normalized responses
 # Note that you want to normalize according to the sub policy area, to get what percent wanted a certain level of legislation
@@ -58,7 +68,7 @@ for(i in 1:j){
   temp.subset <- subset(data, data$Policy_only == polarea.temp)
   
   # normalize subset across columns in subset of data
-  temp.normalize <- as.data.frame(sweep(as.matrix(temp.subset[,5:23]), 2, as.matrix(temp.sum[,2:20]), "/"))
+  temp.normalize <- as.data.frame(sweep(as.matrix(temp.subset[,c(7:21, 26)]), 2, as.matrix(temp.sum[,2:17]), "/"))
   
   # bring back in Policy and status columns
   temp.normalize$Policy_only <- temp.subset$Policy_only
@@ -83,7 +93,7 @@ for(i in 1:j){
 } # end of loop
 
 # replace Nas with 0's
-normalized[is.na(normalized)] = 0
+# normalized[is.na(normalized)] = 0
 
 ####################### Graphing
 ###### preprocessing for all data. 
@@ -140,7 +150,7 @@ d3heatmap(mat.data, scale = "column",
 
 # find row names
 rnames <- normalized$Policy_response
-rounded.norm<- format(round(normalized[,1:19], 1), nsmall = 1)      # ensure that only have 1 decimal places
+rounded.norm<- format(round(normalized[,1:16], 1), nsmall = 1)      # ensure that only have 1 decimal places
 mat.data <- data.matrix(rounded.norm)          # convert data to matrix
 rownames(mat.data) <- rnames                         # assign row names 
 
@@ -168,7 +178,7 @@ heatmap.2(mat.data,
 
 ####### second method
 # interactive heatmap
-d3heatmap(mat.data2, scale = "column", 
+d3heatmap(mat.data, scale = "column", 
           dendrogram = "row",
           col=my_palette,
           margins =c(8,50), 
@@ -180,6 +190,7 @@ d3heatmap(mat.data2, scale = "column",
 ## Second normalization method- normalize data to the total number of respondents within a stakeholder group
 # Row at bottom of CSV where Policy_general = Number of submissions
 # Aim is to normalize all of the responses within a column by the corresponding total number of submissions within a stakeholder group
+# NOT USING THIS, SO WOULD NEED WORK 19oct2015%%%%%%%%%%%
 
 # Choose the row with the total nnumber of submissions
 no.submissions <- data[117,]
@@ -230,56 +241,29 @@ heatmap.2(mat.data,
 #multiply each 'increase' segment by 101 in normalized (according to policy area)
 
 increase = subset(normalized, normalized$Status == 'More, stronger regulation')
-increase.factor = data.frame(increase[,1:19]*101, increase[,20:24])
+increase.factor = data.frame(increase[,1:16]*101, increase[,17:21])
 
 maintain = subset(normalized, normalized$Status == 'Moderate regulation')
-maintain.factor= data.frame(maintain[,1:19]*51, maintain[,20:24])
+maintain.factor= data.frame(maintain[,1:16]*51, maintain[,17:21])
 
 decrease = subset(normalized, normalized$Status == 'Less, weaker regulation')
-decrease.factor= data.frame(decrease[,1:19]*1, decrease[,20:24])
+decrease.factor= data.frame(decrease[,1:16]*1, decrease[,17:21])
 
 factor <- rbind(increase.factor, decrease.factor, maintain.factor) # bind all three subsets back together
 
 #### Graph heatmaps for the first normalization method (by number of responses within a specific policy focus)
 # First, graph according to sub policy areas
-total.factors.1<- data.frame(aggregate(factor[,1:19], by=list(Policy = factor$Sub_Policy), FUN = sum))
+total.factors.1<- data.frame(aggregate(factor[,1:16], by=list(Policy = factor$Sub_Policy), FUN = sum))
 
-# find row names
-rnames <- total.factors.1$Policy
-rounded.factors<- format(round(total.factors.1[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
-mat.data <- data.matrix(rounded.factors)                          # convert data to matrix
-rownames(mat.data) <- rnames                                      # assign row names 
-
-# creates a 5 x 5 inch image
-png(paste(directory, "WSA_normfactor1_Sub.png", sep = ""),    # create PNG for the heat map        
-    width = 10*300,        # 5 x 300 pixels
-    height = 10*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-heatmap.2(mat.data,
-          cellnote = mat.data,  # same data set for cell labels
-          main = "Response to policy areas - Sub policy areas (normalized by # respondents)", # heat map title
-          notecol="black",      # change font color of cell labels to black
-          density.info="none",  # turns off density plot inside color legend
-          trace="none",         # turns off trace lines inside the heat map
-          margins =c(10,20),     # widens margins around plot
-          col=my_palette,       # use on color palette defined earlier 
-          cexCol=1, 
-          cexRow = 1,          # decrease row font size to fit
-          #breaks=col_breaks,    # enable color transition at specified limits
-          dendrogram="row",     # only draw a row dendrogram
-          Colv=TRUE)            # turn off column clustering
-
-###### Try where the stakeholder groups are the rows
+######  Where the stakeholder groups are the rows (Thus, grouping by stakeholdr groups)
 # find row names
 rnames <- colnames(total.factors.1)
-rounded.factors<- format(round(total.factors.1[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
+rounded.factors<- format(round(total.factors.1[,2:17], 1), nsmall = 1)      # ensure that only have 2 decimal places
 mat.data <- t(data.matrix(rounded.factors))                          # convert data to matrix
 colnames(mat.data) <- total.factors.1$Policy                                     # assign row names 
 
 # creates a 5 x 5 inch image
-png(paste(directory, "WSA_normfactor1_Sub_b.png", sep = ""),    # create PNG for the heat map        
+png(paste(directory, "WSA_influencemap.png", sep = ""),    # create PNG for the heat map        
     width = 10*300,        # 5 x 300 pixels
     height = 10*300,
     res = 300,            # 300 pixels per inch
@@ -300,15 +284,15 @@ heatmap.2(mat.data,
           Colv=TRUE)            # turn off column clustering
 
 
-##### Graph by the main policy areas (Seven in total)
+##### Graph by the main policy areas (Seven in total). Group by stakeholder groups
 # sum all three groupings together by policy area
-total.factors.main1<- data.frame(aggregate(factor[,1:19], by=list(Policy = factor$Main_Policy), FUN = sum))
+total.factors.main1<- data.frame(aggregate(factor[,1:16], by=list(Policy = factor$Main_Policy), FUN = sum))
 
 # find row names
-rnames <- total.factors.main1$Policy
-rounded.factors<- format(round(total.factors.main1[,2:19], 1), nsmall = 1)      # ensure that only have 2 decimal places
-mat.data <- data.matrix(rounded.factors)            # convert data to matrix
-rownames(mat.data) <- rnames                             # assign row names 
+rnames <- colnames(total.factors.main1)
+rounded.factors<- format(round(total.factors.main1[,2:17], 1), nsmall = 1)      # ensure that only have 2 decimal places
+mat.data <- t(data.matrix(rounded.factors))            # convert data to matrix
+colnames(mat.data) <- total.factors.main1$Policy                             # assign row names
 
 # creates a 5 x 5 inch image
 png(paste(directory, "WSA_normfactorsmain.png", sep = ""),    # create PNG for the heat map        
@@ -525,3 +509,4 @@ heatmap.2(mat.data,
           #breaks=col_breaks,    # enable color transition at specified limits
           dendrogram="row",     # only draw a row dendrogram
           Colv=TRUE)            # turn off column clustering
+#################################
