@@ -401,11 +401,14 @@ heatmap.2(mat.data,
           dendrogram="row",     # only draw a row dendrogram
           Colv=TRUE)            # turn off column clustering
 
-
+##############################################
+# Influence maps - adding in the contribution of the WSA
+# Influence calculated according to:
+# Influence = WSA - 
 
 ############################################
 ##### box plots - to answer   question of whether stakeholder groups called for more regulation uniformly along policy areas
-box.data.1 <- data.frame(total.factors.1[,2:19])
+box.data.1 <- data.frame(total.factors.1[,2:17])
 png(paste(directory, "WSA_norm1_boxplot.png", sep = ""),    # create PNG for the heat map        
     width = 7*300,        # 5 x 300 pixels
     height = 7*300,
@@ -452,8 +455,8 @@ groundwater.1 <- subset(normalized, normalized$Main_Policy == "Regulate and Prot
 
 # do heat map
 # find row names - where the stakeholder groups are the rows
-rnames <- colnames(groundwater.1[,1:18])
-rounded.factors<- format(round(groundwater.1[,1:18], 1), nsmall = 1) # ensure that only have 2 decimal places
+rnames <- colnames(groundwater.1[,1:16])
+rounded.factors<- format(round(groundwater.1[,1:16], 1), nsmall = 1) # ensure that only have 2 decimal places
 mat.data <- t(data.matrix(rounded.factors))                          # convert data to matrix
 colnames(mat.data) <- paste(groundwater.1$Sub_Policy, groundwater.1$Status, sep="_") 
 
@@ -466,7 +469,7 @@ png(paste(directory, "WSA_groundwater_norm1.png", sep = ""),         # create PN
 
 heatmap.2(mat.data,
           cellnote = mat.data,  # same data set for cell labels
-          main = "Response to groundwater - Norm method 1", # heat map title
+          main = "Responses to Regulate and Protect Groundwater Use", # heat map title
           notecol="black",      # change font color of cell labels to black
           density.info="none",  # turns off density plot inside color legend
           trace="none",         # turns off trace lines inside the heat map
