@@ -26,6 +26,19 @@ save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisda
 # functions used in script
 
 ################################################################################
+# Pt *** DIfferences in water quailty parameters between sites
+# Question - how different are sites in terms of water quality parameters?
+# show in histogram of DOC, TOC, pH, temp, [DO], SUVA, Br, TN concentrations
+
+# File with all of the water quality parameters
+
+waterquality <- read.csv((paste(save.directory, '/DBP_master_v5.csv', sep = "")), header = TRUE)
+
+# Histograms of various water quality parameters
+
+
+
+################################################################################
 # Analysis Script
 # Pt **** - how does chlorination change the spectral composition of EEMS?
 # princip-al component analysis to look at how chlorination altered spectral characteristics (EEMS)
