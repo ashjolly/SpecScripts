@@ -304,6 +304,7 @@ heatmap.2(mat.data,
           #breaks=col_breaks,    # enable color transition at specified limits
           dendrogram="row",     # only draw a row dendrogram
           Colv=TRUE)            # turn off column clustering
+dev.off()
 
 ####### second method
 # interactive heatmap
@@ -678,19 +679,24 @@ png(paste(directory, "WSA_number of submissions.png", sep = ""),         # creat
     res = 600,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
-op <- par(mar = c(7,6,4,2) + 1) # increase magins, especialy x axis margins
+op <- par(mar = c(14,4,4,2) + 1) # increase magins, especialy x axis margins
 
-plot <- barplot(as.matrix(sum.total[,c(7:21, 26)]), main = "Number of Submissions Per Stakeholder Group",
+plot <- barplot(as.matrix(sum.total[,c(7:21, 26)]), main = "Number of Submissions Per Stakeholder Group", cex.main = 2, 
+                cex.axis = 2,
          col = "#005824", axes = FALSE, axisnames = FALSE)
 par(op)        
 text(plot, par("usr")[3]-.5, labels = (colnames(sum.total)[c(7:21, 26)]),srt = 45,
-     adj = c(1.3,1.3), xpd = TRUE, cex=.8)
+     adj = c(1.3,1.3), xpd = TRUE, cex=1.3)
 axis(2)
 
+# add to top of graph the total number for each stakeholder group
+text(x = plot, y = (sum.total[,c(7:21, 26)])+12, labels=(sum.total[,c(7:21, 26)]), xpd=TRUE)
+
 title(main = NULL, sub = NULL, 
-      xlab = NULL, ylab = "Number of Responses per Stakeholder Group")
+      xlab = NULL, ylab = "Number of Responses per Stakeholder Group", cex.lab = 1.6)
 dev.off()
 
+#########################################################################################
 ### Calculate the percent of respondents per sub policy area
 # Where percent = number of respondents in sub policy area/ total number of respondents in stakeholder grou
 # combine 'health' with community groups (only one respondent in 'health')
