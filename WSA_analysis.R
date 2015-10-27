@@ -18,6 +18,7 @@ library("d3heatmap")
 library('RColorBrewer')
 library('scales')
 library('ggplot2')
+library("nlme")
 
 ## load data
 data.original <- as.data.frame(read.csv(paste(directory, 'codestats_heatmap.csv', sep = ''), sep = ",", header = TRUE))
@@ -448,11 +449,35 @@ heatmap.2(mat.data,
           Rowv = TRUE,
           Colv=TRUE)            # turn off column clustering
 
-
+#########################################################
 ##### Decision prediction
 # Try and use decision prediction
 # Assumes that decision made is a combination of different inputs
+#WSA.totalfactors, total.factors
+WSA.totalfactors.1 <- WSA.totalfactors[,2:3]
 
+# create data set with response factors
+response.total <- merge(total.factors, WSA.totalfactors.1, by = "Sub_policy")
+
+# Fit multilple linear model, where y = WSA response, and multiple X's is the stakeolher response
+lmfit <- lm(WSA_Response~ Academia + Agriculture + Business + Community.Groups + ENGO + First.Nations + Forestry + Hydropower + Local.Government + Mining +Oil.and.Gas +Other.Organisations + Partnership.Organisations +Professional+Water.Industry+ Individuals,
+            na.action=na.omit, data = response.total) 
+
+# anova on the linear model
+anova(lmfit)
+
+summary(lmfit)
+
+# used mixed model approach from nlmn package
+lmfit <- gls(WSA_Response~ Academia + Agriculture + Business + Community.Groups + ENGO + First.Nations + Forestry + Hydropower + Local.Government + Mining +Oil.and.Gas +Other.Organisations + Partnership.Organisations +Professional+Water.Industry+ Individuals,
+             na.omit, data = response.total, correlation = corARMA(p = 1, q = 2))
+
+# Calculate Relative Importance for Each Predictor
+library(relaimpo)
+calc.relimp(lmfit,type=c("lmg","last","first","pratt"),
+            rela=TRUE)
+
+# not enough data? Especially considering areas where the 
 ############################## ############### ############### ############### 
 # Heat maps of specific policy areas - normalized data
 # Regulate and Protect Groundwater Use 
