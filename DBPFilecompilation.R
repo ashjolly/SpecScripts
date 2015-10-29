@@ -1,5 +1,3 @@
-#
-# 
 # File for compiling all files into CM and DrEEMS
 # 10aug2015
 # Ashlee Jollymore's phd
@@ -15,10 +13,10 @@ library(gsubfn)
 
 ##########
 #all.EEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected"
-all.EEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_preandpost"
+all.EEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_preandpost"
 
 # CM directory
-directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS" 
+directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS" 
 
 #project <- "DBPall"
 project <- "DBPprepost"
@@ -44,7 +42,7 @@ CMsave <- CMtrim(filedirectory = all.EEMS, filelist = filelist_EEMScor, project 
 # Inputs include the filelist, the project, the vector containing sample names, and the excitation wavelength min you want to trim to
 # File cuts EEMs from ex min that you want to
 
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMSDrEEMsaveDBPall_function.R")
 
 ex.DrEEMS = seq(240, 800, by = 2)
