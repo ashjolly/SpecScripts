@@ -20,6 +20,10 @@ library('scales')
 library('ggplot2')
 library("nlme")
 
+
+####### Use viridis packager for colours?
+library(viridis)
+
 ## load data
 data.original <- as.data.frame(read.csv(paste(directory, 'codestats_heatmap.csv', sep = ''), sep = ",", header = TRUE))
 
