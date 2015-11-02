@@ -53,20 +53,20 @@ DrEEM = function(filelist, project, exmin, filedirectory, ex) {
   # Save files in correct locations
   corrpath <- file.path("/Users/user/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
 
-  write.table(dataset.2, file = file.path("/Users/user/Documents/MATLAB/toolbox/CorrEEMS", paste(project, "/fl.csv", sep = "")),
+  write.table(dataset, file = file.path("/Users/user/Documents/MATLAB/toolbox/CorrEEMS", paste(project, "/fl.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #Ex file
-  write.table(ex, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/Ex.csv", sep = "")),
+  write.table(ex, file = file.path("/Users/user/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/Ex.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #Em
-  write.table(em, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/Em.csv", sep = "")), 
+  write.table(em, file = file.path("/Users/user/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/Em.csv", sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #File containing sample names
-  write.table(sampleID, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/01key.csv",sep = "")), 
+  write.table(sampleID, file = file.path("/Users/user/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/01key.csv",sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
-  return(dataset.2)
+  return(dataset)
 }
