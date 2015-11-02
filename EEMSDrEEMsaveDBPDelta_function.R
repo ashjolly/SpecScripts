@@ -31,11 +31,7 @@ DrEEM = function(filelist, project, exmin, filedirectory, ex) {
     em = row.names(temp.EEMS)
     
     # create a new dataset where the post-cut EEMS are compiled together by rows
-    # if the merged dataset doesn't exist, create it
-    if (!exists("dataset")){
-      dataset <- temp.EEMS
-      }
-  
+
     # if the merged dataset does exist, append to it
     if (exists("dataset")){
      temp_dataset <-temp.EEMS
@@ -43,35 +39,33 @@ DrEEM = function(filelist, project, exmin, filedirectory, ex) {
       rm(temp_dataset)
     }
     
+    # if the merged dataset doesn't exist, create it
+    if (!exists("dataset")){
+      dataset <- temp.EEMS
+    }
+    
     # create list with sample IDs in it
     samplename <- strapplyc(filelist_EEMScor[i], paste("(.*)_", "DBPdelta", sep = ""), simplify = TRUE)
     sampleID[i] <- samplename
   }
   
-  #seems to have doubled first dataset, remove?
-  x <- length(em)
-  y <- dim(dataset)[1]
-  dataset.2 <- dataset[c((x+1):y),]
-  y <- dim(dataset.2)[1]
-  remove(x)
-  remove(y)
-  
-  # Save files in correct locations
-  corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
 
-  write.table(dataset.2, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project, "/fl.csv", sep = "")),
+  # Save files in correct locations
+  corrpath <- file.path("/Users/user/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
+
+  write.table(dataset.2, file = file.path("/Users/user/Documents/MATLAB/toolbox/CorrEEMS", paste(project, "/fl.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #Ex file
-  write.table(ex, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/Ex.csv", sep = "")),
+  write.table(ex, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/Ex.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #Em
-  write.table(em, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/Em.csv", sep = "")), 
+  write.table(em, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/Em.csv", sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #File containing sample names
-  write.table(sampleID, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/DOMFluor", paste(project,"/01key.csv",sep = "")), 
+  write.table(sampleID, file = file.path("/Users/ashlee/Documents/MATLAB/toolbox/CorrEEMS", paste(project,"/01key.csv",sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   return(dataset.2)
