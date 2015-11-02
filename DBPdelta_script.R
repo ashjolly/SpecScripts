@@ -15,19 +15,20 @@ ls()
 library(reshape)
 library(plyr)
 library(gsubfn)
+library(pracma)
 
 ######
 # load pre and post chlorination files, match according to sample ID, and then minus pre - post
 # note that this is only for corrected files.
 
-prechlor.files <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
-postchlor.files <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMs"
+prechlor.files <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+postchlor.files <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
 
 # directory where the delta eems will go
-delta.eems <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_delta"
+delta.eems <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_delta"
 
 # CM directory
-directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS" 
+directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS" 
 
 project <- "DBPdelta"
 
@@ -114,7 +115,7 @@ for (i in 1:n){
   # ensure that EEMS are the same size
   #trim so that exitation and emission goes from the same
   # call EEM trim function
-  setwd("/Users/ashlee/SpecScripts") 
+  setwd("/Users/user/SpecScripts") 
   source("EEMtrim_function.R")
   
   post.trim <- EEMtrim(eem = post.temp, minex = "X240")
@@ -144,7 +145,7 @@ for (i in 1:n){
   library(gplots)
   
   # call contour plot function
-  setwd("/Users/ashlee/SpecScripts") 
+  setwd("/Users/user/SpecScripts") 
   source("EEM_contour_v1.R")
   
   #Plot contours and save in correction file
@@ -178,7 +179,7 @@ for (i in 1:n){
   # Ensure that absorbance files go from 800-240 nm
   #trim so that exitation and emission goes from the same
   # call function
-  setwd("/Users/ashlee/SpecScripts") 
+  setwd("/Users/user/SpecScripts") 
   source("Abstrim_DBP_function.R")
   
   pre.trim <- abstrim(abs = preabs.temp, minex = "X240")
@@ -190,7 +191,7 @@ for (i in 1:n){
    ##########
   # Calculating fluorescence indicies
   # call function
-  setwd("/Users/ashlee/SpecScripts") 
+  setwd("/Users/user/SpecScripts") 
   source("Aqualog_Fluorindicies_v2.R")
   
   #below may need to be altered depending on the output of your scan
@@ -247,7 +248,7 @@ filelist_EEMScor <- list.files(pattern = "_DBPdelta.csv$")
 ex.PARAFAC <- seq(240, 800, by = 2) #change if excitation wavlenegths are different
 
 # call function
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMCMtrimDBPdelta_function.R")
 CMsave <- CMtrim(filedirectory = delta.eems, filelist = filelist_EEMScor, project = project, exmin = "X240",
                  directoryCM = directoryCM, ex = ex.PARAFAC)
@@ -264,7 +265,7 @@ CMsave
 # Inputs include the filelist, the project, the vector containing sample names, and the excitation wavelength min you want to trim to
 # File cuts EEMs from ex min that you want to
 
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMSDrEEMsaveDBPDelta_function.R")
 
 ex.DrEEMS = seq(240, 800, by = 2)
