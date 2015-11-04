@@ -35,8 +35,9 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     
     #### load and trim EEMS
     #call function. Note that wd will change to sample WD in function
-    setwd("/Users/ashlee/SpecScripts") 
+    setwd("/Users/user/SpecScripts") 
     source("EEMfileLoadTrim_function.R")
+    
     EEM <- EEMtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
     
     #ex and em wavelengths
@@ -50,13 +51,15 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     
     #### load and trim ABS
     # call function. Note that wd will change to sample WD in function
-    setwd("/Users/ashlee/SpecScripts") 
+    setwd("/Users/user/SpecScripts") 
     source("EEMAbsLoadTrim_function.R")
+    
     Abstrim <- ABStrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
     
     #### load and trim blank
-    setwd("/Users/ashlee/SpecScripts")
+    setwd("/Users/user/SpecScripts")
     source("EEMBlankLoadTrim_function.R")
+    
     Blktrim <- BLANKtrim(graphheadings = data.3, samplewd = directoryall, loopnum = i)
     
     #ex and em_all are variables that output the complete ex and em. Make sure that all of your samples are the same
@@ -75,7 +78,7 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     
     if (EEMsampletype == "SYM") {
       # call function
-      setwd("/Users/ashlee/SpecScripts") 
+      setwd("/Users/user/SpecScripts") 
       source("EEMIFECorr_function.R")
       
       EEM.IFC <- innerfilter(eem = EEM, abs = Abstrim, em = em, ex = ex)
@@ -90,7 +93,7 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     ########### Normalize IFE EEM and blank file according to area under Raman peak
     # Need to do for all EEMs exported from Aqualog
     # call function
-    setwd("/Users/ashlee/SpecScripts") 
+    setwd("/Users/user/SpecScripts") 
     source("Ramancorrect_v1.R")
     
     # wavelengths for Raman corrections
@@ -184,7 +187,7 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     
     ##### contour plotting function
     # call contour plot function
-    setwd("/Users/ashlee/SpecScripts") 
+    setwd("/Users/user/SpecScripts") 
     source("EEM_contour_v1.R")
     
     #Plot contours and save in correction file
