@@ -22,7 +22,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedEEMS, ex.wavelengt
                                         header= TRUE, sep = ",", stringsAsFactors=FALSE))
     
     # call function
-    setwd("/Users/ashlee/SpecScripts") 
+    setwd("/Users/user/SpecScripts") 
     source("Aqualog_Absindicies_v1.R")
     
     #call the function to calculate indicies
@@ -60,7 +60,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedEEMS, ex.wavelengt
     em430 <- as.numeric(grep(em.wavelengths[c("em.430"),], rownames(EEMcorr)))
     
     # call function
-    setwd("/Users/ashlee/SpecScripts") 
+    setwd("/Users/user/SpecScripts") 
     source("Aqualog_Fluorindicies_v2.R")
     
     # call function that calculates fluorescent indicies
