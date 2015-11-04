@@ -59,26 +59,30 @@ library(zoo)
 library(pracma)
 
 ####
-# DBP Post chlorination
 # directory with all of the fluorescence files
-directoryall <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
+directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
 
 # directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
-directoryCorrectedEEMS <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
+directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
 
 #######
 # directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
 # This is the same for all projects
-directoryCM <-"/Users/ashlee/Documents/MATLAB/CorrectedEEMS" 
+directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS" 
+
+#######
+# general directory
+directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
+
+# project
+project = "DBPPre"
 
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
 #DBP post dilution file
-dilution <-as.data.frame(read.csv("/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_Aqualogdilution.csv", 
+dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
                                   sep=",", header = TRUE, col.names = top))
-
-project = "DBPPost"
 
 ###########################
 ## ex an em positions within your eems. This is so the Fluor and Raman correction script can find the right columns in order to calculate Fluorescences indicies
@@ -119,7 +123,7 @@ em.wavelengths <- data.frame(rbind(em.375, em.430, em.470, em.520,em.435,em.480,
 
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMfilecomp_function.R")
 
 # select whether you want to work with sample-blank files (EEMfiletype ="SYM.dat"), 
@@ -135,8 +139,9 @@ data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution, EEMfiletype = "SYM.
 # Basically will take all uncorrected EEMS within a folder, and apply functions for corrections
 # Avoids having the loop within the script - idea is to make corrections more adaptable between different projects and easier to apply
 
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMcorrection_function.R")
+
 EEMcorrect = EEMcorrection(data.3 = data.3, directoryall = directoryall, directoryCorrectedEEMS = directoryCorrectedEEMS, 
                           slitwidth1 = 15, slitwidth2 = 15,
                           ex.wavelengths = ex.wavelengths, em.wavelengths = em.wavelengths)
@@ -151,15 +156,16 @@ EEMcorrect
 setwd(directoryCorrectedEEMS)
 filelist_EEMS <- list.files(pattern = "_Corrected.csv$")
 
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("AbsEEMSfilecomp_function.R")
 
 filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, projectname = project, 
                                    filelist_EEMScor = filelist_EEMS)
 
 # set directory with EEMS that you corrected according to the loop above
+
 # Call function that will loop over the files in this folder and apply abs and fluor correction indicies
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMSIndCalculation_function.R")
 
 spec.indicies = calc.indicies(filelist_EEMScor = filelist_EEMScor, 
@@ -168,7 +174,7 @@ spec.indicies = calc.indicies(filelist_EEMScor = filelist_EEMScor,
 # Check spectral indicies
 spec.indicies
 
-######## end of loop!
+######## 
 #write file containing spectral indicies + sample IDs
 #after loop is finished with all samples
 corrpath <- file.path(directoryCorrectedEEMS, paste(project, "SpectralIndicies.csv", sep = ""))
