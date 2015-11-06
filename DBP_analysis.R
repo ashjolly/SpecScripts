@@ -3,6 +3,9 @@
 # For analysing data 
 # Ashlee Jollymore's PhD
 # DBP project
+
+# References:
+# http://www.sthda.com/english/wiki/principal-component-analysis-how-to-reveal-the-most-important-variables-in-your-data-r-software-and-data-mining#at_pco=smlwn-1.0&at_si=563bc26c64fc73c8&at_ab=per-2&at_pos=0&at_tot=1
 ################################################################################
 
 # clean up list
@@ -19,6 +22,7 @@ library(ggbiplot)
 library('plyr')
 library('stringr')
 library('gplots')
+library('FactoMineR')
 
 ################################################################################
 # Read in data used for analysis
@@ -28,6 +32,24 @@ save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisda
 
 ##############################################################
 # functions used in script
+
+make.eem <- function (ex, PCAcomponents){
+  n <- length(unique(ex))
+  PCA.var <-  data.frame(matrix(vector(), as.numeric(length(unique(PCAcomponents$em))), length(unique(PCAcomponents$ex))))
+  
+  for (i in 1:n){
+    ex.temp <- unique(ex)[i]
+    test <- data.frame(subset(PCAcomponents, PCAcomponents$ex == ex.temp))
+    row.names(test) <- unique(PCAcomponents$em)
+    colnames(test)[1] <- ex.temp
+    
+    PCA.var[,i] <- test[,1]
+  }
+  
+  row.names(PCA.var) <- unique(PCAcomponents$em)
+  colnames(PCA.var) <- unique(PCAcomponents$ex)
+  return(PCA.var)
+}
 
 ################################################################################################################################################################
 # Pt *** DIfferences in water quailty parameters between sites
@@ -148,7 +170,7 @@ row.names(wq.permean) <- wq.heat$samplename # assign row names as sample ID
 wq.permean[wq.permean > 200] <- NA # replace values that are greater than 200% with Na's - doesn't make sense
 wq.permean[wq.permean < -200] <- NA # replace values that are less than -200% with Na's - doesn't make sense
 
-# get rid of Zlonoskia area column... very littel data!
+# Exclude specific variables (due to little data, etc)
 wq.permean$HIX_Zsonlay_area = NULL
 wq.permean$HIX_Zsonlay_sum = NULL
 wq.permean$F = NULL
@@ -162,7 +184,7 @@ mat.data <- data.matrix(t(wq.permean[1:117,]))          # convert data to matrix
 my_palette <- colorRampPalette(c("red", "yellow", "green"))(n = 299)
 
 # creates a 5 x 5 inch image
-png(paste(save.directory, "DBP_WQ_heatmap.png", sep = ""),    # create PNG for the heat map        
+png(paste(save.directory, "/DBP_WQ_heatmap.png", sep = ""),    # create PNG for the heat map        
     width = 5*300,        # 5 x 300 pixels
     height = 5*300,
     res = 300,            # 300 pixels per inch
@@ -250,6 +272,85 @@ g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
 
+############ find the areas that explain the most variance
+pca.pre.Facto <-  PCA(PCA.pre, graph = FALSE)
+
+# plot the contribution of each wavelength to the first *** components to the PCA
+PCA.pre.c <- data.frame(pca.pre.Facto$var$contrib)
+
+# extract em and ex wavelengths from dataset (rownames)
+PCA.pre.c$ex = unique(sapply(strsplit(as.character(row.names(PCA.pre.c)), split='_', fixed=TRUE), function(x) (x[1]))) # excitation wavelengths
+PCA.pre.c$em <- unique(as.numeric(sapply(strsplit(as.character(row.names(PCA.pre.c)), split='_', fixed=TRUE), function(x) (x[2])))) #emission wavelenghts
+
+# use function to make a 3-D eem out of the dimentions
+
+dim1.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(1,6,7)]))
+dim2.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(2,6,7)]))
+dim3.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(3,6,7)]))
+dim4.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(4,6,7)]))
+dim5.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(5,6,7)]))
+
+# plot as contour plots using function
+setwd("/Users/user/SpecScripts") 
+source("EEM_contour_v1.R")
+
+#variables to change
+xlimit <- range(300, 700, finite=TRUE)
+ylimit <- range(240, 800, finite = TRUE)
+
+numcont = 20 # number of contour levels you want: Change if you want
+#Plot contours and save in correction file
+
+explot = seq(240, 800, by = 2)
+emplot = as.numeric(row.names(dim1.PCApre))
+
+########### specific to first 
+plotpath <- file.path(save.directory, "PCApre_dim1_Contour.jpeg")
+zmax = max(dim1.PCApre,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim1.PCApre,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim1.PCApre), Title = "PCA- Pre First Component", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+
+########## specific to second 
+plotpath <- file.path(save.directory, "PCApre_dim2_Contour.jpeg")
+zmax = max(dim2.PCApre,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim2.PCApre,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim2.PCApre), Title = "PCA- Pre Component2", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to third 
+plotpath <- file.path(save.directory, "PCApre_dim3_Contour.jpeg")
+zmax = max(dim3.PCApre,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim3.PCApre,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim3.PCApre), Title = "PCA- Pre Component 3", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to second 
+plotpath <- file.path(save.directory, "PCApre_dim4_Contour.jpeg")
+zmax = max(dim4.PCApre,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim4.PCApre,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim4.PCApre), Title = "PCA- Pre Component 4", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to 5 
+plotpath <- file.path(save.directory, "PCApre_dim5_Contour.jpeg")
+zmax = max(dim5.PCApre,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim5.PCApre,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim5.PCApre), Title = "PCA- Pre Component 5", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+
 ###########################################################
 ### Post chlor eems
 # read in compiled file
@@ -269,10 +370,10 @@ pcapost.loadings <- pca.post$rotation[,1:4]
 plot(pcapost.loadings[,1:2], type = 'p')
 plot(pcapost.loadings[,3:4], type = 'p')
 
-################################################################################  
+################################################################################################################################################################  
 # Comparing pre to post chlorinated EEMS
 #### 
-# first add column to sample ID that specarates unchlorinated or chlorinated EEMS
+# first add column to sample ID that separates unchlorinated or chlorinated EEMS
 # EEM.pre = prechlorinated EEM array
 # EEM.post = post chlorinated EEM array
  #no need to do this? Go by sample ID?
@@ -291,7 +392,11 @@ PCA.all[118:237,1] <- 'post chlorination'
 chlor <- PCA.all[,1]
 
 # Do PCA on pre + post chlorinated EEMS - which wavelengths result in greatest difference
+# Will try doing PCA using FactoMineR package - lets you choose the number of variables..
+
 pca.all <- prcomp(PCA.all[,2:140501], center = TRUE, scale. = TRUE)
+pca.all.Facto <-  PCA(PCA.all[,2:140501], graph = FALSE)
+summary(pca.all)
 
 plot(pca.all, type = "l")
 
@@ -299,10 +404,92 @@ pcaall.loadings <- pca.all$rotation[,1:4]
 plot(pcaall.loadings[,1:2], type = 'p')
 plot(pcaall.loadings[,3:4], type = 'p')
 
+# PLot PCA. This plot is super complex as it is taking all of the wavelengths.
 g <- ggbiplot(pca.all, obs.scale = 1, var.scale = 1, 
-  groups = PCA.all[,1], ellipse = TRUE, circle = TRUE)
+              groups = PCA.all[,1], ellipse = FALSE, circle = FALSE)
+
+# To make plotting nicer, choose the variables that have the greatest contribution to the PCA (otherwise your plot is a mess)
+head(pca.all.Facto$var$contrib)   # The larger the value of the contribution, the more the variable contributes to the component.
+
+# write to a csv file for examination
+write.table(pca.all.Facto$var$contrib, file = paste(save.directory, "/PrePost_PCAvariables.csv", sep = ""), sep = ",")
+
+############### Plot the contribution of each wavelength for most important components from the PCA as a contour plot
+# plot the contribution of each wavelength to the first *** components to the PCA
+PCA.c <- data.frame(pca.all.Facto$var$contrib)
+
+#extract em and ex wavelengths from dataset (rownames)
+PCA.c$ex = unique(sapply(strsplit(as.character(row.names(PCA.c)), split='_', fixed=TRUE), function(x) (x[1]))) # excitation wavelengths
+PCA.c$em <- unique(as.numeric(sapply(strsplit(as.character(row.names(PCA.c)), split='_', fixed=TRUE), function(x) (x[2])))) #emission wavelenghts
 
 ####
+dim1.PCAprepost <- make.eem(ex = unique(PCA.c$ex), PCAcomponents = data.frame(PCA.c[,c(1,6,7)]))
+dim2.PCAprepost <- make.eem(ex = unique(PCA.c$ex), PCAcomponents = data.frame(PCA.c[,c(2,6,7)]))
+dim3.PCAprepost <- make.eem(ex = unique(PCA.c$ex), PCAcomponents = data.frame(PCA.c[,c(3,6,7)]))
+dim4.PCAprepost <- make.eem(ex = unique(PCA.c$ex), PCAcomponents = data.frame(PCA.c[,c(4,6,7)]))
+dim5.PCAprepost <- make.eem(ex = unique(PCA.c$ex), PCAcomponents = data.frame(PCA.c[,c(5,6,7)]))
+
+# plot as contour plots using function
+setwd("/Users/user/SpecScripts") 
+source("EEM_contour_v1.R")
+
+#variables to change
+xlimit <- range(300, 700, finite=TRUE)
+ylimit <- range(240, 800, finite = TRUE)
+
+numcont = 20 # number of contour levels you want: Change if you want
+#Plot contours and save in correction file
+
+explot = seq(240, 800, by = 2)
+emplot = as.numeric(row.names(dim1.PCAprepost))
+
+########### specific to first 
+plotpath <- file.path(save.directory, "PCAprepost_dim1_Contour.jpeg")
+zmax = max(dim1.PCAprepost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim1.PCAprepost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim1.PCAprepost), Title = "PCA- Pre and Post First Component", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+
+########## specific to second 
+plotpath <- file.path(save.directory, "PCAprepost_dim2_Contour.jpeg")
+zmax = max(dim2.PCAprepost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim2.PCAprepost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim2.PCAprepost), Title = "PCA- Pre and Post Component2", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to third 
+plotpath <- file.path(save.directory, "PCAprepost_dim3_Contour.jpeg")
+zmax = max(dim3.PCAprepost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim3.PCAprepost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim3.PCAprepost), Title = "PCA- Pre and Post Component 3", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to second 
+plotpath <- file.path(save.directory, "PCAprepost_dim4_Contour.jpeg")
+zmax = max(dim4.PCAprepost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim4.PCAprepost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim4.PCAprepost), Title = "PCA- Pre and Post Component 4", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to 5 
+plotpath <- file.path(save.directory, "PCAprepost_dim5_Contour.jpeg")
+zmax = max(dim5.PCAprepost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim5.PCAprepost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim5.PCAprepost), Title = "PCA- Pre and Post Component 5", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+################################################################################################
 # Self organizing maps - pre and post chlorination EEMS
 # Use to look at how chlorination affects the spectral characteristics of 
 # http://www.r-bloggers.com/self-organising-maps-for-customer-segmentation-using-r/
@@ -334,11 +521,40 @@ CMPCA.all <- na.omit(CM.all)
 # do PCA analysis on all dataset - look for components that explain largest differences between pre and post
 PCA.CM <- prcomp(CMPCA.all[,3:15], center = TRUE, scale. = TRUE)
 
+summary(PCA.CM) # get stats for PCA on CM - pre and post chlorination
+
 # choose top 2 components of variation, and plot against one another to see if you can cluster pre and post chlorination
-PCA.CM$rotation
+PCA.CM$rotation[,1]
+
+plot(PCA.CM$rotation[,1], xlab = "CM Component", ylab = "PCA Rotation", main = 'CM Pre and Post PCA - Component 1')
+
+png(paste(save.directory, "DBP_CM_PCA.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
 
 g <- ggbiplot(PCA.CM, obs.scale = 1, var.scale = 1, 
-              groups = CMPCA.all$chlor, ellipse = FALSE, circle = FALSE)
+              groups = CMPCA.all$chlor, ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- 13 Component PARAFAC Model")
+
+g <- g + scale_color_discrete(name = '')
+g <- g + theme(legend.direction = 'vertical', 
+               legend.position = 'right')
+dev.off()
+
+#############################################################################################
+# Compare PCA model for the custom 6 component model
+# pre chlorinated
+# IMport Fmax values from 
+Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre/percentloadings.csv", header = FALSE, sep = ",")
+
+colnames(Pre.Fmax) <- c("samplename", "C1", "C2", "C3", "C4", "C5", "C6")
+
+# principal component analysis on PARAFAC results
+PCA.pre.6 <- prcomp(Pre.Fmax[,2:7], center = TRUE, scale. = TRUE)
+# plot PCA
+g <- ggbiplot(PCA.pre.6, obs.scale = 1, var.scale = 1, 
+               ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- 6 Component PARAFAC Model Pre-Chlorination")
 
 
 ###########
