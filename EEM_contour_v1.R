@@ -1,10 +1,10 @@
 #Function for plotting contour
-contour.plots <- function(eems, Title, ex, em) {
+contour.plots <- function(eems, Title, ex, em, zmax, zmin,numcont) {
   filled.contour(x = em, y = ex,z = eems, 
                  xlim = xlimit,
                  #ylim = range(ext, finite=TRUE),
                  ylim = ylimit,
-                 zlim = range(0,zmax, finite = TRUE), # intensity level = max emission change number 4
+                 zlim = range(zmin,zmax, finite = TRUE), # intensity level = max emission change number 4
                  nlevels = numcont, 
                  axes = TRUE,
                  xaxs = "i", yaxs = "i", las = 1,  
