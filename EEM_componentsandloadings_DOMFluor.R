@@ -12,16 +12,17 @@ ls()
 #directoryDomFluor <-"/Users/ashlee/Documents/MATLAB/DOMFluor/DBP_pre" 
 #directoryDomFluor <-"/Users/ashlee/Documents/MATLAB/DOMFluor/WL" 
 
-directory_DBPpre <- "/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre" 
-setwd(directory_DBPpre)
+#directory_DBPpre <- "/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre" 
+directory <- "/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost"
+setwd(directory)
 
 ####
 # input Fmax file
-fpath <- file.path(directory_DBPpre, paste("FMax.csv", sep = ""))
+fpath <- file.path(directory, paste("FMax_6.csv", sep = ""))
 top <- c("C1", "C2", "C3", "C4", "C5", "C6")
 FMax = read.csv(fpath, header= FALSE, sep = ",", col.names = top)
 
-fpath <- file.path(directory_DBPpre, paste("01key.csv", sep = ""))
+fpath <- file.path(directory, paste("01key.csv", sep = ""))
 sample.ID <- read.csv(fpath, header= FALSE, sep = ",")
 
 FMax <- cbind(sample.ID, FMax)
@@ -48,6 +49,6 @@ len <- dim(FMax)[2]
 data.out <- FMax[,c(1,(j+1):len)]
 
 #save
-write.table(data.out, file = paste(directory_DBPpre, "/percentloadings.csv", sep = ""), row.names = FALSE,col.names = FALSE, sep = ",")
+write.table(data.out, file = paste(directory, "/percentloadings.csv", sep = ""), row.names = FALSE,col.names = FALSE, sep = ",")
 
 ################## end
