@@ -23,6 +23,7 @@ library('plyr')
 library('stringr')
 library('gplots')
 library('FactoMineR')
+library('nlme')
 
 ################################################################################
 # Read in data used for analysis
@@ -275,7 +276,7 @@ g <- g + theme(legend.direction = 'horizontal',
 ############ find the areas that explain the most variance
 pca.pre.Facto <-  PCA(PCA.pre, graph = FALSE)
 
-# plot the contribution of each wavelength to the first *** components to the PCA
+# plot the contribution of each wavelength to the first 5 components to the PCA
 PCA.pre.c <- data.frame(pca.pre.Facto$var$contrib)
 
 # extract em and ex wavelengths from dataset (rownames)
@@ -556,11 +557,192 @@ PCA.pre.6 <- prcomp(Pre.Fmax[,2:7], center = TRUE, scale. = TRUE)
 g <- ggbiplot(PCA.pre.6, obs.scale = 1, var.scale = 1, 
                ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- 6 Component PARAFAC Model Pre-Chlorination")
 
+summary(PCA.pre.6)
 
-###########
+##########################
+# Analyzing pre and post chlorinated eems with 6 component model
+# 
+# load post chlorinated EEM fit to 6 component model
+prepost.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
+
+colnames(prepost.Fmax) <- c("samplename", "C1", "C2", "C3", "C4", "C5", "C6")
+
+# bind column with chlorination status
+prepost.Fmax <- cbind(prepost.Fmax, chlor)
+
+# principal component analysis on PARAFAC results
+PCA.prepost.6 <- prcomp(prepost.Fmax[,2:7], center = TRUE, scale. = TRUE)
+
+# plot PCA
+g <- ggbiplot(PCA.prepost.6, obs.scale = 1, var.scale = 1, 
+              groups = prepost.Fmax$chlor, ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- 6 Component PARAFAC Model Pre+Post Chlorination")
+
+summary(PCA.prepost.6)
+
+# find the components that explain the most variation
+pca.prepost6com.Facto <-  PCA(prepost.Fmax[,2:7], graph = FALSE)
+PCA.comp.6c <- data.frame(pca.prepost6com.Facto$var$contrib)
+x = c("C1", "C2", "C3", "C4", "C5", "C6")
+x = seq(1,6, by = 1)
+# plot variable contributions of each component
+g <- ggplot(PCA.comp.6c, aes(x, y = value, col = 'PCA Dim')) + 
+  geom_line(aes(y = PCA.comp.6c$Dim.1, col = "Dim 1")) + 
+  geom_line(aes(y = PCA.comp.6c$Dim.2, col = "Dim 2")) + 
+  geom_line(aes(y = PCA.comp.6c$Dim.3, col = "Dim 3")) +
+  geom_line(aes(y = PCA.comp.6c$Dim.4, col = "Dim 4")) +
+  geom_line(aes(y = PCA.comp.6c$Dim.5, col = "Dim 5")) +
+  xlab("PARAFAC Components")+
+  ylab("Percent Contribution")+
+  ggtitle("Contribution to PCA")
+
+######################
+# Exploring variation in the pre and post chlorinated EEMS - heat map (clustering)
+# prepare prepost.Fmax dataframe for heat map - clustering chlorination status on x axis, and the components on the y
+
+# add column = 1 for prechlor, 2 for post chlor
+
+prepost.Fmax$numchlor <- ifelse(prepost.Fmax$chlor == "pre chlorination",1, 2)
+
+rnames <- prepost.Fmax$numchlor
+mat.data <- data.matrix(t(prepost.Fmax[,2:7]))          # convert data to matrix
+colnames(mat.data) <- rnames
+
+# do heat map
+# create colour palette
+my_palette <- colorRampPalette(c("lightblue", "darkblue"))(n = 299)
+
+# creates a 5 x 5 inch image
+png(paste(save.directory, "/DBP_PARAFAC6com_heatmap.png", sep = ""),    # create PNG for the heat map        
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          # Change the data within the heat map boxes
+          #cellnote = mat.data,  # same data set for cell labels
+          #notecex = 0.8,          # Change the font size of the data labels
+          #notecol="black",      # change font color of cell labels to black
+          
+          # labels
+          main = "6 Component PARAFAC - Pre versus Post Chlorination", # heat map title
+          
+          # dendorgram and groupings
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram=c("row"),     # only draw a row dendrogram
+          density.info="none",  # turns on density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          
+          # appearance
+          margins =c(8,15),     # widens margins around plot
+          col= my_palette,       # use on color palette defined earlier 
+          cexCol=1.5, 
+          cexRow = 1.5,          # decrease row font size to fit
+          srtCol=45,           # rotate the x labels at 45 deg so they fit
+          #axisnames = FALSE,
+          
+          na.color = 'white',   # colour of NA blocks
+          keysize = 1,          # size of the colour key
+          Rowv = TRUE,
+          Colv = FALSE)            # turn of column clustering
+dev.off()
+
+######################
+# take 2 on heat map - take average of each of teh components within the pre component, and calculate the difference in the post chlorination EEMS
+
+# calculate the average of each of the 6 components within the pre chloration dataset
+Pre.ave <- t(data.frame(apply(Pre.Fmax[,2:7], 2, mean)))
+
+# Calculate difference from average component for the post chlorination EEM
+# (post - preave)/preave*100
+post.6comp <- subset(prepost.Fmax, prepost.Fmax$numchlor==2)
+
+n = dim(post.6comp)[2]-2
+for (i in 2:n){
+  m <- Pre.ave[,(i-1)]
+  percent <- data.frame(apply(data.frame(post.6comp[,i]), 1, function(x) (x-m)))
+  
+  # add to post.6comp dataframe
+  post.6comp[,(i+n+1)] <- percent
+  }
+
+## do heat map
+
+mat.data <- data.matrix(t(post.6comp[,10:15]))          # convert data to matrix
+row.names(mat.data) <- x
+colnames(mat.data) <- post.6comp$samplename
+
+# do heat map
+# create colour palette
+my_palette <- colorRampPalette(c("red", "yellow", "green"))(n = 299)
+
+# creates a 5 x 5 inch image
+png(paste(save.directory, "/DBP_prepostdiff6comp_heatmap.png", sep = ""),    # create PNG for the heat map        
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          # Change the data within the heat map boxes
+          #cellnote = mat.data,  # same data set for cell labels
+          #notecex = 0.8,          # Change the font size of the data labels
+          #notecol="black",      # change font color of cell labels to black
+          
+          # labels
+          main = "6 Component PARAFAC - Ave Pre - Post Chlorination", # heat map title
+          
+          # dendorgram and groupings
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram=c("row"),     # only draw a row dendrogram
+          density.info="none",  # turns on density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          
+          # appearance
+          margins =c(8,15),     # widens margins around plot
+          col= my_palette,       # use on color palette defined earlier 
+          cexCol=1.5, 
+          cexRow = 1.5,          # decrease row font size to fit
+          srtCol=45,           # rotate the x labels at 45 deg so they fit
+          #axisnames = FALSE,
+          
+          na.color = 'white',   # colour of NA blocks
+          keysize = 1,          # size of the colour key
+          Rowv = TRUE,
+          Colv = FALSE)            # turn of column clustering
+dev.off()
+
+######################
+# using clustering model to predict which PARAFAC components best predict chlorination status
+# Include PCA wavelengths from fit to pre and post models?
+
+# http://stats.stackexchange.com/questions/30406/how-to-assess-predictive-power-of-set-of-categorical-predictors-of-a-binary-outc
+
+# logistic regression
+
+mod <- gls(prepost.Fmax$numchlor ~ prepost.Fmax$C1 +prepost.Fmax$C2+prepost.Fmax$C3+prepost.Fmax$C4+prepost.Fmax$C5+prepost.Fmax$C6, 
+            correlation = corARMA(p = 1, q = 2))
+
+#########################################################################################################################
 # Pt 2 - How does EEMS and Water Quality parameters predict DBP formation?
 # Thoughts:
 # use machine learning algorythm to predict DBP parameters
 # try multivraite linear model where
 #[DBP] = theta0 + theta1x1+theta2x2
 # where x = spectral and EEM characteristics, as well as water quality parameters (pH, anion concentrations, DOC)
+
+# First, mutiple linear regression to rank the contribution of water quality variables to 
+
+########### compile the DBP concentrations + clean the data
+DBP.original <- read.csv(paste(save.directory, "/THMHAA_compiled.csv", sep = ""), header = TRUE, sep = ",")
+
+# Likely easier to deal with the THM and HAA separately
+THM.original <- DBP.original[,1:5]
+
+# deal with the 10x dilution samples and compare to the 1x solution
+THM.10x <- data.frame(THM.original[c(2,4,7,9,11,37,39,40),])
+
+# multiply by 10
+THM.x <- (THM.10x[,2:5]) * 10 
+
+mod <- lm 
