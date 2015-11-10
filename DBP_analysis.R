@@ -508,6 +508,14 @@ plot(DBPall.som, type = 'mapping')
 # Analyzing the difference between CM models - pre and post chlorination EEMS
 # load in pre and post CM results
 CM.pre <- read.csv(paste(save.directory, "/DBPpre_componentsandloadings_CM.csv", sep = ""))
+
+# change the sample name column to reflect the pre chlorination format - important for later merging
+sample <- sapply(strsplit(as.character(CM.pre$sample.ID), split='DBPPre', fixed=TRUE), function(x) (x[1]))
+samplename <- str_pad(sample, 4, pad = "0")
+
+CM.pre$samplename <- samplename
+
+####### post chlorination
 CM.post <- read.csv(paste(save.directory, "/DBPpost_componentsandloadings_CM.csv", sep = ""))
 
 ###### PCA on PARAFAC results - CM model and DOMFluor model 
@@ -550,6 +558,13 @@ dev.off()
 Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre/percentloadings.csv", header = FALSE, sep = ",")
 
 colnames(Pre.Fmax) <- c("samplename", "C1", "C2", "C3", "C4", "C5", "C6")
+
+# change the sample name column to reflect the pre chlronation format - important for later merging
+sample <- sapply(strsplit(as.character(Pre.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
+samplename <- paste("DBP", sample, sep = "")
+samplename <- str_pad(sample, 4, pad = "0")
+
+Pre.Fmax$samplename <- samplename
 
 # principal component analysis on PARAFAC results
 PCA.pre.6 <- prcomp(Pre.Fmax[,2:7], center = TRUE, scale. = TRUE)
@@ -724,7 +739,7 @@ mod <- gls(prepost.Fmax$numchlor ~ prepost.Fmax$C1 +prepost.Fmax$C2+prepost.Fmax
             correlation = corARMA(p = 1, q = 2))
 
 #########################################################################################################################
-# Pt 2 - How does EEMS and Water Quality parameters predict DBP formation?
+# Pt 3 - How does EEMS and Water Quality parameters predict DBP formation?
 # Thoughts:
 # use machine learning algorythm to predict DBP parameters
 # try multivraite linear model where
@@ -734,15 +749,48 @@ mod <- gls(prepost.Fmax$numchlor ~ prepost.Fmax$C1 +prepost.Fmax$C2+prepost.Fmax
 # First, mutiple linear regression to rank the contribution of water quality variables to 
 
 ########### compile the DBP concentrations + clean the data
-DBP.original <- read.csv(paste(save.directory, "/THMHAA_compiled.csv", sep = ""), header = TRUE, sep = ",")
+HAA <- as.data.frame(read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_HAAData/HAAdata_analysis.csv", header = TRUE))
+THM <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_THMData/THMdata_analysis.csv", header = TRUE)
 
-# Likely easier to deal with the THM and HAA separately
-THM.original <- DBP.original[,1:5]
+# calculate THM and HAA total (sum of all of the different species for that sample)
+HAA$total <- apply(HAA[,2:10], 1, sum)
+THM$total <- apply(THM[,2:5], 1, sum)
 
-# deal with the 10x dilution samples and compare to the 1x solution
-THM.10x <- data.frame(THM.original[c(2,4,7,9,11,37,39,40),])
+######## apply linear model, where y = HAA and THMs, and x = spectral variables...
+# try #1: 
+# y = total HAA and THMs (two models)
+# x = PARAFAC components from the prechlorinated EEMS, water quality parameters, spectral parameters
 
-# multiply by 10
-THM.x <- (THM.10x[,2:5]) * 10 
+# TO DO - add PCA components for pre chlorinated EEMs; add in the delta eems for the 6 component fit?
 
-mod <- lm 
+####### Bind spectral and water quality parameters with DBP data
+waterquality.mod <- waterquality[,c(1,9,10,11,12,15,16:20,22,25,35:37)]
+HAA.waterq <- Reduce(function(x, y) merge(x, y, by = 'samplename', all=FALSE), list(HAA, waterquality.mod[,c(1,15)],CM.pre, spec.indicies, Pre.Fmax))
+THM.waterq <- Reduce(function(x, y) merge(x, y, by = 'samplename', all=FALSE), list(THM, waterquality.mod[,c(1,15)],CM.pre, spec.indicies, Pre.Fmax))
+
+# get rid of columns you don't need
+HAA.waterq$sample.ID <- NULL
+THM.waterq$sample.ID <- NULL
+
+# Do linear models for total HAA and total THMs
+# Note that expect some of the variables to co-relate, thus use gls linear fit model
+
+# test 
+test <- HAA.waterq[,c(11,12:25)]
+
+# use tree to look at the correlation between variables - first, CM model
+library("tree")
+model.HAAtotal <- tree(test$total ~ ., data = test)
+model.HAAtotal <- glm(test$total ~ test[,2:15])
+
+plot(model.HAAtotal)
+text(model.HAAtotal)
+
+mod.HAA <- 
+mod.THM <- gl
+
+# try #2: 
+# y = specific HAA and THMs (multiple models)
+# x = PARAFAC components from the prechlorinated EEMS, water quality parameters, spectral parameters
+# TO DO - add PCA components for pre chlorinated EEMs; add in the delta eems for the 6 component fit?
+
