@@ -774,21 +774,72 @@ THM.waterq$sample.ID <- NULL
 
 # Do linear models for total HAA and total THMs
 # Note that expect some of the variables to co-relate, thus use gls linear fit model
-
-# test 
-test <- HAA.waterq[,c(11,12:25)]
+HAA.waterq <- lapply(HAA.waterq, as.numeric)
+THM.waterq <- lapply(THM.waterq, as.numeric)
 
 # use tree to look at the correlation between variables - first, CM model
 library("tree")
-model.HAAtotal <- tree(test$total ~ ., data = test)
-model.HAAtotal <- glm(test$total ~ test[,2:15])
+HAA.total <- CM.model.HAA$total
+HAA.CM <-lapply(CM.model.HAA[,2:17], as.numeric) # convert to numeric prior to running model
 
-plot(model.HAAtotal)
-text(model.HAAtotal)
+model.HAAtotal <- tree(HAA.total ~ ., data = HAA.CM) # run tree model on CM data
+plot(model.HAAtotal) # plot tree model
+text(model.HAAtotal) # put in text labels into the tree label
 
-mod.HAA <- 
-mod.THM <- gl
+model.HAAtotal <- lm(HAA.waterq$total ~ HAA.waterq$NPOC + HAA.waterq$C1.x + HAA.waterq$C2.x +
+                       HAA.waterq$C3.x + HAA.waterq$C4.x + HAA.waterq$C5.x +
+                       HAA.waterq$C6.x + HAA.waterq$C7 + HAA.waterq$C8 + HAA.waterq$C9 + 
+                       HAA.waterq$C10 + HAA.waterq$C11 + HAA.waterq$C12 + HAA.waterq$C13)
+summary(model.HAAtotal)
 
+# plot all of the 
+plot(HAA.waterq$total ~ HAA.waterq$NPOC)
+plot(HAA.waterq$total ~ HAA.waterq$C1.x)
+plot(HAA.waterq$total ~ HAA.waterq$C2.x)
+plot(HAA.waterq$total ~ HAA.waterq$C3.x)
+plot(HAA.waterq$total ~ HAA.waterq$C4.x)
+plot(HAA.waterq$total ~ HAA.waterq$C5.x)
+plot(HAA.waterq$total ~ HAA.waterq$C6.x)
+plot(HAA.waterq$total ~ HAA.waterq$C7)
+plot(HAA.waterq$total ~ HAA.waterq$C8)
+plot(HAA.waterq$total ~ HAA.waterq$C9)
+plot(HAA.waterq$total ~ HAA.waterq$C10)
+plot(HAA.waterq$total ~ HAA.waterq$C11)
+plot(HAA.waterq$total ~ HAA.waterq$C12)
+plot(HAA.waterq$total ~ HAA.waterq$C13)
+
+## try custom PARAFAC components - linear model
+
+model.HAAtotal.6comp <- lm(HAA.waterq$total ~ HAA.waterq$NPOC + HAA.waterq$C1.y + HAA.waterq$C2.y +
+                       HAA.waterq$C3.y + HAA.waterq$C4.y + HAA.waterq$C5.y +
+                       HAA.waterq$C6.y+ HAA.waterq$C1.x + HAA.waterq$C2.x +
+                         HAA.waterq$C3.x + HAA.waterq$C4.x + HAA.waterq$C5.x +
+                         HAA.waterq$C6.x + HAA.waterq$C7 + HAA.waterq$C8 + HAA.waterq$C9 + 
+                         HAA.waterq$C10 + HAA.waterq$C11 + HAA.waterq$C12 + HAA.waterq$C13)
+
+summary(model.HAAtotal.6comp)
+
+NPOC.model <- lm(HAA.waterq$total ~ HAA.waterq$NPOC)
+summary(NPOC.model)
+
+####################### Total THMs
+#NPOC and THMs
+NPOC.model.THM <- lm(THM.waterq$total ~ THM.waterq$NPOC)
+summary(NPOC.model.THM)
+plot(THM.waterq$total ~ THM.waterq$NPOC) #note high outliers! are these green roofs? may have to remove
+
+
+model.THMtotal<- lm(THM.waterq$total ~ THM.waterq$NPOC + THM.waterq$C1.y + THM.waterq$C2.y +
+                             THM.waterq$C3.y + THM.waterq$C4.y + THM.waterq$C5.y +
+                             THM.waterq$C6.y+ THM.waterq$C1.x + THM.waterq$C2.x +
+                             THM.waterq$C3.x + THM.waterq$C4.x + THM.waterq$C5.x +
+                             THM.waterq$C6.x + THM.waterq$C7 + THM.waterq$C8 + THM.waterq$C9 + 
+                             THM.waterq$C10 + THM.waterq$C11 + THM.waterq$C12 + THM.waterq$C13)
+summary(model.THMtotal)
+
+# high NPOC is an issue? exponential model better?
+
+#########################################
 # try #2: 
 # y = specific HAA and THMs (multiple models)
 # x = PARAFAC components from the prechlorinated EEMS, water quality parameters, spectral parameters
