@@ -24,6 +24,10 @@ library('stringr')
 library('gplots')
 library('FactoMineR')
 library('nlme')
+library(devtools)
+install_github("ggbiplot", "vqv")
+library(ggbiplot)
+library("factoextra")
 
 ################################################################################
 # Read in data used for analysis
@@ -53,7 +57,7 @@ make.eem <- function (ex, PCAcomponents){
 }
 
 ################################################################################################################################################################
-# Pt *** DIfferences in water quailty parameters between sites
+# Pt 1 Differences in water quailty parameters between sites
 # Question - how different are sites in terms of water quality parameters?
 # show in histogram of DOC, TOC, pH, temp, [DO], SUVA, Br, TN concentrations
 
@@ -182,7 +186,7 @@ mat.data <- data.matrix(t(wq.permean[1:117,]))          # convert data to matrix
 
 # do heat map
 # create colour palette
-my_palette <- colorRampPalette(c("red", "yellow", "green"))(n = 299)
+my_palette <- colorRampPalette(c("red", "yellow", "blue"))(n = 299)
 
 # creates a 5 x 5 inch image
 png(paste(save.directory, "/DBP_WQ_heatmap.png", sep = ""),    # create PNG for the heat map        
@@ -220,18 +224,68 @@ heatmap.2(mat.data,
           Colv = TRUE)            # turn on column clustering
 dev.off()
 
-################################################################################################################################################################
-# Analysis Script
-# Pt **** - how does chlorination change the spectral composition of EEMS?
-# princip-al component analysis to look at how chlorination altered spectral characteristics (EEMS)
-# References:
-# http://www.r-bloggers.com/computing-and-visualizing-pca-in-r/
-# http://planspace.org/2013/02/03/pca-3d-visualization-and-clustering-in-r/
+########################## Heat map of quartile data
+# Aim is to do the same heat map as above, except on where the value falls from the mean
+# show where the individual value falls on quartile
+# reference - http://www.r-bloggers.com/quartiles-deciles-and-percentiles/
+# Cumulative distribution - ecdf function in R
 
+wq.cdf <- as.data.frame(apply(wq.heat[,2:28], 2, function(x) ecdf(x)(x))) # calculate CDF for variables
+
+# Do a heat map of the CDF from water quality parameters
+# Exclude specific variables (due to little data, etc)
+wq.cdf$HIX_Zsonlay_area = NULL
+wq.cdf$HIX_Zsonlay_sum = NULL
+wq.cdf$F = NULL
+wq.cdf$Br = NULL
+
+mat.data <- data.matrix(t(wq.cdf[1:117,]))          # convert data to matrix
+colnames(mat.data) <- wq.heat[1:117,1]              # add column names - sample ID
+  
+# do heat map
+# create colour palette
+my_palette <- colorRampPalette(c("light blue", "dark blue"))(n = 299)
+
+# creates a 5 x 5 inch image
+png(paste(save.directory, "/DBP_WQ_heatmap_CDF.png", sep = ""),    # create PNG for the heat map        
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          # Change the data within the heat map boxes
+          #cellnote = mat.data,  # same data set for cell labels
+          #notecex = 0.8,          # Change the font size of the data labels
+          #notecol="black",      # change font color of cell labels to black
+          
+          # labels
+          main = "Patterns in Water Quality Parameters - CDF DBP", # heat map title
+          
+          # dendorgram and groupings
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram=c("row"),     # only draw a row dendrogram
+          density.info="histogram",  # turns on density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          
+          # appearance
+          margins =c(8,15),     # widens margins around plot
+          col= my_palette,       # use on color palette defined earlier 
+          cexCol=1.5, 
+          cexRow = 1.5,          # decrease row font size to fit
+          srtCol=45,           # rotate the x labels at 45 deg so they fit
+          #axisnames = FALSE,
+          
+          na.color = 'white',   # colour of NA blocks
+          keysize = 1,          # size of the colour key
+          Rowv = TRUE,
+          Colv = TRUE)            # turn on column clustering
+dev.off()
+
+######################## Examining EEM Data
 ## PCA on raw EEMS 
 # Aim of this is to see regions that explain most of the variance within the pre chlorinated EEMS
 # Examine all data lumped together to see any alterations 
-
 #####################################################################
 ## Do PCA  on the compiled pre-chlorinated data
 # read in data compiled for PCA analysis - note that data is in array
@@ -260,15 +314,11 @@ plot(pcapre.loadings[,3:4], type = 'p')
 
 # graph first principals of variation 
 # See eaxmple at http://www.r-bloggers.com/computing-and-visualizing-pca-in-r/
-library(devtools)
-install_github("ggbiplot", "vqv")
-
-library(ggbiplot)
 
 g <- ggbiplot(pca.pre, obs.scale = 1, var.scale = 1)
 #, obs.scale = 1, var.scale = 1) # From initial code
-              #groups = ir.species, ellipse = TRUE, 
-              #circle = TRUE)
+#groups = ir.species, ellipse = TRUE, 
+#circle = TRUE)
 g <- g + scale_color_discrete(name = '')
 g <- g + theme(legend.direction = 'horizontal', 
                legend.position = 'top')
@@ -284,7 +334,6 @@ PCA.pre.c$ex = unique(sapply(strsplit(as.character(row.names(PCA.pre.c)), split=
 PCA.pre.c$em <- unique(as.numeric(sapply(strsplit(as.character(row.names(PCA.pre.c)), split='_', fixed=TRUE), function(x) (x[2])))) #emission wavelenghts
 
 # use function to make a 3-D eem out of the dimentions
-
 dim1.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(1,6,7)]))
 dim2.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(2,6,7)]))
 dim3.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(3,6,7)]))
@@ -352,7 +401,177 @@ contour.plots(eems = as.matrix(dim5.PCApre), Title = "PCA- Pre Component 5", ex 
               zmax,zmin,numcont)  
 dev.off()
 
+######### Examining 6 - Component PARAFAC fit to Prechlorinated EEMS
+# Compare PCA model for the custom 6 component model
+# Import Fmax values for 6 component model 
+Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre/percentloadings.csv", header = FALSE, sep = ",")
+
+colnames(Pre.Fmax) <- c("samplename", "Pre_C1", "Pre_C2", "Pre_C3", "Pre_C4", "Pre_C5", "Pre_C6")
+
+# change the sample name column to reflect the pre chlronation format - important for later merging
+sample <- sapply(strsplit(as.character(Pre.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
+samplename <- paste("DBP", sample, sep = "")
+samplename <- str_pad(sample, 4, pad = "0")
+
+Pre.Fmax$samplename <- samplename
+
+# principal component analysis on PARAFAC results
+PCA.pre.6 <- prcomp(Pre.Fmax[,2:7], center = TRUE, scale. = TRUE)
+
+# plot PCA
+png(paste(save.directory, "DBP_PCA6comppre.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+ggbiplot(PCA.pre.6, obs.scale = 1, var.scale = 1, 
+         ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- 6 Component PARAFAC Model Pre-Chlorination")
+dev.off()
+
+summary(PCA.pre.6)
+
+##### Variation within Components - prechlorination boxplots
+# assemble data with component in one column and FMax in another
+
+remove(PCApre6)
+
+for (i in 1:6){
+  temp.C <- data.frame(Pre.Fmax[,i+1])
+  temp.component <- colnames(Pre.Fmax)[i+1]
+  temp.C$component <- temp.component
+  
+  # if the merged dataset  exists, append to it by row
+  if (exists("PCApre6")){
+    PCApre6 <- rbind(PCApre6, temp.C)
+  }
+  
+  # if the merged dataset doesn't exist, create it
+  if (!exists("PCApre6")){
+    PCApre6 <- temp.C
+  }
+}
+
+colnames(PCApre6)[1] <- "values"
+
+ggplot(PCApre6, aes(x=component, y=values, fill=component)) + geom_boxplot() 
+
+##### Looking at overall variation within all water quality parameters
+# Which parameters explain the greatest degree of variation within the dataset?
+# Compile PARAFAC model fits with water quality parameters
+wq.all <- merge(Pre.Fmax, wq.heat, by = "samplename", all = TRUE) 
+
+# do PCA on all variables - which variables explain the greatest degree of variation?
+wq.all.pca <- prcomp(na.omit(wq.all[,2:34]), center = TRUE, scale. = TRUE)
+summary(wq.all.pca)
+
+# plot PCA results
+# plot PCA
+png(paste(save.directory, "/DBP_PCAWQdata.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1, 
+         ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- WQ Parameters")
+dev.off()
+
+# show relative contribution of each variable to the first 5 components of PCA
+wq.pca <- PCA(na.omit(wq.all[,2:34]), graph = FALSE)
+head(wq.pca$var$contrib)
+
+# plot contribution to first 2 PCA components
+fviz_pca_contrib(wq.pca, choice = "var", axes = 1)
+fviz_pca_contrib(wq.pca, choice = "var", axes = 2)
+
+################################################################################################################################################################
+# Pt 2 - how does chlorination change the spectral composition of EEMS?
+# princip-al component analysis to look at how chlorination altered spectral characteristics (EEMS)
+# References:
+# http://www.r-bloggers.com/computing-and-visualizing-pca-in-r/
+# http://planspace.org/2013/02/03/pca-3d-visualization-and-clustering-in-r/
 ###########################################################
+# Do PCA on all of the PARAFAC models results (custom model) - pre, post, pre+post, delta
+# post chlorination EEMs - 2 component model
+DBPpost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPost/percentloadings.csv", header = FALSE, sep = ",")
+colnames(DBPpost) <- c("samplename","","Post_C1", "Post_C2")
+DBPpost[,2] <- NULL # get rid of empty second column
+
+# get rid of chlor in sample name
+DBPpost$samplename <- gsub("Chlor","",DBPpost$samplename)
+
+# 3 component PARAFAC delta EEMS model
+DBPdelta <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPdelta/percentloadings.csv", header = FALSE, sep = ",")
+colnames(DBPdelta) <- c("samplename","","Delta_C1", "Delta_C2", "Delta_C3")
+
+DBPdelta[,2] <- NULL # get rid of empty second column
+
+#preandpost - 6 component model
+DBPprepost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
+
+colnames(DBPprepost) <- c("samplename","Post6_C1", "Post6_C2", 
+                          "Post6_C3", "Post6_C4",
+                          "Post6_C5", "Post6_C6")
+
+# take only the post chlorination model out
+DBPprepost$prepost <- sapply(strsplit(as.character(DBPprepost$samplename), split='_', fixed=TRUE), function(x) (x[2]))
+
+# take only post chlorinated eems
+DBPprepost.post <- subset(DBPprepost, DBPprepost$prepost == "DBPPost")
+DBPprepost.post$prepost <- NULL # get rid of column
+
+DBPprepost.post$samplename <- sapply(strsplit(as.character(DBPprepost.post$samplename), split='_', fixed=TRUE), function(x) (x[1]))
+DBPprepost.post$samplename <-  gsub("Chlor","",DBPprepost.post$samplename)
+
+# compile all together according to sample ID
+PCA.PARAFAC.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = FALSE), 
+                          list(Pre.Fmax,DBPpost,DBPdelta, DBPprepost.post)))
+
+# do PCA on all variables - which variables explain the greatest degree of variation?
+PCA.PARAFAC <- prcomp(na.omit(PCA.PARAFAC.all[,2:18]), center = TRUE, scale. = TRUE)
+summary(PCA.PARAFAC)
+
+# plot PCA results on all PARAFAC data
+png(paste(save.directory, "/DBP_PCAPARAFACdata.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+ggbiplot(PCA.PARAFAC, obs.scale = 1, var.scale = 1, 
+         ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- PARAFAC Parameters")
+dev.off()
+
+# show relative contribution of each variable to the first 5 components of PCA
+PCA.PARAFAC <- PCA(na.omit(PCA.PARAFAC.all[,2:18]), graph = TRUE)
+head(PCA.PARAFAC$var$contrib)
+
+# plot contribution to first 2 PCA components
+fviz_pca_contrib(PCA.PARAFAC, choice = "var", axes = 1)
+fviz_pca_contrib(PCA.PARAFAC, choice = "var", axes = 2)
+#####################################
+# PCA on pre and post - 6 Component model
+# add in column for pre versus post chlorination
+DBPprepost$prepost <- gsub("DBP", "", DBPprepost$prepost)
+  
+# Do PCA
+PCA.Prepost6 <- prcomp(na.omit(DBPprepost[,2:7]), center = TRUE, scale. = TRUE)
+summary(PCA.Prepost6)
+
+# plot PCA results on all PARAFAC data
+png(paste(save.directory, "/PCA_prepost6comp.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+ggbiplot(PCA.Prepost6, obs.scale = 1, var.scale = 1, 
+         groups = DBPprepost$prepost, ellipse = TRUE, circle = FALSE)+ggtitle("PCA - 6 Comp PARAFAC Pre vs Post")
+dev.off()
+
+#####################################
+# PCA on corrected EEMS
 ### Post chlor eems
 # read in compiled file
 PCA.post <- readRDS(paste(save.directory, "/PCApost.rds", sep = ""))
@@ -551,32 +770,8 @@ g <- g + theme(legend.direction = 'vertical',
                legend.position = 'right')
 dev.off()
 
-#############################################################################################
-# Compare PCA model for the custom 6 component model
-# pre chlorinated
-# IMport Fmax values from 
-Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre/percentloadings.csv", header = FALSE, sep = ",")
-
-colnames(Pre.Fmax) <- c("samplename", "C1", "C2", "C3", "C4", "C5", "C6")
-
-# change the sample name column to reflect the pre chlronation format - important for later merging
-sample <- sapply(strsplit(as.character(Pre.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
-samplename <- paste("DBP", sample, sep = "")
-samplename <- str_pad(sample, 4, pad = "0")
-
-Pre.Fmax$samplename <- samplename
-
-# principal component analysis on PARAFAC results
-PCA.pre.6 <- prcomp(Pre.Fmax[,2:7], center = TRUE, scale. = TRUE)
-# plot PCA
-g <- ggbiplot(PCA.pre.6, obs.scale = 1, var.scale = 1, 
-               ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- 6 Component PARAFAC Model Pre-Chlorination")
-
-summary(PCA.pre.6)
-
 ##########################
 # Analyzing pre and post chlorinated eems with 6 component model
-# 
 # load post chlorinated EEM fit to 6 component model
 prepost.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
 
@@ -663,7 +858,7 @@ heatmap.2(mat.data,
 dev.off()
 
 ######################
-# take 2 on heat map - take average of each of teh components within the pre component, and calculate the difference in the post chlorination EEMS
+# take 2 on heat map - take average of each of the components within the pre component, and calculate the difference in the post chlorination EEMS
 
 # calculate the average of each of the 6 components within the pre chloration dataset
 Pre.ave <- t(data.frame(apply(Pre.Fmax[,2:7], 2, mean)))
