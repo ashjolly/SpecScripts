@@ -5,7 +5,7 @@
 # Ashlee Jollymore
 #####################
 
-raleigh <- function(eem, slitwidth1, slitwidth2){
+raleigh <- function(eem, slitwidth1, slitwidth2, R1){
   
   #Cut out the Rayleigh scattering
   #slitwidth or bandwidth (nmm) of the scan should be either 12 or 10. May have to change dending on whether the script cuts out enough of the band.
@@ -37,9 +37,10 @@ raleigh <- function(eem, slitwidth1, slitwidth2){
   }
   
   ################# Raman
-  # identify Raman lines and replace with zeros
+  # identify Raman lines and replace with zeros or interpolate
   # this is a single line with ex = 350, emission from 
   # Note that the majority of this should be taken care of by subtracting the blank, but this region can be excised anyways
+  
   
   
   ################# Interpolation
@@ -47,20 +48,24 @@ raleigh <- function(eem, slitwidth1, slitwidth2){
   # interpolation code from this script:
   # mm=interp1(ax2cut,Eendcut,ax2,'pchip','extrap'); %%% interpolation using cubic option
   
-  # Interpolate first order Raleigh lines
-  for (j in 1:length(ex)){
+  # Interpolate first order Raleigh lines if R1 = yes 
+  
+  if (R1 == "yes"){
+    for (j in 1:length(ex)){
     
-    upper = (ex[j])+slitwidth1
-    lower = (ex[j])-slitwidth1
-    tempem = as.character(subset(em, em >=lower & em <= upper))
+      upper = (ex[j])+slitwidth1
+      lower = (ex[j])-slitwidth1
+      tempem = as.character(subset(em, em >=lower & em <= upper))
     
-    # Cut out the zeros, replace with NaN
-    Acut[c(tempem),j]= NaN
+     # Cut out the zeros, replace with NaN
+      Acut[c(tempem),j]= NaN
     
-    # interpolate 
-    # gap fill using na.spline function n zoo package. Uses polynomical gap filling
-    Acut[,j]= na.spline(Acut[,j])
+      # interpolate 
+      # gap fill using na.spline function n zoo package. Uses polynomical gap filling
+      Acut[,j]= na.spline(Acut[,j])
+    }
   }
+
   
   # Interpolate second order Raleigh lines
   for (j in 1:length(ex)){
