@@ -6,7 +6,7 @@
 # Ashlee Jollymore's PhD project
 ################
 
-calc.indicies <- function(filelist_EEMScor, directoryCorrectedEEMS, ex.wavelengths, em.wavelengths){
+calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryCorrectedEEMs, ex.wavelengths, em.wavelengths){
   
   Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty vector
   
@@ -17,7 +17,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedEEMS, ex.wavelengt
     ###########
     # Calculating absorbance indicies
     # load the Abs file
-    setwd(directoryCorrectedEEMS)
+    setwd(directoryCorrectedAbs)
     abs.temp <-as.data.frame(read.delim(as.character(filelist_EEMScor[i,3]), 
                                         header= TRUE, sep = ",", stringsAsFactors=FALSE))
     
