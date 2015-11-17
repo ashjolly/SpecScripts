@@ -5,7 +5,7 @@
 # AJ PhD project
 ##################
 
-abseemfilecomp <- function(directoryAbsEEMs, projectname, filelist_EEMScor){
+abseemfilecomp <- function(directoryAbsEEMs, directoryRaleigh, projectname, filelist_EEMScor){
   
   setwd(directoryAbsEEMs)
   #create column with sample ID - extracted from corrected EEMS filename
@@ -15,13 +15,14 @@ abseemfilecomp <- function(directoryAbsEEMs, projectname, filelist_EEMScor){
   sample.ID <- 0 #create sample ID variable
   
   for (i in 1:y){
-    sample.ID.temp <- strapplyc(filelist_EEMScor[i], paste("(.*)", "_", projectname, "_Corrected.csv", sep = ""), simplify = TRUE)
+    sample.ID.temp <- strapplyc(filelist_EEMScor[i], paste("(.*)", "_", projectname, "_Raleighcorr.csv", sep = ""), simplify = TRUE)
     sample.ID[i] <- sample.ID.temp
   }
-  filelist_EEM <- cbind(filelist_EEMScor , sample.ID)
+  filelist <- cbind(filelist_EEMScor , sample.ID)
   
   ############ create column with sample ID - extracted from corrected Abs filename
   #Abs 
+  setwd(directoryAbsEEMs)
   filelist_Abscor <- list.files(pattern = "_AbsCorrected.csv$")
   
   #create column with sample ID - extracted from ABS filename
@@ -35,7 +36,7 @@ abseemfilecomp <- function(directoryAbsEEMs, projectname, filelist_EEMScor){
   
   #######
   # Merge EEM and Abs filenames by sample ID to create file with all of the filenames
-  data.1 <- merge(filelist_EEM, filelist_Abs,  by = "sample.ID", all = TRUE)
+  data.1 <- merge(filelist, filelist_Abs,  by = "sample.ID", all = TRUE)
   
   return(data.1)
 }
