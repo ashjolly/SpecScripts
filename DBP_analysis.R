@@ -6,6 +6,7 @@
 
 # References:
 # http://www.sthda.com/english/wiki/principal-component-analysis-how-to-reveal-the-most-important-variables-in-your-data-r-software-and-data-mining#at_pco=smlwn-1.0&at_si=563bc26c64fc73c8&at_ab=per-2&at_pos=0&at_tot=1
+# https://cran.r-project.org/web/packages/EEM/vignettes/vignette.html
 ################################################################################
 
 # clean up list
@@ -28,6 +29,7 @@ library(devtools)
 install_github("ggbiplot", "vqv")
 library(ggbiplot)
 library("factoextra")
+library("EEM")
 
 ################################################################################
 # Read in data used for analysis
@@ -293,9 +295,23 @@ PCA.pre <- readRDS(paste(save.directory, "/PCApre.rds", sep = ""))
 # add in a variable that organizes according to which watersheds are drinking, which are protected, etc..
 # To cluster.. see if there is a pattern within watersheds that are protected
 
+# Preprocessing - 
+# mean centering - done by center = TRUE in pca
+# mean scaling - done by scale = TRUE in pca
+
+# Normalization
+normalize
+
+
 # read in file containing pre chlor EEMs assembled for PCA analysis
 # perofrm PCA analysis on all pre chlorinated EEMS
 pca.pre <- prcomp(PCA.pre, center = TRUE, scale. = TRUE)
+
+# plot the loadings
+plotLoading(pca.pre, ncomp = 2)
+
+# plot the scores from the PCA - EEM package
+plotScore
 
 # Analyze PCA results
 # print method
@@ -330,8 +346,8 @@ pca.pre.Facto <-  PCA(PCA.pre, graph = FALSE)
 PCA.pre.c <- data.frame(pca.pre.Facto$var$contrib)
 
 # extract em and ex wavelengths from dataset (rownames)
-PCA.pre.c$ex = unique(sapply(strsplit(as.character(row.names(PCA.pre.c)), split='_', fixed=TRUE), function(x) (x[1]))) # excitation wavelengths
-PCA.pre.c$em <- unique(as.numeric(sapply(strsplit(as.character(row.names(PCA.pre.c)), split='_', fixed=TRUE), function(x) (x[2])))) #emission wavelenghts
+PCA.pre.c$ex = sapply(strsplit(as.character(row.names(PCA.pre.c)), split='_', fixed=TRUE), function(x) (x[1])) # excitation wavelengths
+PCA.pre.c$em <- as.numeric(sapply(strsplit(as.character(row.names(PCA.pre.c)), split='_', fixed=TRUE), function(x) (x[2]))) #emission wavelenghts
 
 # use function to make a 3-D eem out of the dimentions
 dim1.PCApre <- make.eem(ex = unique(PCA.pre.c$ex), PCAcomponents = data.frame(PCA.pre.c[,c(1,6,7)]))
@@ -348,7 +364,7 @@ source("EEM_contour_v1.R")
 xlimit <- range(300, 700, finite=TRUE)
 ylimit <- range(240, 800, finite = TRUE)
 
-numcont = 20 # number of contour levels you want: Change if you want
+numcont = 100 # number of contour levels you want: Change if you want
 #Plot contours and save in correction file
 
 explot = seq(240, 800, by = 2)
