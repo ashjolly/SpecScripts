@@ -21,8 +21,11 @@ library(pracma)
 # load pre and post chlorination files, match according to sample ID, and then minus pre - post
 # note that this is only for corrected files.
 
-prechlor.files <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
-postchlor.files <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
+prechlor.files <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
+postchlor.files <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
+
+prechlor.Abs <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+postchlor.Abs <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
 
 # directory where the delta eems will go
 delta.eems <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_delta"
@@ -36,14 +39,15 @@ project <- "DBPdelta"
 # create file that matches the pre and post files together
 ######## Prechlor files
 setwd(prechlor.files)
-filelist_pre <- list.files(pattern = "_Corrected.csv$")
+filelist_pre <- list.files(pattern = "_Raleighcorr.csv$")
+setwd(prechlor.Abs)
 filelist_preAbs <- list.files(pattern = "AbsCorrected.csv$")
 
 # Get sample ID from pre chlor files - EEMS
 sample.ID <- 0 #create sample ID variable
 n = length(filelist_pre)
 for (i in 1:n){
-  sampleID.pre.temp <- strapplyc(filelist_pre[i], "DBP(.*)_DBPPre_Corrected.csv", simplify = TRUE)
+  sampleID.pre.temp <- strapplyc(filelist_pre[i], "DBP(.*)_DBPPre_Raleighcorr.csv", simplify = TRUE)
   sample.ID[i] <- sampleID.pre.temp 
 }
 
@@ -66,14 +70,15 @@ filelist_pre <- as.data.frame(merge(filelist_preEEMS, filelist_preAbs, by = "sam
 # Get sample ID from post chlor files
 #postchlor
 setwd(postchlor.files)
-filelist_post <- list.files(pattern = "_Corrected.csv$")
+filelist_post <- list.files(pattern = "_Raleighcorr.csv$")
+setwd(postchlor.Abs)
 filelist_postAbs <- list.files(pattern = "AbsCorrected.csv$")
 
 # get sample ID from EEMS
 sample.ID <- 0 #reset sample ID variable
 n = length(filelist_post)
 for (i in 1:n){
-  sampleID.post.temp <- strapplyc(filelist_post[i], "DBPChlor(.*)_DBPPost_Corrected.csv", simplify = TRUE)
+  sampleID.post.temp <- strapplyc(filelist_post[i], "DBPChlor(.*)_DBPPost_Raleighcorr.csv", simplify = TRUE)
   sample.ID[i] <- sampleID.post.temp 
 }
 
@@ -125,7 +130,7 @@ for (i in 1:n){
   delta.temp <- pre.trim - post.trim
   
   # get generalized sample ID - for example, DBP0001
-  sample.ID <- strapplyc(pre.samplename, "(.*)_DBPPre_Corrected", simplify = TRUE)
+  sample.ID <- strapplyc(pre.samplename, "(.*)_DBPPre_Raleighcorr", simplify = TRUE)
   
   # save delta eem file
   deltapath <- file.path(delta.eems, paste(sample.ID,"_", project,".csv", sep = ""))
@@ -136,6 +141,7 @@ for (i in 1:n){
   # variables to change
   zmax = max(delta.temp,na.rm=TRUE) # put the max intensity of that you want to graph
   #EEMmax[i] <- zmax #to show the maximum fluorescence for all files
+  zmin = min(delta.temp,na.rm=TRUE)
   xlimit <- range(300, 700, finite=TRUE)
   ylimit <- range(240, 450, finite = TRUE)
   
@@ -159,19 +165,19 @@ for (i in 1:n){
   emplot = as.numeric(row.names(EEMplot))
   
   jpeg(file=plotpath)
-  contour.plots(eems = as.matrix(EEMplot), Title = paste(sample.ID, "Delta", sep=""), ex = explot, em = emplot)  
+  contour.plots(eems = as.matrix(EEMplot), Title = paste(sample.ID, "Delta", sep=""), ex = explot, em = emplot, zmax=zmax, zmin = zmin,numcont = numcont)  
   dev.off()
   
   ########## Calculating spectral indicies
   # Abs indicies
   # Calculate delta abs indicies
   # pre EEM files
-  setwd(prechlor.files)
+  setwd(prechlor.Abs)
   preabs.samplename <- toString(all[i,5])
   preabs.temp <- as.data.frame(read.delim(preabs.samplename, header= TRUE, sep = ",", stringsAsFactors=FALSE))
   
   #post EEM files
-  setwd(postchlor.files)
+  setwd(postchlor.Abs)
   postabs.samplename <- toString(all[i,3])
   postabs.temp <- as.data.frame(read.delim(postabs.samplename, header= TRUE, sep = ",", stringsAsFactors=FALSE))
   
@@ -187,6 +193,13 @@ for (i in 1:n){
   
   ############# calculate pre - post
   delta.abs <- pre.trim - post.trim
+  
+  ############# calculate abs indicies
+  #setwd("/Users/user/SpecScripts") 
+  #source("Aqualog_Absindicies_v1.R")
+  
+  #call the function to calculate indicies
+  #Abs.ind <- Abs(absorbance = delta.abs)
   
    ##########
   # Calculating fluorescence indicies
