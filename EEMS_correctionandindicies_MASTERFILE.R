@@ -60,10 +60,16 @@ library(pracma)
 
 ####
 # directory with all of the fluorescence files
-directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
+#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
+directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
 
 # directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
-directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
+
+# directory for corrected EEMS - Raleigh corrected as well
+#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
+directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 
 #######
 # directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
@@ -72,17 +78,21 @@ directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS"
 
 #######
 # general directory
-directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
+directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
 
 # project
-project = "DBPPre"
+#project = "DBPPre"
+project = "DBPPost"
 
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
 #DBP post dilution file
-dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
-                                  sep=",", header = TRUE, col.names = top))
+#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
+#                                  sep=",", header = TRUE, col.names = top))
+
+dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),
+                                  sep=",", header = TRUE, col.names = top)) #post chlorination
 
 ###########################
 ## ex an em positions within your eems. This is so the Fluor and Raman correction script can find the right columns in order to calculate Fluorescences indicies
@@ -150,16 +160,74 @@ EEMcorrect = EEMcorrection(data.3 = data.3, directoryall = directoryall, directo
 EEMcorrect
 
 ########################################################################################
+######## Loop over corrected EEMs within the corrected EEM folder to correct for Raleigh
+# Prior to calculating indicies, etc.
+# Note that corrected for Raleigh occurs within CM and DrEEM PARAFAC models, so no need to do this for files that will be used in PARAFAC
+
+setwd(directoryCorrectedEEMS)
+filelist_EEMS <- list.files(pattern = "_Corrected.csv$")
+n = length(filelist_EEMS)
+
+for (i in 1:n){
+  #sample name
+  samplename <- strapplyc(filelist_EEMS[i], paste("(.*)", "_", project, "_Corrected.csv", sep = ""), simplify = TRUE)
+  
+  temp.EEM <- read.csv(paste(directoryCorrectedEEMS, filelist_EEMS[i], sep = "/"), header = TRUE, sep = ",")
+  
+  # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
+  # Use function to interpolate or add zeros for 1st order Raleigh ('yes' versus "no" for R1)
+  
+  setwd("/Users/user/SpecScripts") 
+  source("EEMRaleigh_function.R")
+  EEM.rm.temp <- raleigh(eem = temp.EEM, slitwidth1 = 20, slitwidth2 = 20, R1 = "no")
+  
+  ##### Save the Raleigh corrected EEM
+  corrpath <- file.path(directoryCorrectedRaleigh, paste(samplename,"_",project,"_Raleighcorr",".csv", sep = ""))
+  write.table(EEM.rm.temp, file = corrpath, row.names = TRUE,col.names = TRUE, sep = ",")
+  
+  ##########
+  # last - plot corrected eems as a contour plot
+  #variables to change
+  zmax = max(EEM.rm.temp,na.rm=TRUE) # put the max intensity of that you want to graph
+  #EEMmax[i] <- zmax #to show the maximum fluorescence for all files
+  xlimit <- range(300, 700, finite=TRUE)
+  ylimit <- range(240, 450, finite = TRUE)
+  
+  numcont = 100 # number of contour levels you want: Change if you want
+  
+  ##### contour plotting function
+  # call contour plot function
+  setwd("/Users/user/SpecScripts") 
+  source("EEM_contour_v1.R")
+  
+  #Plot contours and save in correction file
+  plotpath <- file.path(directoryCorrectedRaleigh, paste(samplename,"_", project, "_ContourRaleigh",".jpeg", sep = ""))
+  
+  EEMplot <- EEM.rm.temp # not cutting out the last two columns
+  EEMplot[EEMplot<0]=0 # have line so that if fluorescence is less than 0, becomes 0.
+  
+  explot = colnames(as.matrix(EEMplot))
+  explot = as.numeric(gsub("X","",explot))
+  emplot = as.numeric(row.names(EEMplot))
+  
+  jpeg(file=plotpath)
+  contour.plots(eems = as.matrix(EEMplot), Title = samplename, ex = explot, em = emplot, 
+                zmax = zmax, zmin = 0, numcont = numcont)  
+  dev.off()
+}
+
+########################################################################################
 ######### Loop over corrected files in the to calculate indicies
 # create master file with abs and EEMs corrected file names aligned according to sample ID
 # call function to create master file  with filenames
-setwd(directoryCorrectedEEMS)
-filelist_EEMS <- list.files(pattern = "_Corrected.csv$")
+setwd(directoryCorrectedRaleigh)
+filelist_EEMS <- list.files(pattern = "_Raleighcorr.csv$")
 
 setwd("/Users/user/SpecScripts") 
 source("AbsEEMSfilecomp_function.R")
 
-filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, projectname = project, 
+filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, directoryRaleigh = directoryCorrectedRaleigh, 
+                                   projectname = project, 
                                    filelist_EEMScor = filelist_EEMS)
 
 # set directory with EEMS that you corrected according to the loop above
@@ -168,8 +236,8 @@ filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, pr
 setwd("/Users/user/SpecScripts") 
 source("EEMSIndCalculation_function.R")
 
-spec.indicies = calc.indicies(filelist_EEMScor = filelist_EEMScor, 
-                              directoryCorrectedEEMS = directoryCorrectedEEMS, ex.wavelengths, em.wavelengths)
+spec.indicies = calc.indicies(filelist_EEMScor = filelist_EEMScor, directoryCorrectedAbs = directoryCorrectedEEMS,
+                              directoryEEMS = directoryCorrectedRaleigh, ex.wavelengths, em.wavelengths)
 
 # Check spectral indicies
 spec.indicies
@@ -177,7 +245,7 @@ spec.indicies
 ######## 
 #write file containing spectral indicies + sample IDs
 #after loop is finished with all samples
-corrpath <- file.path(directoryCorrectedEEMS, paste(project, "SpectralIndicies.csv", sep = ""))
+corrpath <- file.path(directoryCorrectedRaleigh, paste(project, "SpectralIndicies.csv", sep = ""))
 write.table(spec.indicies, file = corrpath, row.names = FALSE, col.names = TRUE, sep = ",")
 
 ####################################################################################################################################
