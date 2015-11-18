@@ -76,7 +76,7 @@ for (i in 1:n){
   # Correct for Raleigh scatter using function - interpolates for first and second Raleigh
   setwd("/Users/user/SpecScripts") 
   source("EEMRaleigh_function.R")
-  temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 15, slitwidth2 = 15)
+  temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 25, slitwidth2 = 25, R1 = "no")
   
   # get the emission variables from the EEM
   em = row.names(temp.cut)
@@ -189,7 +189,7 @@ for (i in 1:n){
   # Correct for Raleigh scatter using function - interpolates for first and second Raleigh
   setwd("/Users/user/SpecScripts") 
   source("EEMRaleigh_function.R")
-  temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 15, slitwidth2 = 15)
+  temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 25, slitwidth2 = 25, R1 = "no")
   
   # get the emission variables from the EEM
   em = row.names(temp.cut)
