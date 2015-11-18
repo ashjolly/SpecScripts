@@ -197,13 +197,14 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     EEMplot <- EEMcorr # not cutting out the last two columns
     EEMplot[EEMplot<0]=0 # have line so that if fluorescence is less than 0, becomes 0.
     
-    explot = as.numeric(colnames(EEMplot)) 
+    explot = as.numeric(colnames(as.matrix(EEMplot)))
     emplot = as.numeric(row.names(EEMplot))
     
     jpeg(file=plotpath)
-    contour.plots(eems = as.matrix(EEMplot), Title = samplename, ex = explot, em = emplot)  
+    contour.plots(eems = as.matrix(EEMplot), Title = paste(samplename, project, sep = "_"), ex = explot, em = emplot, 
+                  zmax = zmax, zmin = 0, numcont = numcont)  
     dev.off()
-    
+
     # note that the above is meant to be a crude graphing - better graphing done in matlab once
     # you figure out the max emission for your dataset (normalize all of the plots to this)
   }
