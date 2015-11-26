@@ -57,7 +57,7 @@ DrEEM = function(filelist, project, exmin, filedirectory, ex) {
   remove(y)
   
   # Save files in correct locations
-  corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
+  corrpath <- file.path("/Users/user/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
 
   write.table(dataset.2, file = file.path("/Users/user/Documents/MATLAB/toolbox/CorrEEMS", paste(project, "/fl.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
