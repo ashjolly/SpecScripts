@@ -2,7 +2,6 @@
 # through PCA
 # DBP project
 # #######
-
 # clean up list
 rm(list = ls())
 ls()
@@ -11,13 +10,16 @@ ls()
 library('gsubfn')
 library('abind')
 library('zoo')
+library("EEM")
+library("reshape")
+library('plyr')
 
 ############ Fluorescence data
-## Prechlorinated EEMS
-pre.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs'
+## Prechlorinated EEMS - IFE, Raman, dilution factor and Raleigh corrected
+pre.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh'
 
-## post Chlorinated EEMS
-post.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMs'
+## post Chlorinated EEMS - IFE, Raman, dilution factor and Raleigh corrected
+post.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh'
 
 # directory for saving data
 save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisdata'
@@ -43,69 +45,56 @@ PCA.EEM <- function(EEM){
   }
 }
 
+PCA.eem <- function(filelist){
+  # read all of the almost corrected EEMS into a dataframe, where the third dimention = the number of samples
+  EEM.IFE.rm = lapply(filelist_DBPpre, function(x) read.delim(x, header = TRUE, sep = ","))
+  
+  #################################
+  # Compile and decompose EEM in array such that ex-em pairs are the columns and the sample ID is the row prior to pCA
+  EEM.row = data.frame(matrix(vector(), 140500, length(EEM.IFE.rm)))
+  
+  #Solution using melt command, noting that the loop takes a long time.
+  for (i in 1:length(EEM.IFE.rm)){
+    
+    test <- as.data.frame(EEM.IFE.rm[i])
+    
+    # transpose the data  
+    eem.long <- melt(test, id.vars = NULL)
+    
+    # get variable for the row and column names
+    Ex.nm <- colnames(test)
+    Em.nm <- rownames(test)
+    
+    # create variable
+    eem.long$exem <- paste(rep(Ex.nm,each=dim(test)[1]), rep(Em.nm,dim(test)[2]), sep = "_")
+    
+    #eem.long <- arrange(eem.long,Em.nm) arranges columns by the em wavelengths
+    
+    # append by rows to the dataframe that you've already created
+    EEM.row[,i] <- as.numeric(eem.long[,2])
+    rownames(EEM.row) <- eem.long$exem
+  }
+  
+  # add the sample ID from the graph headings file as column names
+  sample.ID <- lapply(strsplit(filelist_DBPpre, "_"), function(x) x[1])
+  colnames(EEM.row) <- sample.ID
+  # take transpose
+  EEM.final <- as.data.frame(t(EEM.row))
+  
+  return(EEM.final)
+}
+
 ###############################
 # Prechlorinated EEMS
 # locate the prechlorinated corrected eems within the file
 setwd(pre.directory) 
-filelist_DBPpre <- list.files(pattern = "_Corrected.csv$")
+filelist_DBPpre <- list.files(pattern = "_CorrectedRaleigh.csv$")
 
-# create graph heading variable
-graphheadingspre = data.frame((0))
+PCA.EEMpre <- PCA.eem(filelist = filelist_DBPpre)
 
-# compile all of the corrected pre chlorination EEMS and  correct from Raman and Raleigh scatter
-n = length(filelist_DBPpre)
-exmin = 'X240'
-project = 'DBPPre'
-
-# run loop over all files within the corrected file list
-for (i in 1:n){
-  # set working directory back to directory with sample ID + read in EEMs
-  setwd(pre.directory) 
-  temp.EEMS <- read.delim(filelist_DBPpre[i], header= TRUE, sep = ",")
-  
-  # ensure that the ex ranges are the same for all of the data - 240 to 200 nm in 2 nm increments
-  ex.temp <- colnames(temp.EEMS)
-  if(ex.temp[1] != exmin) {
-    # if first value in ex.temp is not 240, trim 
-    ex.length <- length(ex.temp)
-    # find column where the exitation wavelength is 240 to cut from
-    x240 = as.numeric(match(exmin,names(temp.EEMS)))
-    temp.EEMS <- temp.EEMS[,c(x240:ex.length)]
-  } 
-  
-  # Correct for Raleigh scatter using function - interpolates for first and second Raleigh
-  setwd("/Users/user/SpecScripts") 
-  source("EEMRaleigh_function.R")
-  temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 25, slitwidth2 = 25, R1 = "no")
-  
-  # get the emission variables from the EEM
-  em = row.names(temp.cut)
-  # get the excitation variables from the cut EEMS
-  ex = colnames(temp.cut)
-  
-  #save as a array
-  # if the merged dataset does exist, append to it by column
-  if (exists("EEM.dataset")){
-    #temp_dataset <- temp.cut
-    EEM.dataset <- abind(EEM.dataset, temp.cut, along = 3)
-    #rm(temp.cut)
-  }
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("EEM.dataset")){
-    EEM.dataset <- temp.cut
-  }
-  
-  # Create graph headings variable to identify samples
-  samplename <- strapplyc(filelist_DBPpre[i], paste("(.*)_", project, "_Corrected", sep = ""), simplify = TRUE)
-  graphheadingspre[i,] <-samplename
-}
-
-# Compile and decompose EEM in array such that ex-em pairs are the columns and the sample ID is the row prior to pCA
-EEM.pre <- EEM.dataset
-remove(EEM.dataset)
-
-n = dim(EEM.pre)[3]
+################
+#Solution using loop. Note that this solution take a long time (1 hour approx)
+n = dim(EEM.pre)[3] # the number of samples within the corrected EEM array
 
 # create empty vector
 EEM.row = data.frame(matrix(vector(), 5000, 200000))
@@ -186,7 +175,7 @@ for (i in 1:n){
     temp.EEMS <- temp.EEMS[,c(x240:ex.length)]
   } 
   
-  # Correct for Raleigh scatter using function - interpolates for first and second Raleigh
+  # Correct for Raleigh scatter using function - interpolates for first and second Raleigh (If you specify "yes")
   setwd("/Users/user/SpecScripts") 
   source("EEMRaleigh_function.R")
   temp.cut <- raleigh(eem = temp.EEMS, slitwidth1 = 25, slitwidth2 = 25, R1 = "no")
