@@ -87,7 +87,7 @@ project = "DBPPost"
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
-#DBP post dilution file
+#DBP pre dilution file
 #dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
 #                                  sep=",", header = TRUE, col.names = top))
 
@@ -141,6 +141,8 @@ source("EEMfilecomp_function.R")
 
 data.3 <- EEMfilecomp(workdir= directoryall, dil = dilution, EEMfiletype = "SYM.dat")
 
+# read all EEMS, abs and blank files into three files?
+
 # Should not have to change anything below this!
 
 ##########################################################################################################################################################
@@ -166,20 +168,25 @@ EEMcorrect
 
 setwd(directoryCorrectedEEMS)
 filelist_EEMS <- list.files(pattern = "_Corrected.csv$")
-n = length(filelist_EEMS)
 
-for (i in 1:n){
+EEM.IFE.rm = lapply(filelist_EEMS, function(x) read.delim(x, header = TRUE, sep = ","))
+
+for (i in 1:length(filelist_EEMS)){
   #sample name
   samplename <- strapplyc(filelist_EEMS[i], paste("(.*)", "_", project, "_Corrected.csv", sep = ""), simplify = TRUE)
   
-  temp.EEM <- read.csv(paste(directoryCorrectedEEMS, filelist_EEMS[i], sep = "/"), header = TRUE, sep = ",")
+  temp.EEMS <- as.data.frame(EEM.IFE.rm[i])
+  
+  # trim so that eem starts at "X240"
+  setwd("/Users/user/SpecScripts") 
+  source("EEMtrimstart_function.R")
+  temp.EEMS <- eemtrimstart(eem = temp.EEMS, start = "X240")
   
   # note that this will gap fill the second order Raleigh scatter with na.spline function in zoo
   # Use function to interpolate or add zeros for 1st order Raleigh ('yes' versus "no" for R1)
-  
   setwd("/Users/user/SpecScripts") 
   source("EEMRaleigh_function.R")
-  EEM.rm.temp <- raleigh(eem = temp.EEM, slitwidth1 = 20, slitwidth2 = 20, R1 = "no")
+  EEM.rm.temp <- raleigh(eem = temp.EEMS, slitwidth1 = 20, slitwidth2 = 20,ramanwidth = 5, R1 = "no")
   
   ##### Save the Raleigh corrected EEM
   corrpath <- file.path(directoryCorrectedRaleigh, paste(samplename,"_",project,"_Raleighcorr",".csv", sep = ""))
@@ -237,7 +244,7 @@ setwd("/Users/user/SpecScripts")
 source("EEMSIndCalculation_function.R")
 
 spec.indicies = calc.indicies(filelist_EEMScor = filelist_EEMScor, directoryCorrectedAbs = directoryCorrectedEEMS,
-                              directoryEEMS = directoryCorrectedRaleigh, ex.wavelengths, em.wavelengths)
+                              directoryEEMs = directoryCorrectedRaleigh, ex.wavelengths, em.wavelengths)
 
 # Check spectral indicies
 spec.indicies
@@ -270,7 +277,7 @@ filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 ex.PARAFAC <- seq(240, 800, by = 2) #change if excitation wavlenegths are different
 
 # call function
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMCMtrim_function.R")
 CMsave <- CMtrim(filedirectory = directoryCorrectedEEMS, filelist = filelist_EEMScor, project = project, exmin = "X240",
                  directoryCM = directoryCM, ex = ex.PARAFAC)
@@ -287,12 +294,13 @@ CMsave
 # Inputs include the filelist, the project, the vector containing sample names, and the excitation wavelength min you want to trim to
 # File cuts EEMs from ex min that you want to
 
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMSDrEEMsave_function.R")
 
 ex.DrEEMS = seq(240, 800, by = 2)
 DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
-                  exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS)
+                  exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS, 
+                  DrEEMfolder = "/Users/user/Documents/MATLAB/toolbox/CorrEEMS")
 
 # check DrEEM.data. This is the compiled EEMS for DrEEM PARAFAC modelling
 head(DrEEM.data)
