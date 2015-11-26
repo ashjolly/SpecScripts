@@ -30,13 +30,15 @@ install_github("ggbiplot", "vqv")
 library(ggbiplot)
 library("factoextra")
 library("EEM")
+devtools::install_github("PMassicotte/eemR")
 
 ################################################################################
 # Read in data used for analysis
 ## Water quality and location data
 # directory for data used for analysis
 save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisdata'
-
+pre.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
+post.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 ##############################################################
 # functions used in script
 
@@ -290,8 +292,17 @@ dev.off()
 # Examine all data lumped together to see any alterations 
 #####################################################################
 ## Do PCA  on the compiled pre-chlorinated data
-# read in data compiled for PCA analysis - note that data is in array
-PCA.pre <- readRDS(paste(save.directory, "/PCApre.rds", sep = ""))
+###############################
+# Prechlorinated EEMS
+# locate the prechlorinated corrected eems within the file
+setwd(pre.directory) 
+filelist_DBPpre <- list.files(pattern = "_Raleighcorr.csv$")
+
+# call function to compile as a PCA object
+setwd("/Users/user/SpecScripts") 
+source("PCAfilecomp_function.R")
+PCA.EEMpre <- PCA.eem(filelist = filelist_DBPpre, directory = pre.directory) 
+PCA.pre <- PCA.EEMpre
 # add in a variable that organizes according to which watersheds are drinking, which are protected, etc..
 # To cluster.. see if there is a pattern within watersheds that are protected
 
@@ -299,7 +310,7 @@ PCA.pre <- readRDS(paste(save.directory, "/PCApre.rds", sep = ""))
 # mean centering - done by center = TRUE in pca
 # mean scaling - done by scale = TRUE in pca
 
-# Normalization
+# Normalization - according to 'eem' package in r
 normalize
 
 
@@ -588,9 +599,15 @@ dev.off()
 
 #####################################
 # PCA on corrected EEMS
-### Post chlor eems
-# read in compiled file
-PCA.post <- readRDS(paste(save.directory, "/PCApost.rds", sep = ""))
+### Post chlor eems - compile Raleigh, IFE and Raman corrected files for PCA
+setwd(post.directory) 
+filelist_DBPpost <- list.files(pattern = "_Raleighcorr.csv$")
+
+# call function to compile as a PCA object
+setwd("/Users/user/SpecScripts") 
+source("PCAfilecomp_function.R")
+PCA.EEMpost <- PCA.eem(filelist = filelist_DBPpost, directory = post.directory) 
+
 
 # run PCA on the post chlorinated EEMS 
 pca.post <- prcomp(PCA.post, center = TRUE, scale. = TRUE)
