@@ -7,7 +7,7 @@
 ################
 
 calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs, ex.wavelengths, em.wavelengths){
-  
+
   Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty vector
   
   n = dim(filelist_EEMScor)[1]
@@ -31,7 +31,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     
     ##########
     # Calculating fluorescence indicies
-    setwd(directoryEEMS)
+    setwd(directoryEEMs)
     EEMcorr <-as.data.frame(read.delim(as.character(filelist_EEMScor[i,2]), 
                                        header= TRUE, sep = ",", stringsAsFactors=FALSE))
     
