@@ -28,7 +28,7 @@ filelist_EEMScor <- list.files(pattern = ".csv$")
 ex.PARAFAC <- seq(240, 800, by = 2) #change if excitation wavlenegths are different
 
 # call function
-setwd("/Users/ashlee/SpecScripts") 
+setwd("/Users/user/SpecScripts") 
 source("EEMCMtrimDBPall_function.R")
 CMsave <- CMtrim(filedirectory = all.EEMS, filelist = filelist_EEMScor, project = project, exmin = "X240",
                  directoryCM = directoryCM, ex = ex.PARAFAC)
