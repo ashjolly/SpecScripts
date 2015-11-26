@@ -41,14 +41,14 @@ CMtrim <- function(filedirectory, filelist, project, exmin, directoryCM, ex){
   }
   
   # save ex and em in two separate files, to make it easier to read into CM PARAFAC files
-  corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"em",".csv", sep = ""))
+  corrpath <- file.path("/Users/user/Documents/MATLAB/ExEmfiles", paste(project,"em",".csv", sep = ""))
   write.table(em, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
   
-  corrpath <- file.path("/Users/ashlee/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
+  corrpath <- file.path("/Users/user/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
   write.table(ex.PARAFAC, file = corrpath, row.names = FALSE,col.names = FALSE, sep = ",")
   
   # write graph headings file
-  corrpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".txt", sep = ""))
+  corrpath <- file.path("/Users/user/Documents/MATLAB/CM_graphheadings", paste("GraphHeadings_", project,".txt", sep = ""))
   write.table(graphheadings, file = corrpath, row.names= FALSE, col.names = FALSE, sep= ",")
   
   return(graphheadings)
