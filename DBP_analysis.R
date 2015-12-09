@@ -58,20 +58,128 @@ make.eem <- function (ex, PCAcomponents){
   return(PCA.var)
 }
 
+####################################################################
+# Reading in data
+# Water Quality data
+# File with all of the water quality parameters
+waterquality <- read.csv((paste(save.directory, '/DBP_master_v6.csv', sep = "")), header = TRUE)
+# Create Sample ID column so that the absorbance and water quality data can be compared
+# create vector with just sample number from water quality vector
+sample <- sapply(strsplit(as.character(waterquality$DBPCode), split='_', fixed=TRUE), function(x) (x[2]))
+samplename <- paste("DBP", sample, sep = "")
+samplename <- str_pad(sample, 4, pad = "0")
+waterquality$samplename <- paste("DBP", samplename, sep = "")
+remove(samplename, sample)
+
+# read in absorbance indicies - pre
+spec.indicies <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMsRaleigh/DBPPreSpectralIndicies.csv",
+                          header = TRUE)
+# read in absorbance indicies - post
+spec.indicies.post <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMsRaleigh/DBPPostSpectralIndicies.csv",
+                               header = TRUE)
+##########
+# pre chlorination EEMs
+# locate the prechlorinated corrected eems within the file
+setwd(pre.directory) 
+filelist_DBPpre <- list.files(pattern = "_Raleighcorr.csv$")
+# call function to compile as a PCA object
+setwd("/Users/user/SpecScripts") 
+source("PCAfilecomp_function.R")
+PCA.EEMpre <- PCA.eem(filelist = filelist_DBPpre, directory = pre.directory) 
+
+# pre chlorination CM fits
+CM.pre <- read.csv(paste(save.directory, "/DBPpre_componentsandloadings_CM.csv", sep = ""))
+# change the sample name column to reflect the pre chlorination format - important for later merging
+sample <- sapply(strsplit(as.character(CM.pre$sample.ID), split='DBPPre', fixed=TRUE), function(x) (x[1]))
+samplename <- str_pad(sample, 4, pad = "0")
+CM.pre$samplename <- samplename
+remove(sample, samplename)
+
+# pre chlorination PARAFAC - Fmax values for 6 component model 
+Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre/percentloadings.csv", header = FALSE, sep = ",")
+colnames(Pre.Fmax) <- c("samplename", "Pre_C1", "Pre_C2", "Pre_C3", "Pre_C4", "Pre_C5", "Pre_C6")
+# change the sample name column to reflect the pre chlronation format - important for later merging
+sample <- sapply(strsplit(as.character(Pre.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
+samplename <- paste("DBP", sample, sep = "")
+samplename <- str_pad(sample, 4, pad = "0")
+Pre.Fmax$samplename <- samplename
+remove(sample, samplename)
+
+#############
+# post chlorination EEMs
+### Post chlor eems - compile Raleigh, IFE and Raman corrected files for PCA
+setwd(post.directory) 
+filelist_DBPpost <- list.files(pattern = "_Raleighcorr.csv$")
+# call function to compile as a PCA object
+setwd("/Users/user/SpecScripts") 
+source("PCAfilecomp_function.R")
+PCA.EEMpost <- PCA.eem(filelist = filelist_DBPpost, directory = post.directory) 
+
+# post chlorination CM fits
+CM.post <- read.csv(paste(save.directory, "/DBPpost_componentsandloadings_CM.csv", sep = ""))
+# change the sample name column to reflect the pre chlorination format - important for later merging
+sample <- sapply(strsplit(as.character(CM.post$sample.ID), split='DBPPost', fixed=TRUE), function(x) (x[1]))
+samplename <- str_pad(sample, 4, pad = "0")
+CM.post$samplename <- samplename
+remove(sample, samplename)
+
+# post chlorination PARAFAC fits - 2 component model
+DBPpost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPost/percentloadings.csv", header = FALSE, sep = ",")
+colnames(DBPpost) <- c("samplename","","Post_C1", "Post_C2")
+DBPpost[,2] <- NULL # get rid of empty second column
+###############
+# Delta EEMs - Fmax from PARAFAC fits
+DBPdelta <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPdelta/percentloadings.csv", header = FALSE, sep = ",")
+colnames(DBPdelta) <- c("samplename","","Delta_C1", "Delta_C2", "Delta_C3")
+DBPdelta[,2] <- NULL # get rid of empty second column
+
+##############
+# Pre and post chlorination PARAFAC fits
+DBPprepost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
+#preandpost - 6 component model
+colnames(DBPprepost) <- c("samplename","Post6_C1", "Post6_C2", 
+                          "Post6_C3", "Post6_C4",
+                          "Post6_C5", "Post6_C6")
+
+# load post chlorinated EEM fit to 6 component model
+prepost.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
+colnames(prepost.Fmax) <- c("samplename", "C1", "C2", "C3", "C4", "C5", "C6")
+#########
+# DBP concentrations
+HAA <- as.data.frame(read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_HAAData/HAAdata_analysis.csv", header = TRUE))
+THM <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_THMData/THMdata_analysis.csv", header = TRUE)
+
+#########
+## Take out the green roof and rainwater harvest sampples. These will be super-imposed on the analsyis later
+# samples = 56-63, 73-75, 91-93, 119+13
+GR <- c("DBP0056", "DBP0057", "DBP0058", "DBP0060", "DBP0061", "DBP0062", 
+        "DBP0073", "DBP0074", "DBP0075", "DBP0091", "DBP0092", "DBP0093", "DBP0119", "DBP0013")
+# chlorinated
+GRc <- c("DBPChlor0056", "DBPChlor0057", "DBPChlor0058", "DBPChlor0060", "DBPChlor0061", "DBPChlor0062", 
+        "DBPChlor0073", "DBPChlor0074", "DBPChlor0075", "DBPChlor0091", "DBPChlor0092", "DBPChlor0093", "DBPChlor0119", "DBPChlor0013")
+
+#remove from pre sample sets
+waterquality <- waterquality[ !(waterquality$samplename  %in% GR), ] # from wq
+spec.indicies <- spec.indicies[ !(spec.indicies$samplename  %in% GR), ] # 
+Pre.Fmax <- Pre.Fmax[ !(Pre.Fmax$samplename  %in% GR), ] #
+CM.pre <- CM.pre[ !(CM.pre$samplename  %in% GR), ] # 
+PCA.EEMpre <- PCA.EEMpre[ !(rownames(PCA.EEMpre)  %in% GR), ] # 
+# post
+spec.indicies.post <- spec.indicies.post[ !(spec.indicies.post$samplename  %in% GRc), ] # 
+CM.post  <- CM.post[ !(CM.post$samplename  %in% GRc), ] # 
+DBPpost<- DBPpost[ !(DBPpost$samplename  %in% GRc), ] # 
+PCA.EEMpost <- PCA.EEMpost[ !(rownames(PCA.EEMpost)  %in% GRc), ] # 
+# other
+DBPdelta <- DBPdelta[ !(DBPdelta$samplename  %in% GR), ] # 
+DBPprepost <- DBPprepost[ !(DBPprepost$samplename  %in% rbind(GR, GRc)), ] # 
+prepost.Fmax  <- prepost.Fmax[ !(prepost.Fmax$samplename  %in% rbind(GR, GRc)), ] # 
+HAA <- HAA[ !(HAA$samplename  %in% GR), ] # 
+THM <- THM[ !(THM$samplename  %in% GR), ] # 
+  
 ################################################################################################################################################################
 # Pt 1 Differences in water quailty parameters between sites
 # Question - how different are sites in terms of water quality parameters?
 # show in histogram of DOC, TOC, pH, temp, [DO], SUVA, Br, TN concentrations
-
-# File with all of the water quality parameters
-
-waterquality <- read.csv((paste(save.directory, '/DBP_master_v6.csv', sep = "")), header = TRUE)
-
-# read in absorbance indicies
-spec.indicies <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMsRaleigh/DBPPreSpectralIndicies.csv",
-                       header = TRUE)
-spec.indicies.post <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMsRaleigh/DBPPostSpectralIndicies.csv",
-                               header = TRUE)
 
 #cut out Nas from spectral indicies file
 ind <- apply(spec.indicies, 1, function(x) all(is.na(x)))   # function for removing Nas.. from all data
@@ -84,15 +192,6 @@ spec.indicies.post <- spec.indicies.post[ !ind, ]
 # desire pH, DO, Water temp, Br, F, TN, DOC, SUVA, EC, nitrate, TSS: max, min, average, stdev
 
 ### Data cleaning and manipulation
-# Create Sample ID column so that the absorbance and water quality data can be compared
-# create vector with just sample number from water quality vector
-sample <- sapply(strsplit(as.character(waterquality$DBPCode), split='_', fixed=TRUE), function(x) (x[2]))
-samplename <- paste("DBP", sample, sep = "")
-samplename <- str_pad(sample, 4, pad = "0")
-
-waterquality$samplename <- paste("DBP", samplename, sep = "")
-remove(samplename, sample)
-
 # Variables that don't need data cleaning: pH, DO, Water temp, TN, DOC, EC
 # Variables that do need cleaning
 # - Br - need to change entries that are below detection levels 
@@ -188,7 +287,7 @@ wq.permean$F = NULL
 wq.permean$Br = NULL
 
 rnames <- row.names(wq.permean)
-mat.data <- data.matrix(t(wq.permean[1:117,]))          # convert data to matrix
+mat.data <- data.matrix(t(wq.permean[1:104,]))          # convert data to matrix
 
 # do heat map
 # create colour palette
@@ -213,7 +312,7 @@ heatmap.2(mat.data,
           # dendorgram and groupings
           #breaks=col_breaks,    # enable color transition at specified limits
           dendrogram=c("row"),     # only draw a row dendrogram
-          density.info="histogram",  # turns on density plot inside color legend
+          density.info="none",  # turns on density plot inside color legend
           trace="none",         # turns off trace lines inside the heat map
           
           # appearance
@@ -235,7 +334,6 @@ dev.off()
 # show where the individual value falls on quartile
 # reference - http://www.r-bloggers.com/quartiles-deciles-and-percentiles/
 # Cumulative distribution - ecdf function in R
-
 wq.cdf <- as.data.frame(apply(wq.heat[,2:28], 2, function(x) ecdf(x)(x))) # calculate CDF for variables
 
 # Do a heat map of the CDF from water quality parameters
@@ -245,8 +343,8 @@ wq.cdf$HIX_Zsonlay_sum = NULL
 wq.cdf$F = NULL
 wq.cdf$Br = NULL
 
-mat.data <- data.matrix(t(wq.cdf[1:117,]))          # convert data to matrix
-colnames(mat.data) <- wq.heat[1:117,1]              # add column names - sample ID
+mat.data <- data.matrix(t(wq.cdf[1:104,]))          # convert data to matrix
+colnames(mat.data) <- wq.heat[1:104,1]              # add column names - sample ID
   
 # do heat map
 # create colour palette
@@ -295,16 +393,7 @@ dev.off()
 #####################################################################
 ## Do PCA  on the compiled pre-chlorinated data
 ###############################
-# Prechlorinated EEMS
-# locate the prechlorinated corrected eems within the file
-setwd(pre.directory) 
-filelist_DBPpre <- list.files(pattern = "_Raleighcorr.csv$")
-
-# call function to compile as a PCA object
-setwd("/Users/user/SpecScripts") 
-source("PCAfilecomp_function.R")
-PCA.EEMpre <- PCA.eem(filelist = filelist_DBPpre, directory = pre.directory) 
-PCA.pre <- PCA.EEMpre
+PCA.pre <- PCA.EEMpre # rename the unfolded EEMs
 # add in a variable that organizes according to which watersheds are drinking, which are protected, etc..
 # To cluster.. see if there is a pattern within watersheds that are protected
 
@@ -341,7 +430,7 @@ plotLoading(pca.pre, ncomp = 1) # loading 1. Doesn't work? aggregation function 
 plot(pca.pre, type = "l")
 autoplot(prcomp(PCA.pre), data = PCA.pre)
 
-# summary method
+# summary method - check out the loadings on different wavelengths
 summary(pca.pre)
 head(pca.pre$rotation)
 pcapre.loadings <- pca.pre$rotation[,1:4]
@@ -363,7 +452,7 @@ pca.pre.Facto <-  PCA(PCA.pre, graph = FALSE)
 fviz_screeplot(pca.pre.Facto, ncp=10) # Scree plot first with 10 components from PCA
 
 # plot contribution to first 2 PCA components for pre chlorination - top 50 wavelengths
-fviz_contrib(pca.pre.Facto, choice = "var", axes = 1:5,  top = 40)
+fviz_contrib(pca.pre.Facto, choice = "var", axes = 1)
 fviz_contrib(pca.pre.Facto, choice = "var", axes = 2)
 
 fviz_pca_var(pca.pre.Facto, col.var="contrib") # graph the PCA plot (PC1versus PC2) with the top 20 components
@@ -459,18 +548,6 @@ dev.off()
 
 ######### Examining 6 - Component PARAFAC fit to Prechlorinated EEMS
 # Compare PCA model for the custom 6 component model
-# Import Fmax values for 6 component model 
-Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre/percentloadings.csv", header = FALSE, sep = ",")
-
-colnames(Pre.Fmax) <- c("samplename", "Pre_C1", "Pre_C2", "Pre_C3", "Pre_C4", "Pre_C5", "Pre_C6")
-
-# change the sample name column to reflect the pre chlronation format - important for later merging
-sample <- sapply(strsplit(as.character(Pre.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
-samplename <- paste("DBP", sample, sep = "")
-samplename <- str_pad(sample, 4, pad = "0")
-
-Pre.Fmax$samplename <- samplename
-
 # principal component analysis on PARAFAC results
 PCA.pre.6 <- prcomp(Pre.Fmax[,2:7], center = TRUE, scale. = TRUE)
 
@@ -521,7 +598,6 @@ wq.all.pca <- prcomp(na.omit(wq.all[,2:34]), center = TRUE, scale. = TRUE)
 summary(wq.all.pca)
 
 # plot PCA results
-# plot PCA
 png(paste(save.directory, "/DBP_PCAWQdata.png", sep = ""),    # create graphic for the         
     width = 5*300,        # 5 x 300 pixels
     height = 5*300,
@@ -549,14 +625,6 @@ fviz_pca_contrib(wq.pca, choice = "var", axes = 2)
 ###########################################################
 #####################################
 # PCA on corrected EEMS
-### Post chlor eems - compile Raleigh, IFE and Raman corrected files for PCA
-setwd(post.directory) 
-filelist_DBPpost <- list.files(pattern = "_Raleighcorr.csv$")
-
-# call function to compile as a PCA object
-setwd("/Users/user/SpecScripts") 
-source("PCAfilecomp_function.R")
-PCA.EEMpost <- PCA.eem(filelist = filelist_DBPpost, directory = post.directory) 
 # Preprocessing prior to PCA
 # Normalization - according to "EEM" package in r. 
 # divides each variable by the sum of the absolute value of all variables for the given sample.
@@ -598,7 +666,6 @@ fviz_pca_contrib(post.pca, choice = "var", axes = 2)
 # EEM.post = post chlorinated EEM array
 #no need to do this? Go by sample ID?
 # compile the pre and post chlorinated PCA data together
-
 PCA.all <- rbind(PCA.EEMpre, PCA.EEMpost)
 #Data processing - normalizing. divides each variable by the sum of the absolute value of all variables for the given sample.
 require(EEM)
@@ -748,7 +815,6 @@ graph.var(pca.all.Facto, axes = c(1, 2),
 # Use to look at how chlorination affects the spectral characteristics of 
 # http://www.r-bloggers.com/self-organising-maps-for-customer-segmentation-using-r/
 # Use Data compiled for PCA analysis - samples on the rows, variables on the columns
-
 require('kohonen')
 
 # fit pre + post to 5x4 SOM
@@ -759,26 +825,11 @@ plot(DBPall.som, type = 'mapping')
 
 #################################################
 # Do PCA on all of the PARAFAC models results (custom model) - pre, post, pre+post, delta
-# post chlorination EEMs - 2 component model
-DBPpost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPost/percentloadings.csv", header = FALSE, sep = ",")
-colnames(DBPpost) <- c("samplename","","Post_C1", "Post_C2")
-DBPpost[,2] <- NULL # get rid of empty second column
-
 # get rid of chlor in sample name
 DBPpost$samplename <- gsub("Chlor","",DBPpost$samplename)
 
 # 3 component PARAFAC delta EEMS model
-DBPdelta <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPdelta/percentloadings.csv", header = FALSE, sep = ",")
-colnames(DBPdelta) <- c("samplename","","Delta_C1", "Delta_C2", "Delta_C3")
 
-DBPdelta[,2] <- NULL # get rid of empty second column
-
-#preandpost - 6 component model
-DBPprepost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
-
-colnames(DBPprepost) <- c("samplename","Post6_C1", "Post6_C2", 
-                          "Post6_C3", "Post6_C4",
-                          "Post6_C5", "Post6_C6")
 
 # take only the post chlorination model out
 DBPprepost$prepost <- sapply(strsplit(as.character(DBPprepost$samplename), split='_', fixed=TRUE), function(x) (x[2]))
@@ -799,7 +850,7 @@ PCA.PARAFAC.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename",
 colnames(spec.indicies.post) <- paste(colnames(spec.indicies.post), "_Chlor", sep = "")
 colnames(spec.indicies.post)[1] <- "samplename"
 #remove chlor from sample name
-spec.indicies.post$samplename_Chlor <-  gsub("Chlor","",spec.indicies.post$samplename_Chlor)
+spec.indicies.post$samplename <-  gsub("Chlor","",spec.indicies.post$samplename)
 
 WQ.PARAFAC.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = FALSE), 
                                     list(wq.all, DBPprepost.post, spec.indicies.post)))
@@ -830,6 +881,7 @@ head(PCA.PARAFAC$var$contrib) #contributions to the first 5 components of variat
 fviz_contrib(PCA.PARAFAC, choice = "var", axes = 1)
 fviz_contrib(PCA.PARAFAC, choice = "var", axes = 1:5)
 fviz_contrib(PCA.PARAFAC, choice = "var", axes = 2)
+
 #####################################
 # PCA on pre and post - 6 Component model
 # add in column for pre versus post chlorination
@@ -859,19 +911,7 @@ fviz_contrib(PCA(na.omit(DBPprepost[,2:7])), choice = "var", axes = 1:5)
 fviz_contrib(PCA(na.omit(DBPprepost[,2:7])), choice = "var", axes = 2)
 ####################################################################################
 # Analyzing the difference between CM models - pre and post chlorination EEMS
-# load in pre and post CM results
-CM.pre <- read.csv(paste(save.directory, "/DBPpre_componentsandloadings_CM.csv", sep = ""))
-
-# change the sample name column to reflect the pre chlorination format - important for later merging
-sample <- sapply(strsplit(as.character(CM.pre$sample.ID), split='DBPPre', fixed=TRUE), function(x) (x[1]))
-samplename <- str_pad(sample, 4, pad = "0")
-
-CM.pre$samplename <- samplename
-
-####### post chlorination
-CM.post <- read.csv(paste(save.directory, "/DBPpost_componentsandloadings_CM.csv", sep = ""))
-
-###### PCA on PARAFAC results - CM model and DOMFluor model 
+# PCA on PARAFAC results - CM model and DOMFluor model 
 CM.all <- rbind(CM.pre, CM.post)
 
 # add in chlor column
@@ -906,11 +946,6 @@ dev.off()
 
 ##########################
 # Analyzing pre and post chlorinated eems with 6 component model
-# load post chlorinated EEM fit to 6 component model
-prepost.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
-
-colnames(prepost.Fmax) <- c("samplename", "C1", "C2", "C3", "C4", "C5", "C6")
-
 # bind column with chlorination status
 prepost.Fmax <- cbind(prepost.Fmax, chlor)
 
@@ -1101,8 +1136,6 @@ mod <- gls(prepost.Fmax$numchlor ~ prepost.Fmax$C1 +prepost.Fmax$C2+prepost.Fmax
 # First, mutiple linear regression to rank the contribution of water quality variables to 
 
 ########### compile the DBP concentrations + clean the data
-HAA <- as.data.frame(read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_HAAData/HAAdata_analysis.csv", header = TRUE))
-THM <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_THMData/THMdata_analysis.csv", header = TRUE)
 
 # calculate THM and HAA total (sum of all of the different species for that sample)
 HAA$total <- apply(HAA[,2:10], 1, sum)
@@ -1162,17 +1195,37 @@ plot(HAA.waterq$total ~ HAA.waterq$C13)
 
 ## try custom PARAFAC components - linear model
 
-model.HAAtotal.6comp <- lm(HAA.waterq$total ~ HAA.waterq$NPOC + HAA.waterq$C1.y + HAA.waterq$C2.y +
-                       HAA.waterq$C3.y + HAA.waterq$C4.y + HAA.waterq$C5.y +
-                       HAA.waterq$C6.y+ HAA.waterq$C1.x + HAA.waterq$C2.x +
-                         HAA.waterq$C3.x + HAA.waterq$C4.x + HAA.waterq$C5.x +
-                         HAA.waterq$C6.x + HAA.waterq$C7 + HAA.waterq$C8 + HAA.waterq$C9 + 
-                         HAA.waterq$C10 + HAA.waterq$C11 + HAA.waterq$C12 + HAA.waterq$C13)
+model.HAAtotal.6comp <- lm(HAA.waterq$total ~ HAA.waterq$NPOC + 
+                      HAA.waterq$Pre_C1 + HAA.waterq$Pre_C2 +                      # custom 6 component PARAFAC model
+                      HAA.waterq$Pre_C3 + HAA.waterq$Pre_C4 + HAA.waterq$Pre_C5 +
+                      HAA.waterq$Pre_C6+ 
+                      HAA.waterq$perprotein + HAA.waterq$redox +                   # from CM fits
+                      HAA.waterq$e2e3+ HAA.waterq$e4e6 + HAA.waterq$CDOM.total +   # spectral parameters
+                      HAA.waterq$slope_ratio + HAA.waterq$SR + HAA.waterq$FI + HAA.waterq$FrI + 
+                      HAA.waterq$peakt.peakC + HAA.waterq$HIX_ohno_area )
 
-summary(model.HAAtotal.6comp)
-
-NPOC.model <- lm(HAA.waterq$total ~ HAA.waterq$NPOC)
-summary(NPOC.model)
+summary(step(model.HAAtotal.6comp, direction="both")) #stepwise regression. Also try 'leave one out'
+# export the linear model results
+#write.table(HAA.total.lm, file = paste(save.directory, "HAATotal_lmresults.csv", sep = ","))
+# plot the total HAA versus all variables above
+plot(HAA.waterq$total ~ HAA.waterq$NPOC)
+plot(HAA.waterq$total ~ HAA.waterq$Pre_C1)
+plot(HAA.waterq$total ~ HAA.waterq$Pre_C2)
+plot(HAA.waterq$total ~ HAA.waterq$Pre_C3)
+plot(HAA.waterq$total ~ HAA.waterq$Pre_C4)
+plot(HAA.waterq$total ~ HAA.waterq$Pre_C5)
+plot(HAA.waterq$total ~ HAA.waterq$Pre_C6)
+plot(HAA.waterq$total ~ HAA.waterq$perprotein)
+plot(HAA.waterq$total ~ HAA.waterq$redox)
+plot(HAA.waterq$total ~ HAA.waterq$e2e3)
+plot(HAA.waterq$total ~ HAA.waterq$e4e6)
+plot(HAA.waterq$total ~ HAA.waterq$CDOM.total)
+plot(HAA.waterq$total ~ HAA.waterq$slope_ratio)
+plot(HAA.waterq$total ~ HAA.waterq$SR)
+plot(HAA.waterq$total ~ HAA.waterq$FI)
+plot(HAA.waterq$total ~ HAA.waterq$FrI)
+plot(HAA.waterq$total ~ HAA.waterq$peakt.peakC)
+plot(HAA.waterq$total ~ HAA.waterq$HIX_ohno_area)
 
 ####################### Total THMs
 #NPOC and THMs
@@ -1180,16 +1233,46 @@ NPOC.model.THM <- lm(THM.waterq$total ~ THM.waterq$NPOC)
 summary(NPOC.model.THM)
 plot(THM.waterq$total ~ THM.waterq$NPOC) #note high outliers! are these green roofs? may have to remove
 
+# tree model
+model.THMtotal.6comp <- tree(THM.waterq$total ~ THM.waterq$NPOC + 
+                             THM.waterq$Pre_C1 + THM.waterq$Pre_C2 +                      # custom 6 component PARAFAC model
+                             THM.waterq$Pre_C3 + THM.waterq$Pre_C4 + THM.waterq$Pre_C5 +
+                             THM.waterq$Pre_C6+ 
+                             THM.waterq$perprotein + THM.waterq$redox +                   # from CM fits
+                             THM.waterq$e2e3+ THM.waterq$e4e6 + THM.waterq$CDOM.total +   # spectral parameters
+                             THM.waterq$slope_ratio + THM.waterq$SR + THM.waterq$FI + THM.waterq$FrI + 
+                             THM.waterq$peakt.peakC + THM.waterq$HIX_ohno_area )
+plot(model.THMtotal.6comp)
+#linear model
+model.THMtotal.6comp <- lm(THM.waterq$total ~ THM.waterq$NPOC + 
+                             THM.waterq$Pre_C1 + THM.waterq$Pre_C2 +                      # custom 6 component PARAFAC model
+                             THM.waterq$Pre_C3 + THM.waterq$Pre_C4 + THM.waterq$Pre_C5 +
+                             THM.waterq$Pre_C6 + 
+                             THM.waterq$perprotein + THM.waterq$redox +                   # from CM fits
+                             THM.waterq$e2e3+ THM.waterq$e4e6 + THM.waterq$CDOM.total +   # spectral parameters
+                             THM.waterq$slope_ratio + THM.waterq$SR + THM.waterq$FI + THM.waterq$FrI + 
+                             THM.waterq$peakt.peakC + THM.waterq$HIX_ohno_area)
 
-model.THMtotal<- lm(THM.waterq$total ~ THM.waterq$NPOC + THM.waterq$C1.y + THM.waterq$C2.y +
-                             THM.waterq$C3.y + THM.waterq$C4.y + THM.waterq$C5.y +
-                             THM.waterq$C6.y+ THM.waterq$C1.x + THM.waterq$C2.x +
-                             THM.waterq$C3.x + THM.waterq$C4.x + THM.waterq$C5.x +
-                             THM.waterq$C6.x + THM.waterq$C7 + THM.waterq$C8 + THM.waterq$C9 + 
-                             THM.waterq$C10 + THM.waterq$C11 + THM.waterq$C12 + THM.waterq$C13)
-summary(model.THMtotal)
-
-# high NPOC is an issue? exponential model better?
+summary(step(model.THMtotal.6comp, direction="both")) # summary of linear model
+# plot the total THM versus all variables above
+plot(THM.waterq$total ~ THM.waterq$NPOC)
+plot(THM.waterq$total ~ THM.waterq$Pre_C1)
+plot(THM.waterq$total ~ THM.waterq$Pre_C2)
+plot(THM.waterq$total ~ THM.waterq$Pre_C3)
+plot(THM.waterq$total ~ THM.waterq$Pre_C4)
+plot(THM.waterq$total ~ THM.waterq$Pre_C5)
+plot(THM.waterq$total ~ THM.waterq$Pre_C6)
+plot(THM.waterq$total ~ THM.waterq$perprotein)
+plot(THM.waterq$total ~ THM.waterq$redox)
+plot(THM.waterq$total ~ THM.waterq$e2e3)
+plot(THM.waterq$total ~ THM.waterq$e4e6)
+plot(THM.waterq$total ~ THM.waterq$CDOM.total)
+plot(THM.waterq$total ~ THM.waterq$slope_ratio)
+plot(THM.waterq$total ~ THM.waterq$SR)
+plot(THM.waterq$total ~ THM.waterq$FI)
+plot(THM.waterq$total ~ THM.waterq$FrI)
+plot(THM.waterq$total ~ THM.waterq$peakt.peakC)
+plot(THM.waterq$total ~ THM.waterq$HIX_ohno_area)
 
 #########################################
 # try #2: 
@@ -1197,3 +1280,4 @@ summary(model.THMtotal)
 # x = PARAFAC components from the prechlorinated EEMS, water quality parameters, spectral parameters
 # TO DO - add PCA components for pre chlorinated EEMs; add in the delta eems for the 6 component fit?
 
+# Try cca from vegan package
