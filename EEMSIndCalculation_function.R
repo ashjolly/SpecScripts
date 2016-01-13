@@ -8,9 +8,9 @@
 
 calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs, ex.wavelengths, em.wavelengths){
 
-  Spectral.Indicies = data.frame(matrix(vector(), 5000, 17)) #creating an empty vector
-  
   n = dim(filelist_EEMScor)[1]
+  
+  Spectral.Indicies = data.frame(matrix(vector(), n,21)) #creating an empty vector
   
   for (i in 1:n){
     
@@ -66,8 +66,8 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     em320 <- as.numeric(grep(em.wavelengths[c("em.320"),], rownames(EEMcorr)))
     em326 <- as.numeric(grep(em.wavelengths[c("em.326"),], rownames(EEMcorr)))
     em430 <- as.numeric(grep(em.wavelengths[c("em.430"),], rownames(EEMcorr)))
-    em400 <- as.numeric(grep(em.wavelengths[c("em.400"),], colnames(EEMcorr)))
-    em450 <- as.numeric(grep(em.wavelengths[c("em.450"),], colnames(EEMcorr)))
+    em400 <- as.numeric(grep(em.wavelengths[c("em.400"),], rownames(EEMcorr)))
+    em450 <- as.numeric(grep(em.wavelengths[c("em.450"),], rownames(EEMcorr)))
     
     # call function
     setwd("/Users/user/SpecScripts") 
@@ -86,7 +86,6 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     colnames(Spectral.Indicies) <- top
   }
   
-
   return(Spectral.Indicies)
   
 }
