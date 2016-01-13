@@ -61,8 +61,44 @@ Fluor <- function(eem) {
   FrI = eem[em380, ex310]/max(eem[(em420:em436), ex310])
   
   ############
-  # calculate the peak T/peak C ratio
-  # Baker (2001)
+  # Peak A (humic)
+  # references: 
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  # Peak A = max intensity between ex 240-270 nm; em = 380-470 nm
+  
+  peakA = max(eem[(em380:em470), (ex240:ex270)])
+  
+  ########### 
+  # Peak C (humic)
+  # references:
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
+  # Peak c = max intensity between ex 300-340 nm; em 400-450
+  
+  peakC = max(eem[(em400:em450), (ex300:ex340)])
+  
+  ############
+  # Peak B (protein like - tyrosine-like)
+  # references:
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
+  # Peak B = max intensity between ex 260-290 nm; em 300-320 nm
+  
+  peakB = max(eem[(em300:em320), (ex260:ex290)])
+  
+  ############
+  # Peak T (protein, tryptophan- like)
+  # references:
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
+  # Peak T = max intensity between ex 260-290nm; em 326-350 nm
+  
+  peakT = max(eem[(em326:em350), (ex260:ex290)])
+  
+  ############
+  # Peak T/Peak C ratio
+  # reference:
+  # Baker, A. (2001). Fluorescence Excitation−Emission Matrix Characterization of Some Sewage-Impacted Rivers. Environmental Science & Technology, 35(5), 948–953. http://doi.org/10.1021/es000177t
   # Used to identify the impact of sewer effluent on a river. 
   # Indicates biochemical oxygen demand relative to DOC
   
@@ -70,33 +106,8 @@ Fluor <- function(eem) {
   em.ex275 = (eem[,ex274])+(eem[,ex276]-eem[,ex274])*((275-274)/(276-274))
   peakt.peakC <- em.ex275[em350]/max((eem[(em410:em430), (ex320:ex340)]))
   
-  ############
-  # Peak A (humic)
-  # references: 
-  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
-  
-  ########### 
-  # Peak C (humic)
-  # references:
-  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
-  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
-  
-  ############
-  # Peak B (protein like - tyrosine-like)
-  # references:
-  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
-  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
-  
-  
-  ############
-  # Peak T (protein, tryptophan- like)
-  # references:
-  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
-  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
-  
-  
   ############ 
   # bind all indicies together
-  fl.out <- cbind(FI, HIX_ohno_area, HIX_Zsonlay_area, HIX_Ohno_sum, HIX_Zsonlay_sum, FrI, peakt.peakC)
+  fl.out <- cbind(FI, HIX_ohno_area, HIX_Zsonlay_area, HIX_Ohno_sum, HIX_Zsonlay_sum, FrI,peakA, peakC, peakB, peakT, peakt.peakC)
   return(fl.out)
 }

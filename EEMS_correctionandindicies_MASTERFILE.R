@@ -112,6 +112,11 @@ ex.274 <- 274
 ex.276 <- 276
 ex.320 <- 320
 ex.340 <- 340
+ex.260 <- 260
+ex.290 <- 290
+ex.240 <- 240
+ex.270 <- 270
+ex.300 <- 300
 
 # em wavelengths
 em.470 <- 470.394
@@ -126,10 +131,17 @@ em.436 <- 436.766
 em.350 <- 350
 em.410 <- 410
 em.430 <- 430
+em.320 <- 320.908
+em.326 <- 326.594
+em.430 <- 430.984
+em.400 <- 400.99
+em.450 <- 450.663
 
-ex.wavelengths <- data.frame(rbind(ex.350, ex.370, ex.254, ex.310,ex.274,ex.276,ex.320,ex.340))
+ex.wavelengths <- data.frame(rbind(ex.350, ex.370, ex.254, ex.310,ex.274,ex.276,ex.320,ex.340,
+                                   ex.260, ex.290, ex.240, ex.270, ex.300))
 em.wavelengths <- data.frame(rbind(em.375, em.430, em.470, em.520,em.435,em.480,em.300,em.345,
-                                   em.380,em.420,em.436,em.350,em.410))
+                                   em.380,em.420,em.436,em.350,em.410,
+                                   em.320,em.326,em.430,em.400, em.450))
 
 ###########
 # call function to create a graph headings file from abs, EEM and blank file

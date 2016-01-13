@@ -44,7 +44,12 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     ex276 <- as.numeric(grep(ex.wavelengths[c("ex.276"),], colnames(EEMcorr)))
     ex320 <- as.numeric(grep(ex.wavelengths[c("ex.320"),], colnames(EEMcorr)))
     ex340 <- as.numeric(grep(ex.wavelengths[c("ex.340"),], colnames(EEMcorr)))
-    
+    ex260 <- as.numeric(grep(ex.wavelengths[c("ex.260"),], colnames(EEMcorr)))
+    ex290 <- as.numeric(grep(ex.wavelengths[c("ex.290"),], colnames(EEMcorr)))
+    ex240 <- as.numeric(grep(ex.wavelengths[c("ex.240"),], colnames(EEMcorr)))
+    ex270 <- as.numeric(grep(ex.wavelengths[c("ex.270"),], colnames(EEMcorr)))
+    ex300 <- as.numeric(grep(ex.wavelengths[c("ex.300"),], colnames(EEMcorr)))
+  
     # em wavelengths
     em470 <- as.numeric(grep(em.wavelengths[c("em.470"),], rownames(EEMcorr)))
     em520 <- as.numeric(grep(em.wavelengths[c("em.520"),], rownames(EEMcorr))) 
@@ -58,6 +63,11 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     em350 <- as.numeric(grep(em.wavelengths[c("em.350"),], rownames(EEMcorr)))
     em410 <- as.numeric(grep(em.wavelengths[c("em.410"),], rownames(EEMcorr)))
     em430 <- as.numeric(grep(em.wavelengths[c("em.430"),], rownames(EEMcorr)))
+    em320 <- as.numeric(grep(em.wavelengths[c("em.320"),], rownames(EEMcorr)))
+    em326 <- as.numeric(grep(em.wavelengths[c("em.326"),], rownames(EEMcorr)))
+    em430 <- as.numeric(grep(em.wavelengths[c("em.430"),], rownames(EEMcorr)))
+    em400 <- as.numeric(grep(em.wavelengths[c("em.400"),], colnames(EEMcorr)))
+    em450 <- as.numeric(grep(em.wavelengths[c("em.450"),], colnames(EEMcorr)))
     
     # call function
     setwd("/Users/user/SpecScripts") 
