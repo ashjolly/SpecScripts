@@ -8,7 +8,6 @@
 # http://www.sthda.com/english/wiki/principal-component-analysis-how-to-reveal-the-most-important-variables-in-your-data-r-software-and-data-mining#at_pco=smlwn-1.0&at_si=563bc26c64fc73c8&at_ab=per-2&at_pos=0&at_tot=1
 # https://cran.r-project.org/web/packages/EEM/vignettes/vignette.html
 ################################################################################
-
 # clean up list
 rm(list = ls())
 ls()
@@ -39,12 +38,15 @@ devtools::install_github("PMassicotte/eemR")
 save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisdata'
 pre.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
 post.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
+Delta.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_delta"
 
 ##############################################################
 # functions used in script
 make.eem <- function (ex, PCAcomponents){
   n <- length(unique(ex))
-  PCA.var <-  data.frame(matrix(vector(), 500, 281))
+  PCA.var <-  data.frame(matrix(vector(), length(unique(PCAcomponents$em)), length(unique(ex))))
+  row.names(PCA.var) <- unique(PCAcomponents$em)
+  colnames(PCA.var) <- unique(PCAcomponents$ex)
   
   for (i in 1:n){
     ex.temp <- unique(ex)[i]
@@ -96,7 +98,7 @@ CM.pre$samplename <- samplename
 remove(sample, samplename)
 
 # pre chlorination PARAFAC - Fmax values for 6 component model 
-Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPre/percentloadings.csv", header = FALSE, sep = ",")
+Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withGR//DBPPre_withGR//percentloadings.csv", header = FALSE, sep = ",")
 colnames(Pre.Fmax) <- c("samplename", "Pre_C1", "Pre_C2", "Pre_C3", "Pre_C4", "Pre_C5", "Pre_C6")
 # change the sample name column to reflect the pre chlronation format - important for later merging
 sample <- sapply(strsplit(as.character(Pre.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
@@ -117,6 +119,8 @@ PCA.EEMpost <- PCA.eem(filelist = filelist_DBPpost, directory = post.directory)
 
 # post chlorination CM fits
 CM.post <- read.csv(paste(save.directory, "/DBPpost_componentsandloadings_CM.csv", sep = ""))
+colnames(CM.post) <- paste(colnames(CM.post), "_Chlor", sep = "") # add "_Chlor" to column names
+
 # change the sample name column to reflect the pre chlorination format - important for later merging
 sample <- sapply(strsplit(as.character(CM.post$sample.ID), split='DBPPost', fixed=TRUE), function(x) (x[1]))
 samplename <- str_pad(sample, 4, pad = "0")
@@ -124,26 +128,45 @@ CM.post$samplename <- samplename
 remove(sample, samplename)
 
 # post chlorination PARAFAC fits - 2 component model
-DBPpost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPPost/percentloadings.csv", header = FALSE, sep = ",")
+DBPpost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withGR/DBPPost_withGR/percentloadings.csv", header = FALSE, sep = ",")
 colnames(DBPpost) <- c("samplename","","Post_C1", "Post_C2")
 DBPpost[,2] <- NULL # get rid of empty second column
+
 ###############
+# DElta EEMs - calculated EEMS for PCA analysis
+setwd(Delta.directory) 
+filelist_DBPdelta <- list.files(pattern = "_DBPdelta.csv$")
+# call function to compile as a PCA object
+setwd("/Users/user/SpecScripts") 
+source("PCAfilecomp_function.R")
+PCA.EEMdelta<- PCA.eem(filelist = filelist_DBPdelta, directory = Delta.directory) 
+
 # Delta EEMs - Fmax from PARAFAC fits
-DBPdelta <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPdelta/percentloadings.csv", header = FALSE, sep = ",")
+DBPdelta <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withGR/DBPdelta_withGR/percentloadings.csv", header = FALSE, sep = ",")
 colnames(DBPdelta) <- c("samplename","","Delta_C1", "Delta_C2", "Delta_C3")
 DBPdelta[,2] <- NULL # get rid of empty second column
 
+# Delta EEM spectral parameters
+spec.indicies.delta <- read.csv(paste(Delta.directory, "/DBPdeltaFluorIndicies.csv", sep = ""),
+                               header = TRUE)
+
 ##############
 # Pre and post chlorination PARAFAC fits
-DBPprepost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
+DBPprepost <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withGR//DBPprepost_withGR/percentloadings.csv", header = FALSE, sep = ",")
 #preandpost - 6 component model
 colnames(DBPprepost) <- c("samplename","Post6_C1", "Post6_C2", 
                           "Post6_C3", "Post6_C4",
                           "Post6_C5", "Post6_C6")
 
 # load post chlorinated EEM fit to 6 component model
-prepost.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid/DBPprepost/percentloadings.csv", header = FALSE, sep = ",")
+prepost.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withGR//DBPprepost_withGR/percentloadings.csv", header = FALSE, sep = ",")
 colnames(prepost.Fmax) <- c("samplename", "C1", "C2", "C3", "C4", "C5", "C6")
+# change the sample name column to reflect the pre chlorination format - important for later merging
+sample <- sapply(strsplit(as.character(prepost.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
+samplename <- str_pad(sample, 4, pad = "0")
+prepost.Fmax$samplename <- samplename
+remove(sample, samplename)
+
 #########
 # DBP concentrations
 HAA <- as.data.frame(read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_HAAData/HAAdata_analysis.csv", header = TRUE))
@@ -169,10 +192,14 @@ spec.indicies.post <- spec.indicies.post[ !(spec.indicies.post$samplename  %in% 
 CM.post  <- CM.post[ !(CM.post$samplename  %in% GRc), ] # 
 DBPpost<- DBPpost[ !(DBPpost$samplename  %in% GRc), ] # 
 PCA.EEMpost <- PCA.EEMpost[ !(rownames(PCA.EEMpost)  %in% GRc), ] # 
-# other
+# Delta
+PCA.EEMdelta <- PCA.EEMdelta[ !(PCA.EEMdelta$samplename  %in% GR), ] # 
 DBPdelta <- DBPdelta[ !(DBPdelta$samplename  %in% GR), ] # 
+spec.indicies.delta <- spec.indicies.delta[ !(spec.indicies.delta$samplename  %in% GR), ]
+#pre and post chlor
 DBPprepost <- DBPprepost[ !(DBPprepost$samplename  %in% rbind(GR, GRc)), ] # 
-prepost.Fmax  <- prepost.Fmax[ !(prepost.Fmax$samplename  %in% rbind(GR, GRc)), ] # 
+prepost.Fmax  <- prepost.Fmax[ !(prepost.Fmax$samplename  %in% GR), ] # remove prechlor
+prepost.Fmax  <- prepost.Fmax[ !(prepost.Fmax$samplename  %in% GRc), ] # remove postchlor
 HAA <- HAA[ !(HAA$samplename  %in% GR), ] # 
 THM <- THM[ !(THM$samplename  %in% GR), ] # 
   
@@ -452,10 +479,10 @@ pca.pre.Facto <-  PCA(PCA.pre, graph = FALSE)
 fviz_screeplot(pca.pre.Facto, ncp=10) # Scree plot first with 10 components from PCA
 
 # plot contribution to first 2 PCA components for pre chlorination - top 50 wavelengths
-fviz_contrib(pca.pre.Facto, choice = "var", axes = 1)
-fviz_contrib(pca.pre.Facto, choice = "var", axes = 2)
+fviz_contrib(pca.pre.Facto, choice = "var", axes = 1:5, top = 40)
+fviz_contrib(pca.pre.Facto, choice = "var", axes = 2, top = 40)
 
-fviz_pca_var(pca.pre.Facto, col.var="contrib") # graph the PCA plot (PC1versus PC2) with the top 20 components
+fviz_pca_var(pca.pre.Facto, col.var="contrib", top = 20) # graph the PCA plot (PC1versus PC2) with the top 20 components
 
 #graph the wavelengths according to their contributio to PC1 and PC2
 fviz_pca_ind(pca.pre.Facto, col.ind="cos2")+ 
@@ -564,7 +591,14 @@ dev.off()
 
 summary(PCA.pre.6)
 
-##### Variation within Components - prechlorination boxplots
+PCA.pre.6 <-  PCA(Pre.Fmax[,2:7], graph = TRUE)
+fviz_screeplot(PCA.pre.6, ncp=6) # Scree plot first with 6 components from PCA
+
+# plot contribution to first 2 PCA components for pre chlorination - top 50 wavelengths
+fviz_contrib(PCA.pre.6, choice = "var", axes = 1)
+fviz_contrib(PCA.pre.6, choice = "var", axes = 2)
+
+###############   Variation within Components - prechlorination boxplots
 # assemble data with component in one column and FMax in another
 remove(PCApre6)
 
@@ -585,16 +619,22 @@ for (i in 1:6){
 }
 
 colnames(PCApre6)[1] <- "values"
-
 ggplot(PCApre6, aes(x=component, y=values, fill=component)) + geom_boxplot() 
 
 ##### Looking at overall variation within all water quality parameters
-# Which parameters explain the greatest degree of variation within the dataset?
+# Which parameters explain the greatest degree of variation within the dataset? PCA on spectral and water quality parameters
 # Compile PARAFAC model fits with water quality parameters
-wq.all <- merge(Pre.Fmax, wq.heat, by = "samplename", all = TRUE) 
+wq.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = FALSE), 
+                  list(Pre.Fmax, wq.heat, CM.pre[,15:17])))
+# Take out temp + TN - too many missing variables
+wq.all$Temperature <- NULL
+wq.all$TN <- NULL
+wq.all$F <- NULL
+# replace infinities in data with Nans
+is.na(wq.all) <- sapply(wq.all, is.infinite)
 
 # do PCA on all variables - which variables explain the greatest degree of variation?
-wq.all.pca <- prcomp(na.omit(wq.all[,2:34]), center = TRUE, scale. = TRUE)
+wq.all.pca <- prcomp(na.omit(wq.all[,2:33]), center = TRUE, scale. = TRUE, na.action=na.omit)
 summary(wq.all.pca)
 
 # plot PCA results
@@ -609,12 +649,13 @@ ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1,
 dev.off()
 
 # show relative contribution of each variable to the first 5 components of PCA
-wq.pca <- PCA(na.omit(wq.all[,2:34]), graph = FALSE)
+wq.pca <- PCA(na.omit(wq.all[,2:33]), graph = TRUE)
 head(wq.pca$var$contrib)
-
+# scree plot
+fviz_screeplot(wq.pca, ncp=6) # first 6 components
 # plot contribution to first 2 PCA components
-fviz_pca_contrib(wq.pca, choice = "var", axes = 1)
-fviz_pca_contrib(wq.pca, choice = "var", axes = 2)
+fviz_contrib(wq.pca, choice = "var", axes = 1)
+fviz_contrib(wq.pca, choice = "var", axes = 2)
 
 ################################################################################################################################################################
 # Pt 2 - how does chlorination change the spectral composition of EEMS?
@@ -624,7 +665,7 @@ fviz_pca_contrib(wq.pca, choice = "var", axes = 2)
 # http://planspace.org/2013/02/03/pca-3d-visualization-and-clustering-in-r/
 ###########################################################
 #####################################
-# PCA on corrected EEMS
+# PCA on corrected EEMS - post chlorination EEMS
 # Preprocessing prior to PCA
 # Normalization - according to "EEM" package in r. 
 # divides each variable by the sum of the absolute value of all variables for the given sample.
@@ -651,12 +692,105 @@ pcapost.loadings <- pca.post$rotation[,1:4]
 plot(pcapost.loadings[,1:2], type = 'p')
 plot(pcapost.loadings[,3:4], type = 'p')
 
-post.pca <- PCA(PCA.zero, graph = FALSE)
+post.pca <- PCA(PCA.post.zero, graph = FALSE)
 head(post.pca$var$contrib)
 
-# plot contribution to first 2 PCA components for post chlorination
-fviz_pca_contrib(post.pca, choice = "var", axes = 1)
-fviz_pca_contrib(post.pca, choice = "var", axes = 2)
+fviz_screeplot(post.pca, ncp=10) # Scree plot first with 10 components from PCA
+
+# plot contribution to first 2 PCA components for pre chlorination - top 50 wavelengths
+fviz_contrib(post.pca, choice = "var", axes = 1, top = 40)
+fviz_contrib(post.pca, choice = "var", axes = 2, top = 40)
+
+fviz_pca_var(post.pca, col.var="contrib", top = 20) # graph the PCA plot (PC1versus PC2) with the top 20 components
+
+#graph the wavelengths according to their contributio to PC1 and PC2
+fviz_pca_ind(post.pca, col.ind="cos2")+ 
+  scale_color_gradient2(low="white", mid="blue", 
+                        high="red", midpoint=0.50) + theme_minimal()
+
+# plot only those variables with a certain contribution to the PCA.
+graph.var(post.pca, axes = c(1, 2), 
+          xlim = NULL, ylim = NULL, col.sup = "blue", 
+          col.var = "black", #draw="all", 
+          #label=draw, 
+          lim.cos2.var = 0.9,
+          cex = 1, title = NULL, new.plot = TRUE)
+
+############# plot the PCA contribution for each ex/em pair for the first 5 PCs - post chlorination only
+# plot the contribution of each wavelength to the first 5 components to the PCA
+PCA.post.c <- data.frame(post.pca$var$contrib)
+
+# extract em and ex wavelengths from dataset (rownames)
+PCA.post.c$ex = sapply(strsplit(as.character(row.names(PCA.post.c)), split='_', fixed=TRUE), function(x) (x[1])) # excitation wavelengths
+PCA.post.c$em <- as.numeric(sapply(strsplit(as.character(row.names(PCA.post.c)), split='_', fixed=TRUE), function(x) (x[2]))) #emission wavelenghts
+
+# use function to make a 3-D eem out of the dimentions
+dim1.PCApost <- make.eem(ex = unique(PCA.post.c$ex), PCAcomponents = data.frame(PCA.post.c[,c(1,6,7)]))
+dim2.PCApost <- make.eem(ex = unique(PCA.post.c$ex), PCAcomponents = data.frame(PCA.post.c[,c(2,6,7)]))
+dim3.PCApost <- make.eem(ex = unique(PCA.post.c$ex), PCAcomponents = data.frame(PCA.post.c[,c(3,6,7)]))
+dim4.PCApost <- make.eem(ex = unique(PCA.post.c$ex), PCAcomponents = data.frame(PCA.post.c[,c(4,6,7)]))
+dim5.PCApost <- make.eem(ex = unique(PCA.post.c$ex), PCAcomponents = data.frame(PCA.post.c[,c(5,6,7)]))
+
+# plot as contour plots using function
+setwd("/Users/user/SpecScripts") 
+source("EEM_contour_v1.R")
+
+#variables to change
+xlimit <- range(300, 700, finite=TRUE)
+ylimit <- range(240, 800, finite = TRUE)
+
+numcont = 10 # number of contour levels you want: Change if you want
+#Plot contours and save in correction file
+
+explot = seq(240, 800, by = 2)
+emplot = as.numeric(row.names(dim1.PCApost))
+
+########### specific to first 
+plotpath <- file.path(save.directory, "PCApost_dim1_Contour.jpeg")
+zmax = max(dim1.PCApost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim1.PCApost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim1.PCApost), Title = "PCA- post First Component", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+
+########## specific to second 
+plotpath <- file.path(save.directory, "PCApost_dim2_Contour.jpeg")
+zmax = max(dim2.PCApost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim2.PCApost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim2.PCApost), Title = "PCA- post Component2", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to third 
+plotpath <- file.path(save.directory, "PCApost_dim3_Contour.jpeg")
+zmax = max(dim3.PCApost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim3.PCApost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim3.PCApost), Title = "PCA- post Component 3", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to second 
+plotpath <- file.path(save.directory, "PCApost_dim4_Contour.jpeg")
+zmax = max(dim4.PCApost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim4.PCApost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim4.PCApost), Title = "PCA- post Component 4", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
+########## specific to 5 
+plotpath <- file.path(save.directory, "PCApost_dim5_Contour.jpeg")
+zmax = max(dim5.PCApost,na.rm=TRUE) # put the max intensity of that you want to graph
+zmin = min(dim5.PCApost,na.rm=TRUE)
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(dim5.PCApost), Title = "PCA- post Component 5", ex = explot, em = emplot,
+              zmax,zmin,numcont)  
+dev.off()
 
 ################################################################################################################################################################  
 # Comparing pre to post chlorinated EEMS
@@ -675,8 +809,8 @@ PCA.all.norm<- normalize(unique(PCA.all))
 chlor = data.frame((0))
 PCA.all <- cbind(chlor, PCA.all.norm)
 #insert chlor
-PCA.all[1:117,1] <- "pre chlorination"
-PCA.all[118:237,1] <- 'post chlorination'
+PCA.all[1:104,1] <- "pre chlorination"
+PCA.all[105:210,1] <- 'post chlorination'
 #rewrite chlor
 chlor <- PCA.all[,1]
 
@@ -704,7 +838,6 @@ g <- ggbiplot(pca.all, obs.scale = 1, var.scale = 1,
 # To make plotting nicer, choose the variables that have the greatest contribution to the PCA (otherwise your plot is a mess)
 # through Factorminr package
 pca.all.Facto <-  PCA(PCA.all[,2:140501], graph = TRUE)
-
 head(pca.all.Facto$var$contrib)   # The larger the value of the contribution, the more the variable contributes to the component.
 PCA.c <- data.frame(pca.all.Facto$var$contrib)
 # write to a csv file for examination
@@ -792,8 +925,8 @@ pca.all.desc <- dimdesc(pca.all.Facto, axes = 1:3, proba = 0.01)
 PC1.all <- pca.all.desc$Dim.1 #Na's?
 
 # plot contribution to first 2 PCA components for post chlorination - top 50 wavelengths
-fviz_contrib(pca.all.Facto, choice = "var", axes = 1:5,  top = 40)
-fviz_contrib(pca.all.Facto, choice = "var", axes = 2)
+fviz_contrib(pca.all.Facto, choice = "var", axes = 1,  top = 40)
+fviz_contrib(pca.all.Facto, choice = "var", axes = 2, top = 40)
 
 fviz_pca_var(pca.all.Facto, col.var="contrib") # graph the PCA plot (PC1versus PC2) with the top 20 components
 
@@ -830,7 +963,6 @@ DBPpost$samplename <- gsub("Chlor","",DBPpost$samplename)
 
 # 3 component PARAFAC delta EEMS model
 
-
 # take only the post chlorination model out
 DBPprepost$prepost <- sapply(strsplit(as.character(DBPprepost$samplename), split='_', fixed=TRUE), function(x) (x[2]))
 
@@ -840,10 +972,12 @@ DBPprepost.post$prepost <- NULL # get rid of column
 
 DBPprepost.post$samplename <- sapply(strsplit(as.character(DBPprepost.post$samplename), split='_', fixed=TRUE), function(x) (x[1]))
 DBPprepost.post$samplename <-  gsub("Chlor","",DBPprepost.post$samplename)
+# take out Chlor from CM post
+CM.post$samplename <- gsub("Chlor", "", CM.post$samplename)
 
-# compile all together according to sample ID -PARARAFAC only
-PCA.PARAFAC.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = FALSE), 
-                          list(Pre.Fmax,DBPpost,DBPdelta, DBPprepost.post)))
+# compile all together according to sample ID -PARARAFAC only (plus CM)
+PCA.PARAFAC.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = TRUE), 
+                          list(Pre.Fmax,CM.pre[,15:17],CM.post[,15:17],DBPpost,DBPdelta, DBPprepost.post)))
 
 # compile all PARAFAC along with the WQ parameters
 # ensure that post spectral parameters are OK - rename col names to include _Chlor
@@ -853,7 +987,7 @@ colnames(spec.indicies.post)[1] <- "samplename"
 spec.indicies.post$samplename <-  gsub("Chlor","",spec.indicies.post$samplename)
 
 WQ.PARAFAC.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = FALSE), 
-                                    list(wq.all, DBPprepost.post, spec.indicies.post)))
+                                    list(wq.all, DBPprepost.post, spec.indicies.post, CM.post[,15:17])))
 
 # do PCA on all variables - which variables explain the greatest degree of variation?
 PCA.PARAFAC <- prcomp(na.omit(PCA.PARAFAC.all[,2:18]), center = TRUE, scale. = TRUE)
@@ -954,13 +1088,13 @@ PCA.prepost.6 <- prcomp(prepost.Fmax[,2:7], center = TRUE, scale. = TRUE)
 
 # plot PCA
 g <- ggbiplot(PCA.prepost.6, obs.scale = 1, var.scale = 1, 
-              groups = prepost.Fmax$chlor, ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- 6 Component PARAFAC Model Pre+Post Chlorination")
+              groups = prepost.Fmax$chlor, ellipse = TRUE, circle = FALSE)+ggtitle("PCA Results- 6 Component PARAFAC Model Pre+Post Chlorination")
 
 summary(PCA.prepost.6)
-
 # find the components that explain the most variation
 pca.prepost6com.Facto <-  PCA(prepost.Fmax[,2:7], graph = FALSE)
 PCA.comp.6c <- data.frame(pca.prepost6com.Facto$var$contrib)
+
 x = c("C1", "C2", "C3", "C4", "C5", "C6")
 x = seq(1,6, by = 1)
 # plot variable contributions of each component
@@ -1026,7 +1160,6 @@ dev.off()
 
 ######################
 # take 2 on heat map - take average of each of the components within the pre component, and calculate the difference in the post chlorination EEMS
-
 # calculate the average of each of the 6 components within the pre chloration dataset
 Pre.ave <- t(data.frame(apply(Pre.Fmax[,2:7], 2, mean)))
 
@@ -1044,7 +1177,6 @@ for (i in 2:n){
   }
 
 ## do heat map
-
 mat.data <- data.matrix(t(post.6comp[,10:15]))          # convert data to matrix
 row.names(mat.data) <- x
 colnames(mat.data) <- post.6comp$samplename
@@ -1090,7 +1222,7 @@ heatmap.2(mat.data,
 dev.off()
 ######################
 # Histogram showing pre versus post PARAFAC + spectral parameters
-# Compile PARAFAC plus spectral parameters + CM redox and percent protein
+# Compile PARAFAC plus spectral parameters + CM redox and percent protein. Show how chlorination affects 
 
 # Compile into dataframe, where column 1 is value, column 2 = type
 remove(PCAall6)
@@ -1113,6 +1245,32 @@ for (i in 1:(dim(boxplot.data)[2]-1)){
 
 colnames(PCAall6)[1] <- "values"
 ggplot(PCAall6, aes(x=component, y=values, fill=component)) + geom_boxplot() 
+########################################################################################
+# Using PCA to Analyze DBP Delta  results
+# PCA on the Delta EEMS - where is largest areas that contribute to the variation?
+require(EEM)
+PCA.delta.norm <- normalize(PCA.EEMdelta)
+
+# find the columns where the variance is zero. Remove these columns prior to running PCA. 
+PCA.delta.zero <- PCA.delta.norm[,apply(PCA.delta.norm, 2, var, na.rm=TRUE) != 0]
+# Double check - columns that have unit variance of 0. Should be none if processing is OK. 
+cols <- names(PCA.delta.zero[, sapply(PCA.delta.zero, function(v) var(v, na.rm=TRUE)==0)])
+
+# Perform PCA analysis on all pre chlorinated EEMS
+pca.delta <- PCA(PCA.delta.zero)
+# second method of PCA pca.delta <- prcomp(PCA.delta.zero, center = TRUE, scale. = TRUE)
+#scree plot 
+fviz_screeplot(pca.delta, ncp=10) # scree plot with first with 10 components from PCA
+# plot contribution to first 2 PCA components
+fviz_contrib(pca.delta, choice = "var", axes = 1, top = 40)
+fviz_contrib(pca.delta, choice = "var", axes = 1:5, top = 40)
+fviz_contrib(pca.delta, choice = "var", axes = 2, top = 40)
+
+###### PCA on the delta EEMS - PARAFAC model, plus spectral properties. Which parameters explained the greatest degree of variation?
+# Bind the 3 component PARAFAC fit to spectral parameters
+
+# perform PCA to look at the largets degree of contributions
+
 
 ######################
 # using clustering model to predict which PARAFAC components best predict chlorination status

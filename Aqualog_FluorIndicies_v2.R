@@ -70,6 +70,31 @@ Fluor <- function(eem) {
   em.ex275 = (eem[,ex274])+(eem[,ex276]-eem[,ex274])*((275-274)/(276-274))
   peakt.peakC <- em.ex275[em350]/max((eem[(em410:em430), (ex320:ex340)]))
   
+  ############
+  # Peak A (humic)
+  # references: 
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  
+  ########### 
+  # Peak C (humic)
+  # references:
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
+  
+  ############
+  # Peak B (protein like - tyrosine-like)
+  # references:
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
+  
+  
+  ############
+  # Peak T (protein, tryptophan- like)
+  # references:
+  # Coble, P. G. (1996). Characterization of marine and terrestrial DOM in seawater using excitation-emission matrix spectroscopy. Marine Chemistry. http://doi.org/10.1016/0304-4203(95)00062-3
+  # Beggs, K. M. H., & Summers, R. S. (2011). Character and Chlorine Reactivity of Dissolved Organic Matter from a Mountain Pine Beetle Impacted Watershed. Environmental Science & Technology, 45(13), 5717–5724. http://doi.org/10.1021/es1042436
+  
+  
   ############ 
   # bind all indicies together
   fl.out <- cbind(FI, HIX_ohno_area, HIX_Zsonlay_area, HIX_Ohno_sum, HIX_Zsonlay_sum, FrI, peakt.peakC)
