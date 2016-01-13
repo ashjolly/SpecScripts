@@ -60,16 +60,16 @@ library(pracma)
 
 ####
 # directory with all of the fluorescence files
-#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
-directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
+directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
+#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
 
 # directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
-#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
-directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
+directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
 
 # directory for corrected EEMS - Raleigh corrected as well
-#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
-directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
+directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
+#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 
 #######
 # directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
@@ -78,21 +78,22 @@ directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS"
 
 #######
 # general directory
-directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
+directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
+#directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
 
 # project
-#project = "DBPPre"
-project = "DBPPost"
+project = "DBPPre"
+#project = "DBPPost"
 
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
 #DBP pre dilution file
-#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
-#                                  sep=",", header = TRUE, col.names = top))
+dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
+                                  sep=",", header = TRUE, col.names = top))
 
-dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),
-                                  sep=",", header = TRUE, col.names = top)) #post chlorination
+#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),
+#                                  sep=",", header = TRUE, col.names = top)) #post chlorination
 
 ###########################
 ## ex an em positions within your eems. This is so the Fluor and Raman correction script can find the right columns in order to calculate Fluorescences indicies
@@ -128,20 +129,20 @@ em.345 <- 344.826
 em.380 <- 380.302
 em.420 <- 420.587
 em.436 <- 436.766
-em.350 <- 350
-em.410 <- 410
-em.430 <- 430
+em.350 <- 350.534
+em.410 <- 410.205
+em.430 <- 429.828
 em.320 <- 320.908
 em.326 <- 326.594
-em.430 <- 430.984
 em.400 <- 400.99
 em.450 <- 450.663
 
 ex.wavelengths <- data.frame(rbind(ex.350, ex.370, ex.254, ex.310,ex.274,ex.276,ex.320,ex.340,
                                    ex.260, ex.290, ex.240, ex.270, ex.300))
-em.wavelengths <- data.frame(rbind(em.375, em.430, em.470, em.520,em.435,em.480,em.300,em.345,
+
+em.wavelengths <- data.frame(rbind(em.375, em.470, em.520,em.435,em.480,em.300,em.345,
                                    em.380,em.420,em.436,em.350,em.410,
-                                   em.320,em.326,em.430,em.400, em.450))
+                                   em.430, em.320,em.326,em.400, em.450))
 
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
