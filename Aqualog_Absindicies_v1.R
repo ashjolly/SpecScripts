@@ -42,7 +42,10 @@ Abs <- function(absorbance) {
   #library(gnm)
   library(nlmrt)
   
-  #From Spencer 2007 (DOI: 10.1002/hyp.6887): A steep absorbancetral slope (e.g. closer to 0.02) indicates low molecular weight material or decreasing aromaticity while a shallower absorbancetral slope (e.g. closer to 0.01) indicates humic-like or higher molecular weight material with a higher aromatic content (Blough and Del Vecchio, 2002).
+  # From Spencer 2007 (DOI: 10.1002/hyp.6887): A steep absorbancetral slope (e.g. closer to 0.02) 
+  # indicates low molecular weight material or decreasing aromaticity while a shallower absorbancetral 
+  # slope (e.g. closer to 0.01) indicates humic-like or higher molecular weight material with a higher 
+  # aromatic content (Blough and Del Vecchio, 2002).
   
   # column numbers that are working with for slope calculations
   x274 = as.numeric(match("X274",names(absorbance))) #column number at 275 nm
