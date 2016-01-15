@@ -60,16 +60,22 @@ library(pracma)
 
 ####
 # directory with all of the fluorescence files
-directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
-#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
+#pre DBP
+#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
+# post DBP
+directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
 
 # directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
-directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
-#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
+# pre DBP
+#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+# post DBP
+directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
 
 # directory for corrected EEMS - Raleigh corrected as well
-directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
-#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
+# pre DBP
+#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
+# post DBP
+directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 
 #######
 # directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
@@ -78,25 +84,27 @@ directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS"
 
 #######
 # general directory
-directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
-#directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
+# pre DBP
+#directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
+# post DBP
+directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
 
 # project
-project = "DBPPre"
-#project = "DBPPost"
+#project = "DBPPre"
+project = "DBPPost"
 
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
 #DBP pre dilution file
-dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
-                                  sep=",", header = TRUE, col.names = top))
-
-#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),
-#                                  sep=",", header = TRUE, col.names = top)) #post chlorination
+#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""),
+#                                  sep=",", header = TRUE, col.names = top))
+# DBP post 
+dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),
+                                  sep=",", header = TRUE, col.names = top)) #post chlorination
 
 ###########################
-## ex an em positions within your eems. This is so the Fluor and Raman correction script can find the right columns in order to calculate Fluorescences indicies
+## ex and em positions within your eems. This is so the Fluor and Raman correction script can find the right columns in order to calculate Fluorescences indicies
 # below may need to be altered depending on the output of your scan - double check exact emission wavelengths
 # wavlengths for Raman corrections
 # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
