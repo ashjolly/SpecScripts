@@ -21,12 +21,26 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     abs.temp <-as.data.frame(read.delim(as.character(filelist_EEMScor[i,3]), 
                                         header= TRUE, sep = ",", stringsAsFactors=FALSE))
     
-    # call function
+    # blank correct
+    # reference: 
+    # Green, S. A., & Blough, N. V. (1994). Optical absorption and fluorescence properties of chromophoric dissolved organic matter in natural waters. Limnology and Oceanography, 39(8), 1903–1916. http://doi.org/10.4319/lo.1994.39.8.1903
+    # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
+    blank <- rowMeans(abs.temp[,grep("X800", colnames(abs.temp)):grep("X700", colnames(abs.temp))]) #find average value of abs between 800-700 nm
+    abs.blank <- abs.temp - blank # subtract the blank from the initial spectra
+    
+    # Calculate absoprtion coefficients from blank corrected data
+    # References:
+    # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
+    
+    l <- 10 / 1000 #10 mm (1cm) path length expressed in m
+    alpha = 2.303 * abs.blank/l 
+    
+    # call function to calculate absorbance indicies
     setwd("/Users/user/SpecScripts") 
     source("Aqualog_Absindicies_v1.R")
     
     #call the function to calculate indicies
-    Abs.ind <- Abs(absorbance = abs.temp)
+    Abs.ind <- Abs(absorbance = alpha)
     #Abs.all[i] <- cbind(samplename, Abs.ind) #Put sample number
     
     ##########
