@@ -10,7 +10,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
 
   n = dim(filelist_EEMScor)[1]
   
-  Spectral.Indicies = data.frame(matrix(vector(), n,21)) #creating an empty vector
+  Spectral.Indicies = data.frame(matrix(vector(), n,22)) #creating an empty vector
   
   for (i in 1:n){
     
@@ -41,8 +41,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     
     #call the function to calculate indicies
     Abs.ind <- Abs(absorbance = alpha)
-    #Abs.all[i] <- cbind(samplename, Abs.ind) #Put sample number
-    
+
     ##########
     # Calculating fluorescence indicies
     setwd(directoryEEMs)

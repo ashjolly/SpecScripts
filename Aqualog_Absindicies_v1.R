@@ -5,8 +5,7 @@
 ############
 
 Abs <- function(absorbance) {
-  l <- 10 / 1000 #10 mm (1cm) path length expressed in m
-  
+
   #first absorbance at 254 nm
   abs254 <- absorbance$X254
   
@@ -25,11 +24,15 @@ Abs <- function(absorbance) {
   # 3. indicator of humification, E4:E6; alternatively SUVA is used for this - see Helms 2008 pg 955
   e4e6 =  absorbance$X465/absorbance$X665
   
-  # 4. Total CDOM absorption calculated as the integrated absorption from 250 to 450 nm [see Helms p959]
-  x250 = as.numeric(match("X250",names(absorbance))) # column number where abs is 250 nm
-  x450 = as.numeric(match("X450",names(absorbance))) # column number where abs is 450 nm
+  # 4. Total CDOM absorption calculated as the integrated absorption from 250 to 450 nm 
+  # Reference :
+  # Helms et al 2008, Limnology & Oceanography 53(3): 955-969 [see p959]
+  CDOM.total =  as.numeric(rowSums(absorbance[,grep("X250", colnames(absorbance)):grep("X450", colnames(absorbance))])*(450-250)) # the 200 is for length of the integrated absorbancetrum in nm
   
-  CDOM.total =  as.numeric(rowSums(absorbance[,x250:x450])*200) # the 200 is for length of the integrated absorbancetrum in nm
+  # try second method of calculating area under CDOM curve... using trapz function from 
+  require(pracma)
+  CDOM.total.int = trapz(as.numeric(seq(250,450, by = 2)), 
+                         as.numeric(absorbance[,grep("X250", colnames(absorbance)):grep("X450", colnames(absorbance))]))
   
   # 5. Slope ratio as proxy for DOM Molecular Weight
   ## see Helms et al 2008, Limnology & Oceanography 53(3): 955-969
@@ -120,9 +123,9 @@ Abs <- function(absorbance) {
     absorbance$SR[i] <- S1/S3
   }
   
-  absorbancetral <- cbind(abs254, e2e3, e4e6, CDOM.total, slope_ratio, absorbance$S1, absorbance$S2, absorbance$S3, absorbance$SR)# bind together all calculated indicies by column
+  absorbancetral <- cbind(abs254, e2e3, e4e6, CDOM.total, CDOM.total.int,slope_ratio, absorbance$S1, absorbance$S2, absorbance$S3, absorbance$SR)# bind together all calculated indicies by column
   # set column names
-  colnames(absorbancetral) <- c("abs254", "e2e3", "e4e6", "CDOM.total", "slope_ratio", "S1", "S2", "S3", "SR")
+  colnames(absorbancetral) <- c("abs254", "e2e3", "e4e6", "CDOM.total", "CDOM.total.int", "slope_ratio", "S1", "S2", "S3", "SR")
   
   return(absorbancetral)
 }
