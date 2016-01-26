@@ -33,15 +33,17 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
     
     l <- 10 / 1000 #10 mm (1cm) path length expressed in m
-    alpha = 2.303 * abs.blank/l 
+    Naperian = 2.303 * abs.blank/l # naperian
+    Decadic <- abs.blank/l # decadic absorbance. Note that this is what spetrolyzer gives. USE THIS for the 
     
     # call function to calculate absorbance indicies
     setwd("/Users/user/SpecScripts") 
     source("Aqualog_Absindicies_v1.R")
     
     #call the function to calculate indicies
-    Abs.ind <- Abs(absorbance = alpha)
-
+    Abs.ind.dec <- Abs(absorbance = Decadic)
+    Abs.ind.Nap <- Abs(absorbance = Naperian)
+    
     ##########
     # Calculating fluorescence indicies
     setwd(directoryEEMs)
