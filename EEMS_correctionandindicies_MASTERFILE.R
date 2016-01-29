@@ -285,6 +285,13 @@ write.table(spec.indicies, file = corrpath, row.names = FALSE, col.names = TRUE,
 setwd(directoryCorrectedEEMS) 
 filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 
+setwd("/Users/user/SpecScripts") 
+source("AbsEEMSfilecomp_function.R")
+
+filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, directoryRaleigh = directoryCorrectedRaleigh, 
+                                   projectname = project, 
+                                   filelist_EEMScor = filelist_EEMS)
+
 ######## Prepping files for Cory McKnight modelling in Matlab
 ########
 # CM - prepping for CM PARAFAC model
@@ -313,13 +320,26 @@ CMsave
 # Inputs include the filelist, the project, the vector containing sample names, and the excitation wavelength min you want to trim to
 # File cuts EEMs from ex min that you want to
 
+# Take out the green roof and rainwater harvest sampples. These will be super-imposed on the analysis later
+# samples = 56-63, 73-75, 91-93, 119+13
+GR <- c("DBP0056_DBPPre_Corrected.csv", "DBP0057_DBPPre_Corrected.csv", "DBP0058_DBPPre_Corrected.csv", 
+        "DBP0060_DBPPre_Corrected.csv", "DBP0061_DBPPre_Corrected.csv", "DBP0062_DBPPre_Corrected.csv", 
+        "DBP0073_DBPPre_Corrected.csv", "DBP0074_DBPPre_Corrected.csv", "DBP0075_DBPPre_Corrected.csv", 
+        "DBP0091_DBPPre_Corrected.csv", "DBP0092_DBPPre_Corrected.csv", "DBP0093_DBPPre_Corrected.csv", 
+        "DBP0119_DBPPre_Corrected.csv", "DBP0013_DBPPre_Corrected.csv")
+
+# remove the green rrof samples from the set prior to PARAFAC modelling
+#filelist_EEMScor <- filelist_EEMScor[ !(filelist_EEMScor  %in% GR) ] 
+filelist_EEMScor <- filelist_EEMScor[!(filelist_EEMScor  %in% GR)]
+
 setwd("/Users/user/SpecScripts") 
 source("EEMSDrEEMsave_function.R")
 
 ex.DrEEMS = seq(240, 800, by = 2)
+
 DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
                   exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS, 
-                  DrEEMfolder = "/Users/user/Documents/MATLAB/toolbox/CorrEEMS")
+                  DrEEMfolder = "/Users/user/Documents/MATLAB/toolbox/CorrEEMS/DBPPre_noGR")
 
 # check DrEEM.data. This is the compiled EEMS for DrEEM PARAFAC modelling
 head(DrEEM.data)
