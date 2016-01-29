@@ -10,7 +10,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
 
   n = dim(filelist_EEMScor)[1]
   
-  Spectral.Indicies = data.frame(matrix(vector(), n,22)) #creating an empty vector
+  Spectral.Indicies = data.frame(matrix(vector(), n,35)) #creating an empty vector
   
   for (i in 1:n){
     
@@ -20,13 +20,6 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     setwd(directoryCorrectedAbs)
     abs.temp <-as.data.frame(read.delim(as.character(filelist_EEMScor[i,3]), 
                                         header= TRUE, sep = ",", stringsAsFactors=FALSE))
-    
-    # blank correct
-    # reference: 
-    # Green, S. A., & Blough, N. V. (1994). Optical absorption and fluorescence properties of chromophoric dissolved organic matter in natural waters. Limnology and Oceanography, 39(8), 1903–1916. http://doi.org/10.4319/lo.1994.39.8.1903
-    # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
-    blank <- rowMeans(abs.temp[,grep("X800", colnames(abs.temp)):grep("X700", colnames(abs.temp))]) #find average value of abs between 800-700 nm
-    abs.blank <- abs.temp - blank # subtract the blank from the initial spectra
     
     # Calculate absoprtion coefficients from blank corrected data
     # References:
@@ -95,7 +88,7 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     # bind fluor indicies with abs indicies as well as the sample id
     samplename <- as.character(filelist_EEMScor[i,1]) # column name where sample ID is 
     
-    Spectral.Ind <- cbind(samplename, Abs.ind.dec, Fluor.ind) 
+    Spectral.Ind <- cbind(samplename, Abs.ind.dec, Abs.ind.Nap, Fluor.ind) 
     top <- colnames(Spectral.Ind)
     Spectral.Indicies[i,]  <- Spectral.Ind
     colnames(Spectral.Indicies) <- top
