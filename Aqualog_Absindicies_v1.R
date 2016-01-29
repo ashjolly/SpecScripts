@@ -6,8 +6,12 @@
 
 Abs <- function(absorbance) {
 
-  #first absorbance at 254 nm
+  #1. Differential absorbance spectroscopy 
+  # first absorbance at 254 nm
   abs254 <- absorbance$X254
+  
+  # Second - absorbance at 272 nm
+  abs272 <- absorbance$X272
   
   # 2. CDOM absorption ratio at 250 to 365 (a250:a365) is already in the .fp *** Need to change alpha's to a's
   ## [see Spencer et al 2009, doi:10.1029/2008GL036831]
@@ -123,9 +127,9 @@ Abs <- function(absorbance) {
     absorbance$SR[i] <- S1/S3
   }
   
-  absorbancetral <- cbind(abs254, e2e3, e4e6, CDOM.total, CDOM.total.int,slope_ratio, absorbance$S1, absorbance$S2, absorbance$S3, absorbance$SR)# bind together all calculated indicies by column
+  absorbancetral <- cbind(abs254, abs272, e2e3, e4e6, CDOM.total, CDOM.total.int,slope_ratio, absorbance$S1, absorbance$S2, absorbance$S3, absorbance$SR)# bind together all calculated indicies by column
   # set column names
-  colnames(absorbancetral) <- c("abs254", "e2e3", "e4e6", "CDOM.total", "CDOM.total.int", "slope_ratio", "S1", "S2", "S3", "SR")
+  colnames(absorbancetral) <- c("abs254", "abs272", "e2e3", "e4e6", "CDOM.total", "CDOM.total.int", "slope_ratio", "S1", "S2", "S3", "SR")
   
   return(absorbancetral)
 }
