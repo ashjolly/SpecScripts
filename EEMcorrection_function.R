@@ -130,7 +130,16 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     ###########################
     ##### Apply dilution factor to EEM and to Abs file
     EEM.dil = EEM.ram*dil 
-    Absdil = Abstrim*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
+    
+    # blank correct Abs file
+    # reference: 
+    # Green, S. A., & Blough, N. V. (1994). Optical absorption and fluorescence properties of chromophoric dissolved organic matter in natural waters. Limnology and Oceanography, 39(8), 1903–1916. http://doi.org/10.4319/lo.1994.39.8.1903
+    # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
+    blank <- rowMeans(Abstrim[,grep("X800", colnames(Abstrim)):grep("X700", colnames(Abstrim))]) #find average value of abs between 800-700 nm
+    abs.blank <- Abstrim - blank # subtract the blank from the initial spectra
+    
+    # apply dilution factor to corrected absorbance
+    Absdil = abs.blank*dil #second column = absorbance readings. Assumes Beer's Law applies (c~abs)
     
     ##################################
     ########### Correct for Raleigh Masking
