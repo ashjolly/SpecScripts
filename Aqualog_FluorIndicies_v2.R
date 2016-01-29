@@ -106,8 +106,15 @@ Fluor <- function(eem) {
   em.ex275 = (eem[,ex274])+(eem[,ex276]-eem[,ex274])*((275-274)/(276-274))
   peakt.peakC <- em.ex275[em350]/max((eem[(em410:em430), (ex320:ex340)]))
   
+  # Get the Overall fluorescence intensity (OFI) of the corrected EEM
+  # from
+  # A summation of all fluorescence intensities in R.U {Beggs:2009et} was also calculated by 
+  # summing the intensity values (in Raman units) from the entire corrected EEM.
+  
+  OFI <- sum(eem)
+  
   ############ 
   # bind all indicies together
-  fl.out <- cbind(FI, HIX_ohno_area, HIX_Zsonlay_area, HIX_Ohno_sum, HIX_Zsonlay_sum, FrI,peakA, peakC, peakB, peakT, peakt.peakC)
+  fl.out <- cbind(FI, HIX_ohno_area, HIX_Zsonlay_area, HIX_Ohno_sum, HIX_Zsonlay_sum, FrI,peakA, peakC, peakB, peakT, peakt.peakC,OFI)
   return(fl.out)
 }
