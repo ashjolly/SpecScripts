@@ -13,22 +13,24 @@
 rm(list = ls())
 ls()
 
-# First, save the A B and C text files ffrom PARAFAC in a specific folder.
+# First, save the A B and C text files from PARAFAC in a specific folder.
 #Directory
 #DBP
-directoryCMresults <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_CMPARAFAC" 
-#directoryCMresults <-"/Users/ashlee/Documents/UBC Data/WL_data/WL_Fluorescence/WL_CMParafac_Results/" 
-#directoryCMresults <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_pre_CM_PARAFAC/DBP_pre_CM_PARAFACresults" 
-#directoryCMresults <-"/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_delta/DBP_delta_CMPARAFACresults"
-#directoryCMresults <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected/DBP_all_CMPARAFACresults"
-#directoryCMresults <- "/Users/ashlee/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_preandpost/DBP_prepost_CMresults"
+#directoryCMresults <-"/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_CMPARAFAC" 
+directoryCMresults <-"/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_pre_CM_PARAFAC" 
+#directoryCMresults <-"/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_delta/DBP_delta_CMPARAFACresults"
+#directoryCMresults <- "/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected/DBP_all_CMPARAFACresults"
+#directoryCMresults <- "/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_preandpost/DBP_prepost_CMresults"
+
+# WL
+# directoryCMresults <-"/Users/ashlee/Documents/UBC Data/WL_data/WL_Fluorescence/WL_CMParafac_Results/"
 
 setwd(directoryCMresults) 
 #sample type
 #sample.type <- "DBP"
 #sample.type <- "WL"
-#sample.type <- "DBPpre"
-sample.type <- "DBPpost"
+sample.type <- "DBPpre"
+#sample.type <- "DBPpost"
 #sample.type <- "DBPdelta"
 #sample.type <- "DBPall"
 #sample.type <- "DBPprepost"
@@ -50,7 +52,7 @@ C = read.table(cpath, header= FALSE, sep = "")
 
 #read in the graph headings file used to identify the samples in the A file
 gH <- paste("GraphHeadings_", sample.type, ".txt", sep = "")
-gHpath <- file.path("/Users/ashlee/Documents/MATLAB/CM_graphheadings", paste(gH, sep = ""))
+gHpath <- file.path("/Users/user/Documents/MATLAB/CM_graphheadings", paste(gH, sep = ""))
 sample.ID <- read.table(gHpath, header= FALSE, sep = "")
 sample.ID <- subset(sample.ID, !duplicated(sample.ID))
 
