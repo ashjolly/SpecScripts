@@ -52,19 +52,19 @@ DrEEM = function(filelist, project, exmin, filedirectory, ex, DrEEMfolder) {
   # Save files in correct locations
   corrpath <- file.path("/Users/user/Documents/MATLAB/ExEmfiles", paste(project,"ex",".csv", sep = ""))
 
-  write.table(dataset, file = file.path(DrEEMfolder, paste(project, "/fl.csv", sep = "")),
+  write.table(dataset, file = file.path(DrEEMfolder, paste(project, "_fl.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #Ex file
-  write.table(ex, file = file.path(DrEEMfolder, paste(project,"/Ex.csv", sep = "")),
+  write.table(ex, file = file.path(DrEEMfolder, paste(project,"_Ex.csv", sep = "")),
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #Em
-  write.table(em, file = file.path(DrEEMfolder, paste(project,"/Em.csv", sep = "")), 
+  write.table(em, file = file.path(DrEEMfolder, paste(project,"_Em.csv", sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   #File containing sample names
-  write.table(sampleID, file = file.path(DrEEMfolder, paste(project,"/01key.csv",sep = "")), 
+  write.table(sampleID, file = file.path(DrEEMfolder, paste(project,"_01key.csv",sep = "")), 
             row.names = FALSE, col.names = FALSE, sep = ",") #saved in matlab folder
 
   return(dataset)
