@@ -30,7 +30,12 @@ library(ggbiplot)
 library("factoextra")
 library("EEM")
 devtools::install_github("PMassicotte/eemR")
-
+library(ggplot2)
+library(plyr)
+library(eeptools)
+library(MASS)
+library(Hmisc)
+library('corrplot') #package corrplot
 ################################################################################
 # Read in data used for analysis
 ## Water quality and location data
@@ -39,6 +44,17 @@ save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisda
 pre.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
 post.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 Delta.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_delta"
+
+# Cory McKnight fits
+CM.pre.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_pre_CM_PARAFAC"
+
+
+########### colour blind colour palettes
+# The palette with grey:
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+# The palette with black:
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 ##############################################################
 # functions used in script
@@ -61,10 +77,15 @@ make.eem <- function (ex, PCAcomponents){
 }
 
 ####################################################################
-# Reading in data
-# Water Quality data
+# Reading in data - ALL DATA
 # File with all of the water quality parameters
 waterquality <- read.csv((paste(save.directory, '/DBP_master_v6.csv', sep = "")), header = TRUE)
+# csv file that shows all of the watershed groupings
+groupings <- read.csv((paste(save.directory, '/Watersheds_codes.csv', sep = "")), header = TRUE)
+
+# merge the watershed codes to the water quality tables
+waterquality <- merge(waterquality, groupings, by = "DBPCode")
+
 # Create Sample ID column so that the absorbance and water quality data can be compared
 # create vector with just sample number from water quality vector
 sample <- sapply(strsplit(as.character(waterquality$DBPCode), split='_', fixed=TRUE), function(x) (x[2]))
@@ -73,12 +94,12 @@ samplename <- str_pad(sample, 4, pad = "0")
 waterquality$samplename <- paste("DBP", samplename, sep = "")
 remove(samplename, sample)
 
-# read in absorbance indicies - pre
-spec.indicies <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMsRaleigh/DBPPreSpectralIndicies.csv",
-                          header = TRUE)
-# read in absorbance indicies - post
-spec.indicies.post <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMsRaleigh/DBPPostSpectralIndicies.csv",
-                               header = TRUE)
+# read in absorbance indicies - pre chlorination
+spec.indicies <- read.csv(paste(pre.directory,'/DBPPreSpectralIndicies.csv', sep = ""),header = TRUE)
+
+# read in absorbance indicies - post chlorination
+spec.indicies.post <- read.csv(paste(post.directory,'/DBPPostSpectralIndicies.csv', sep = ""),header = TRUE)
+
 ##########
 # pre chlorination EEMs
 # locate the prechlorinated corrected eems within the file
@@ -89,23 +110,19 @@ setwd("/Users/user/SpecScripts")
 source("PCAfilecomp_function.R")
 PCA.EEMpre <- PCA.eem(filelist = filelist_DBPpre, directory = pre.directory) 
 
-# pre chlorination CM fits
-CM.pre <- read.csv(paste(save.directory, "/DBPpre_componentsandloadings_CM.csv", sep = ""))
+# pre chlorination CM fits - CM directory
+CM.pre <- read.csv(paste(CM.pre.directory, "/DBPpre_componentsandloadings_CM.csv", sep = ""))
 # change the sample name column to reflect the pre chlorination format - important for later merging
 sample <- sapply(strsplit(as.character(CM.pre$sample.ID), split='DBPPre', fixed=TRUE), function(x) (x[1]))
 samplename <- str_pad(sample, 4, pad = "0")
 CM.pre$samplename <- samplename
-remove(sample, samplename)
+remove(sample)
 
 # pre chlorination PARAFAC - Fmax values for 6 component model 
-Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withGR//DBPPre_withGR//percentloadings.csv", header = FALSE, sep = ",")
-colnames(Pre.Fmax) <- c("samplename", "Pre_C1", "Pre_C2", "Pre_C3", "Pre_C4", "Pre_C5", "Pre_C6")
-# change the sample name column to reflect the pre chlronation format - important for later merging
-sample <- sapply(strsplit(as.character(Pre.Fmax$samplename), split='_', fixed=TRUE), function(x) (x[1]))
-samplename <- paste("DBP", sample, sep = "")
-samplename <- str_pad(sample, 4, pad = "0")
+Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withGR/DBPPre_withGR/Fmax.csv", header = FALSE, sep = ",")
+# add in sample names
 Pre.Fmax$samplename <- samplename
-remove(sample, samplename)
+colnames(Pre.Fmax) <- c("Pre_C1", "Pre_C2", "Pre_C3", "Pre_C4", "Pre_C5", "Pre_C6", "samplename")
 
 #############
 # post chlorination EEMs
@@ -173,7 +190,7 @@ HAA <- as.data.frame(read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DB
 THM <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_THMData/THMdata_analysis.csv", header = TRUE)
 
 #########
-## Take out the green roof and rainwater harvest sampples. These will be super-imposed on the analsyis later
+# Take out the green roof and rainwater harvest sampples. These will be super-imposed on the analysis later
 # samples = 56-63, 73-75, 91-93, 119+13
 GR <- c("DBP0056", "DBP0057", "DBP0058", "DBP0060", "DBP0061", "DBP0062", 
         "DBP0073", "DBP0074", "DBP0075", "DBP0091", "DBP0092", "DBP0093", "DBP0119", "DBP0013")
@@ -206,16 +223,16 @@ THM <- THM[ !(THM$samplename  %in% GR), ] #
 ################################################################################################################################################################
 # Pt 1 Differences in water quailty parameters between sites
 # Question - how different are sites in terms of water quality parameters?
-# show in histogram of DOC, TOC, pH, temp, [DO], SUVA, Br, TN concentrations
 
-#cut out Nas from spectral indicies file
+# cut out Nas from spectral indicies file
 ind <- apply(spec.indicies, 1, function(x) all(is.na(x)))   # function for removing Nas.. from all data
 spec.indicies <- spec.indicies[ !ind, ]
 
 ind <- apply(spec.indicies.post, 1, function(x) all(is.na(x)))   # function for removing Nas.. from all data
 spec.indicies.post <- spec.indicies.post[ !ind, ]
 
-############### Creating table of water quality parameters
+############### 
+# Table 1- Creating table of water quality parameters
 # desire pH, DO, Water temp, Br, F, TN, DOC, SUVA, EC, nitrate, TSS: max, min, average, stdev
 
 ### Data cleaning and manipulation
@@ -230,199 +247,101 @@ waterquality$F[waterquality$F < 0.02] <- 0 # replace all values below 0.02 mg/L 
 # - NO3 - need to change entries before detection limits
 waterquality$NO3[waterquality$NO3 < 0.02] <- 0 # replace all values below 0.02 mg/L with 0 = below detection limits
 
-# - SUVA - need to calculate SUVA
-# find the specific absorbance at 254 nm from absorbance spectra
-sac254 <- cbind(as.character(spec.indicies$samplename), spec.indicies$abs254) 
-NPOC <- cbind(waterquality$samplename, waterquality$NPOC_DOC_corrected)
-
-column <- c("samplename", "abs254")
-colnames(sac254) <- column
-column <- c("samplename", "NPOC")
-colnames(NPOC) <- column
-
-sac254 <- data.frame(merge(sac254, NPOC, by = "samplename", all = TRUE))
-remove(column, NPOC) #remove extra variables
-
-# calculate SUVA as sac254/[DOC]
-sac254$SUVA <- as.numeric(as.character(sac254$abs254))/as.numeric(as.character(sac254$NPOC))
-
-# bind back inro the waterquality dataframe, according to sample ID
-waterquality <- merge(waterquality, sac254, by = "samplename", all = TRUE)
-
 # - TSS - Ensure that data that is negative for TSS is 0 (where 0 = below detection limit)
 waterquality$TSS_mgL[waterquality$TSS_mgL< 0] <- 0  
 
+# - SUVA - calculate SUVA
+# find the specific absorbance at 254 nm from absorbance spectra
+waterquality <- merge(waterquality, spec.indicies, by = "samplename") # merge in the spectral indicies with the water quality parameters
+waterquality$SUVA <- waterquality$abs254.dec/waterquality$NPOC_DOC_corrected
+
+# merge CM fits into the waterquality dataframe to get the redox index
+waterquality <- merge(waterquality, CM.pre, by = "samplename")
+
 ##############
-# Find stats (average, max, min, stdev) for water quality parameters
+# Find stats (average, max, min, stdev) for water quality parameters - grouping by region, and then watershed
+
 # Make a subgrouping just with the parameters that you want to simplify
 quality.stats <- data.frame(waterquality$samplename, waterquality$pH, waterquality$EC_mScm,
                        waterquality$DO_mgL, waterquality$Water.Temp, waterquality$TSS_mgL,
                        waterquality$NPOC_DOC_corrected, waterquality$TN, waterquality$SUVA, waterquality$F, 
-                       waterquality$Br, waterquality$NO3
+                       waterquality$Br, waterquality$NO3,
+                       waterquality$abs254.dec, waterquality$SUVA, waterquality$e2e3.dec, waterquality$e4e6.dec, waterquality$SR.dec,
+                       waterquality$HIX_ohno_area, waterquality$FI, waterquality$FrI, waterquality$peakA, waterquality$peakC, waterquality$peakB,
+                       waterquality$peakT, waterquality$OFI,
+                       waterquality$redox, waterquality$perprotein,
+                       waterquality$Region, waterquality$Watershed
                        )
+# write.csv(quality.stats, file= paste(save.directory, 'teststats.csv', sep = "/"))
+# plot to see outliers and odd data
+# plot(waterquality$samplename, waterquality$perprotein)
 
-# Run the functions length, mean, and sd on the value of "change" for each group, 
-# broken down by sex + condition
-wq.mean <- apply(quality.stats[,2:12], 2, mean, na.rm = TRUE)
-wq.max <- apply(quality.stats[,2:12], 2, max, na.rm = TRUE)
-wq.min <- apply(quality.stats[,2:12], 2, min, na.rm = TRUE)
-wq.sd <- apply(quality.stats[,2:12], 2, sd, na.rm = TRUE)
+# group first by region
+region.mean <- aggregate(quality.stats[,2:27],list(region = quality.stats$waterquality.Region),mean, na.rm = TRUE)
+region.max <- aggregate(quality.stats[,2:27],list(region = quality.stats$waterquality.Region),max, na.rm = TRUE)
+region.min <- aggregate(quality.stats[,2:27],list(region = quality.stats$waterquality.Region),min, na.rm = TRUE)
+region.sd <- aggregate(quality.stats[,2:27],list(region = quality.stats$waterquality.Region),sd, na.rm = TRUE)
+region <- rbind(region.mean, region.max, region.min, region.sd)
+
+# group secondly by watershed
+Watershed.mean <- aggregate(quality.stats[,2:27],list(Watershed = quality.stats$waterquality.Watershed),mean, na.rm = TRUE)
+Watershed.max <- aggregate(quality.stats[,2:27],list(Watershed = quality.stats$waterquality.Watershed),max, na.rm = TRUE)
+Watershed.min <- aggregate(quality.stats[,2:27],list(Watershed = quality.stats$waterquality.Watershed),min, na.rm = TRUE)
+Watershed.sd <- aggregate(quality.stats[,2:27],list(Watershed = quality.stats$waterquality.Watershed),sd, na.rm = TRUE)
+watershed <- rbind(Watershed.mean, Watershed.max, Watershed.min, Watershed.sd)
+
+# Do stats for all of the 
+wq.mean <- apply(quality.stats[,2:27], 2, mean, na.rm = TRUE)
+wq.max <- apply(quality.stats[,2:27], 2, max, na.rm = TRUE)
+wq.min <- apply(quality.stats[,2:27], 2, min, na.rm = TRUE)
+wq.sd <- apply(quality.stats[,2:27], 2, sd, na.rm = TRUE)
 #wq.length <- apply(quality.stats[,2:12], 2, length, na.rm = TRUE)
 #wq.se <- wq.sd/wq.length
-
 wq.stat <- rbind(wq.mean, wq.max, wq.min, wq.sd)  # bind stats back together
 write.table(wq.stat, file = paste(save.directory, "waterqualitystats.csv", sep = ""),  sep = ",")
 
-########################
-# Heat map - do heat map to look at clustering of data according to water quality and spectral parameters
-# Create a dataframe with the above water quality parameters and spectral parameters
-colnames(quality.stats) <- c("samplename", "pH", "EC", "DO", "Temperature", "TSS", "DOC", "TN", "SUVA", "F", "Br", "NO3")
-wq.heat <- merge(spec.indicies, quality.stats, by = 'samplename', all = TRUE)
+######################## 
+# Part 1 Figure 2 - Histogram of Fmax values from PARAFAC fits to the 6-component model
+# Partitioned according to region.
+###############   Variation within Components - prechlorination boxplots
+# assemble data with component in one column and FMax in another
 
-# calculate the percent above/below the mean value that the value is for that parameter
-# Calculated as (value - ave)/ave *100
+# merge the watershed codes to the water quality tables
+Pre.Fmax <- merge(Pre.Fmax, waterquality[,36:38], by = "samplename")
 
-remove(wq.permean)
-
-n = dim(wq.heat)[2]
-for (i in 2:n){
-  m <- mean(wq.heat[,i], na.rm = TRUE)
-  percent <- data.frame(apply(data.frame(wq.heat[,i]), 1, function(x) ((x-m)/m)*100))
+# unfold the dataframe into a form that can do histograms easily
+remove(PCApre6)
+for (i in 1:6){
+  temp.C <- data.frame(Pre.Fmax[,i+1])
+  temp.component <- colnames(Pre.Fmax)[i+1]
+  temp.C$component <- temp.component
+  temp.C$Region <- Pre.Fmax$Region
+  temp.C$samplename <- Pre.Fmax$samplename
   
   # if the merged dataset  exists, append to it by row
-  if (exists("wq.permean")){
-    wq.permean <- cbind(wq.permean, percent)
+  if (exists("PCApre6")){
+    PCApre6 <- rbind(PCApre6, temp.C)
   }
   
   # if the merged dataset doesn't exist, create it
-  if (!exists("wq.permean")){
-    wq.permean <- percent
+  if (!exists("PCApre6")){
+    PCApre6 <- temp.C
   }
 }
 
-colnames(wq.permean) <- colnames(wq.heat)[2:28] # assign column names 
-row.names(wq.permean) <- wq.heat$samplename # assign row names as sample ID
+colnames(PCApre6)[1] <- "values" #rename first column that contains Fmax values
+ggplot(PCApre6, aes(x=component, y=values, fill=Region)) + geom_boxplot()  +
+  labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values")
 
-# Arrange data for heat map
-wq.permean[wq.permean > 200] <- NA # replace values that are greater than 200% with Na's - doesn't make sense
-wq.permean[wq.permean < -200] <- NA # replace values that are less than -200% with Na's - doesn't make sense
-
-# Exclude specific variables (due to little data, etc)
-wq.permean$HIX_Zsonlay_area = NULL
-wq.permean$HIX_Zsonlay_sum = NULL
-wq.permean$F = NULL
-wq.permean$Br = NULL
-
-rnames <- row.names(wq.permean)
-mat.data <- data.matrix(t(wq.permean[1:104,]))          # convert data to matrix
-
-# do heat map
-# create colour palette
-my_palette <- colorRampPalette(c("red", "yellow", "blue"))(n = 299)
-
-# creates a 5 x 5 inch image
-png(paste(save.directory, "/DBP_WQ_heatmap.png", sep = ""),    # create PNG for the heat map        
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-heatmap.2(mat.data,
-          # Change the data within the heat map boxes
-          #cellnote = mat.data,  # same data set for cell labels
-          #notecex = 0.8,          # Change the font size of the data labels
-          #notecol="black",      # change font color of cell labels to black
-          
-          # labels
-          main = "Patterns in Water Quality Parameters - DBP", # heat map title
-          
-          # dendorgram and groupings
-          #breaks=col_breaks,    # enable color transition at specified limits
-          dendrogram=c("row"),     # only draw a row dendrogram
-          density.info="none",  # turns on density plot inside color legend
-          trace="none",         # turns off trace lines inside the heat map
-          
-          # appearance
-          margins =c(8,15),     # widens margins around plot
-          col= my_palette,       # use on color palette defined earlier 
-          cexCol=1.5, 
-          cexRow = 1.5,          # decrease row font size to fit
-          srtCol=45,           # rotate the x labels at 45 deg so they fit
-          #axisnames = FALSE,
-          
-          na.color = 'white',   # colour of NA blocks
-          keysize = 1,          # size of the colour key
-          Rowv = TRUE,
-          Colv = TRUE)            # turn on column clustering
-dev.off()
-
-########################## Heat map of quartile data
-# Aim is to do the same heat map as above, except on where the value falls from the mean
-# show where the individual value falls on quartile
-# reference - http://www.r-bloggers.com/quartiles-deciles-and-percentiles/
-# Cumulative distribution - ecdf function in R
-wq.cdf <- as.data.frame(apply(wq.heat[,2:28], 2, function(x) ecdf(x)(x))) # calculate CDF for variables
-
-# Do a heat map of the CDF from water quality parameters
-# Exclude specific variables (due to little data, etc)
-wq.cdf$HIX_Zsonlay_area = NULL
-wq.cdf$HIX_Zsonlay_sum = NULL
-wq.cdf$F = NULL
-wq.cdf$Br = NULL
-
-mat.data <- data.matrix(t(wq.cdf[1:104,]))          # convert data to matrix
-colnames(mat.data) <- wq.heat[1:104,1]              # add column names - sample ID
-  
-# do heat map
-# create colour palette
-my_palette <- colorRampPalette(c("light blue", "dark blue"))(n = 299)
-
-# creates a 5 x 5 inch image
-png(paste(save.directory, "/DBP_WQ_heatmap_CDF.png", sep = ""),    # create PNG for the heat map        
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-heatmap.2(mat.data,
-          # Change the data within the heat map boxes
-          #cellnote = mat.data,  # same data set for cell labels
-          #notecex = 0.8,          # Change the font size of the data labels
-          #notecol="black",      # change font color of cell labels to black
-          
-          # labels
-          main = "Patterns in Water Quality Parameters - CDF DBP", # heat map title
-          
-          # dendorgram and groupings
-          #breaks=col_breaks,    # enable color transition at specified limits
-          dendrogram=c("row"),     # only draw a row dendrogram
-          density.info="histogram",  # turns on density plot inside color legend
-          trace="none",         # turns off trace lines inside the heat map
-          
-          # appearance
-          margins =c(8,15),     # widens margins around plot
-          col= my_palette,       # use on color palette defined earlier 
-          cexCol=1.5, 
-          cexRow = 1.5,          # decrease row font size to fit
-          srtCol=45,           # rotate the x labels at 45 deg so they fit
-          #axisnames = FALSE,
-          
-          na.color = 'white',   # colour of NA blocks
-          keysize = 1,          # size of the colour key
-          Rowv = TRUE,
-          Colv = TRUE)            # turn on column clustering
-dev.off()
-
-######################## Examining EEM Data
+#####################################################################
 ## PCA on raw EEMS 
 # Aim of this is to see regions that explain most of the variance within the pre chlorinated EEMS
 # Examine all data lumped together to see any alterations 
+# Right now in supplmeental section
 #####################################################################
 ## Do PCA  on the compiled pre-chlorinated data
 ###############################
 PCA.pre <- PCA.EEMpre # rename the unfolded EEMs
-# add in a variable that organizes according to which watersheds are drinking, which are protected, etc..
-# To cluster.. see if there is a pattern within watersheds that are protected
 
 ### Preprocessing - 
 # mean centering - done by center = TRUE in pca
@@ -598,43 +517,32 @@ fviz_screeplot(PCA.pre.6, ncp=6) # Scree plot first with 6 components from PCA
 fviz_contrib(PCA.pre.6, choice = "var", axes = 1)
 fviz_contrib(PCA.pre.6, choice = "var", axes = 2)
 
-###############   Variation within Components - prechlorination boxplots
-# assemble data with component in one column and FMax in another
-remove(PCApre6)
+########################
+# Part 1 Figure 3 - PCA on the water quality, CM, spectral proxies, and PARAFAC Fmax values.
+# Can we see groupings according to the region?
+# What variables account for the most variation between sites?
+# Compile: water quality proxies, spectral proxies, PARAFAC Fmax, CMFmax
+colnames(quality.stats)[1] <- "samplename"
+wq.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = TRUE), 
+                            list(Pre.Fmax, quality.stats)))
 
-for (i in 1:6){
-  temp.C <- data.frame(Pre.Fmax[,i+1])
-  temp.component <- colnames(Pre.Fmax)[i+1]
-  temp.C$component <- temp.component
-  
-  # if the merged dataset  exists, append to it by row
-  if (exists("PCApre6")){
-    PCApre6 <- rbind(PCApre6, temp.C)
-  }
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("PCApre6")){
-    PCApre6 <- temp.C
-  }
-}
+# First, PCA with all of the variables (including the water quality parameters)
+# Take out columns of data that you donn't want to include in PCA
+wq.all.select <- data.frame(wq.all$waterquality.Region, wq.all$Pre_C1, wq.all$Pre_C2,wq.all$Pre_C3,wq.all$Pre_C4,wq.all$Pre_C5,wq.all$Pre_C6,
+                       wq.all$waterquality.NPOC_DOC_corrected,
+                       wq.all$waterquality.SUVA, wq.all$waterquality.NO3,wq.all$waterquality.abs254.dec,
+                       wq.all$waterquality.e2e3.dec, wq.all$waterquality.e4e6.dec, wq.all$waterquality.SR.dec,
+                       wq.all$waterquality.HIX_ohno_area, wq.all$waterquality.FI, wq.all$waterquality.FrI,
+                       wq.all$waterquality.peakA,wq.all$waterquality.peakC,wq.all$waterquality.peakB,wq.all$waterquality.peakT,
+                       wq.all$waterquality.OFI,wq.all$waterquality.redox
+                       )
 
-colnames(PCApre6)[1] <- "values"
-ggplot(PCApre6, aes(x=component, y=values, fill=component)) + geom_boxplot() 
-
-##### Looking at overall variation within all water quality parameters
-# Which parameters explain the greatest degree of variation within the dataset? PCA on spectral and water quality parameters
-# Compile PARAFAC model fits with water quality parameters
-wq.all <- data.frame(Reduce(function(x,y) merge(x,y, by = "samplename", all = FALSE), 
-                  list(Pre.Fmax, wq.heat, CM.pre[,15:17])))
-# Take out temp + TN - too many missing variables
-wq.all$Temperature <- NULL
-wq.all$TN <- NULL
-wq.all$F <- NULL
 # replace infinities in data with Nans
-is.na(wq.all) <- sapply(wq.all, is.infinite)
+is.na(wq.all.select) <- sapply(wq.all.select, is.infinite)
+wq.all.select <- na.omit(wq.all.select)
 
 # do PCA on all variables - which variables explain the greatest degree of variation?
-wq.all.pca <- prcomp(na.omit(wq.all[,2:33]), center = TRUE, scale. = TRUE, na.action=na.omit)
+wq.all.pca <- prcomp(wq.all.select[,2:23], center = TRUE, scale. = TRUE, na.action=na.omit)
 summary(wq.all.pca)
 
 # plot PCA results
@@ -644,18 +552,63 @@ png(paste(save.directory, "/DBP_PCAWQdata.png", sep = ""),    # create graphic f
     res = 300,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
-ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1, 
-         ellipse = FALSE, circle = FALSE)+ggtitle("PCA Results- WQ Parameters")
+ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1, groups = na.omit(wq.all.select[,1]),
+         ellipse = TRUE, circle = FALSE) +ggtitle("PCA Results- WQ Parameters") #+geom_point(colour = cbPalette[2:7]) 
 dev.off()
 
 # show relative contribution of each variable to the first 5 components of PCA
-wq.pca <- PCA(na.omit(wq.all[,2:33]), graph = TRUE)
+wq.pca <- PCA(na.omit(wq.all.select[,2:23]), graph = TRUE)
 head(wq.pca$var$contrib)
+PCA.contrib <- data.frame(wq.pca$var$contrib)
+# sort variables by incresing contribution across the first 5 component
+wq.sortvar <- PCA.contrib[order(-PCA.contrib$Dim.1,-PCA.contrib$Dim.2,-PCA.contrib$Dim.3,-PCA.contrib$Dim.4,-PCA.contrib$Dim.5), ]
+write.csv(wq.sortvar, file = paste(save.directory, "PCAcontributions.csv", sep ="/")) #write contributions to a csv file that are sorted
 # scree plot
 fviz_screeplot(wq.pca, ncp=6) # first 6 components
 # plot contribution to first 2 PCA components
 fviz_contrib(wq.pca, choice = "var", axes = 1)
 fviz_contrib(wq.pca, choice = "var", axes = 2)
+
+#################### 
+# Figure ** Correlation between DOC concentration and spectral parameters
+# Question - which spectral parameters correlate best to DOC concentration?
+
+pairs(wq.all.select[,2:23], panel = panel.smooth) #figure marigins too large
+
+model1 <- lm(wq.all.select$wq.all.waterquality.NPOC_DOC_corrected ~ wq.all.select$wq.all.Pre_C1+wq.all.select$wq.all.Pre_C2+wq.all.select$wq.all.Pre_C3 
+   +wq.all.select$wq.all.Pre_C4 +wq.all.select$wq.all.Pre_C5 +wq.all.select$wq.all.Pre_C6 +
+    wq.all.select$wq.all.waterquality.SUVA+
+   #+wq.all.select$wq.all.waterquality.abs254.dec+
+    wq.all.select$wq.all.waterquality.e2e3.dec+ wq.all.select$wq.all.waterquality.e4e6.dec+ wq.all.select$wq.all.waterquality.SR.dec+
+    wq.all.select$wq.all.waterquality.HIX_ohno_area+ wq.all.select$wq.all.waterquality.FI+ wq.all.select$wq.all.waterquality.FrI+
+    wq.all.select$wq.all.waterquality.peakA+wq.all.select$wq.all.waterquality.peakC+wq.all.select$wq.all.waterquality.peakB+wq.all.select$wq.all.waterquality.peakT+
+    wq.all.select$wq.all.waterquality.OFI+wq.all.select$wq.all.waterquality.redox)
+# INvestigate linear model fits
+summary(model1)
+anova(model1)
+coefficients(model1)
+fitted(model1)
+residuals(model1)
+vcov(model1)
+
+# Use step function to remove variables with less correlation to DOC concentration
+step = stepAIC(model1, direction = 'both')
+
+#Figure - look at the correlation between different variables. Eventually add in THM and HAA formation potential
+corr.matrix <- cor(wq.all.select[,2:23]) # correlation matric between variables
+colnames(corr.matrix) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'NO3', 'abs254.dec', 'e2e3.dec', 'e4e6.dec', 'SR.dec', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index')
+row.names(corr.matrix) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'NO3', 'abs254.dec', 'e2e3.dec', 'e4e6.dec', 'SR.dec', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index')
+write.csv(corr.matrix, file = paste(save.directory, "WQpre_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
+
+# plot the correlation matrix of the spectral parameters
+png(paste(save.directory, "DBPPre_correlations.png", sep = "/"),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+  corrplot(corr.matrix, method = "circle") #plot matrix
+dev.off()
 
 ################################################################################################################################################################
 # Pt 2 - how does chlorination change the spectral composition of EEMS?
@@ -664,6 +617,11 @@ fviz_contrib(wq.pca, choice = "var", axes = 2)
 # http://www.r-bloggers.com/computing-and-visualizing-pca-in-r/
 # http://planspace.org/2013/02/03/pca-3d-visualization-and-clustering-in-r/
 ###########################################################
+# calculate the percent difference in water quality and spectral parameters
+# Percent difference = (pre-post)/pre*100
+
+
+
 #####################################
 # PCA on corrected EEMS - post chlorination EEMS
 # Preprocessing prior to PCA
