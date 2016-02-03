@@ -1,4 +1,4 @@
-# File for correcting EEMS from DBP post chlorination
+# File for correcting EEMS from Aqualog
 # Note that this script is very similat to 'EEMS_Correctionandindicies_DBPpost" previously file (overwritten) 
 # with the exception that you now specify whether you want to load corrected EEM files ("PEM.dat") files, or raw EEMS without any corrections 
 # done in the software ("SYM.dat")
@@ -60,54 +60,74 @@ library(pracma)
 
 ####
 # directory with all of the fluorescence files
-#pre DBP
-directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
+# pre DBP
+#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
 # post DBP
 #directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
-
+# Waterlogged samples - file with all of the EEMS
+directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_filesfromAqualog _codecorrected"
+#___________________________________________________________________________________
 # directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
 # pre DBP
-directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
 # post DBP
 #directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
+# Waterlogged samples
+directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_CorrectedEEMS"
 
+#___________________________________________________________________________________
 # directory for corrected EEMS - Raleigh corrected as well
 # pre DBP
-directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
+#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
 # post DBP
 #directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
+# Waterlogged
+directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_correctedEEMRaleigh"
 
+#___________________________________________________________________________________
 #######
 # directory for saving EEMS for CM PARAFAC in 'Correct EEMS" file in the CM PARAFAC folder
 # This is the same for all projects
 directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS" 
 
+#___________________________________________________________________________________
 #######
 # general directory
 # pre DBP
-directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
+#directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
 # post DBP
 #directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
+# Waterlogged
+directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence"
 
+#___________________________________________________________________________________
 # project
-project = "DBPPre"
+#project = "DBPPre"
 #project = "DBPPost"
+project = "WL" #waterlogged code
 
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
 #DBP pre dilution file
-dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""), sep=",", header = TRUE, col.names = top))
+#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""), sep=",", header = TRUE, col.names = top))
 # DBP post 
-#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),sep=",", header = TRUE, col.names = top)) #post chlorination
+#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),sep=",", header = TRUE, col.names = top)) 
+# Waterlogged
+dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "WL_dilution_factorsAQUALOG_v2.csv", sep = ""),sep=",", header = FALSE, col.names = top)) 
 
+#___________________________________________________________________________________
 ###########################
 ## ex and em positions within your eems. This is so the Fluor and Raman correction script can find the right columns in order to calculate Fluorescences indicies
 # below may need to be altered depending on the output of your scan - double check exact emission wavelengths
 # wavlengths for Raman corrections
 # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
-em.375 = 375.7
-em.430 = 429.8
+#DBP
+#em.375 = 375.7
+#em.430 = 429.8
+#WL
+em.375 = 375.426
+em.430 = 430.117
 ex.350 = 350
 
 # wavelengths for Fluorescence indicies calculation
@@ -125,23 +145,41 @@ ex.240 <- 240
 ex.270 <- 270
 ex.300 <- 300
 
-# em wavelengths
-em.470 <- 470.394
-em.520 <- 520.522
-em.435 <- 435.609
-em.480 <- 479.697
-em.300 <- 300.484
-em.345 <- 344.826
-em.380 <- 380.302
-em.420 <- 420.587
-em.436 <- 436.766
-em.350 <- 350.534
-em.410 <- 410.205
-em.430 <- 429.828
-em.320 <- 320.908
-em.326 <- 326.594
-em.400 <- 400.99
-em.450 <- 450.663
+# em wavelengths - DBP
+#em.470 <- 470.394
+#em.520 <- 520.522
+#em.435 <- 435.609
+#em.480 <- 479.697
+#em.300 <- 300.484
+#em.345 <- 344.826
+#em.380 <- 380.302
+#em.420 <- 420.587
+#em.436 <- 436.766
+#em.350 <- 350.534
+#em.410 <- 410.205
+#em.430 <- 429.828
+#em.320 <- 320.908
+#em.326 <- 326.594
+#em.400 <- 400.99
+#em.450 <- 450.663
+
+# em wavelengths - WL
+em.470 <- 470.104
+em.520 <- 520.23
+em.435 <- 435.32
+em.480 <- 479.988
+em.300 <- 300.201
+em.345 <- 345.111
+em.380 <- 380.015
+em.420 <- 420.298
+em.436 <- 435.898
+em.350 <- 350.249
+em.410 <- 409.917
+em.430 <- 430.117
+em.320 <- 320.056
+em.326 <- 326.31
+em.400 <- 400.127
+em.450 <- 450.373
 
 ex.wavelengths <- data.frame(rbind(ex.350, ex.370, ex.254, ex.310,ex.274,ex.276,ex.320,ex.340,
                                    ex.260, ex.290, ex.240, ex.270, ex.300))
@@ -150,6 +188,10 @@ em.wavelengths <- data.frame(rbind(em.375, em.470, em.520,em.435,em.480,em.300,e
                                    em.380,em.420,em.436,em.350,em.410,
                                    em.430, em.320,em.326,em.400, em.450))
 
+#ex.wavelengths <- t(read.csv('/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_exemfile/DBP_exwave.csv', header = TRUE))
+#rownames(ex.wavelengths) <- ex.wavelengths[,1]
+#em.wavelengths <- read.csv('/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_exemfile/DBP_emwave.csv', header = TRUE)
+#rownames(em.wavelengths) <- em.wavelengths[,1]
 ###########
 # call function to create a graph headings file from abs, EEM and blank file
 setwd("/Users/user/SpecScripts") 
@@ -288,7 +330,7 @@ filelist_EEMScor <- list.files(pattern = "_Corrected.csv$")
 setwd("/Users/user/SpecScripts") 
 source("AbsEEMSfilecomp_function.R")
 
-filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, directoryRaleigh = directoryCorrectedRaleigh, 
+filelist_EEMScor_Raleigh <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, directoryRaleigh = directoryCorrectedRaleigh, 
                                    projectname = project, 
                                    filelist_EEMScor = filelist_EEMS)
 
@@ -328,9 +370,17 @@ GR <- c("DBP0056_DBPPre_Corrected.csv", "DBP0057_DBPPre_Corrected.csv", "DBP0058
         "DBP0091_DBPPre_Corrected.csv", "DBP0092_DBPPre_Corrected.csv", "DBP0093_DBPPre_Corrected.csv", 
         "DBP0119_DBPPre_Corrected.csv", "DBP0013_DBPPre_Corrected.csv")
 
+# chlorinated
+GRc <- c("DBPChlor0056_DBPPost_Corrected.csv", "DBPChlor0057_DBPPost_Corrected.csv", "DBPChlor0058_DBPPost_Corrected.csv", 
+        "DBPChlor0060_DBPPost_Corrected.csv", "DBPChlor0061_DBPPost_Corrected.csv", "DBPChlor0062_DBPPost_Corrected.csv", 
+        "DBPChlor0073_DBPPost_Corrected.csv", "DBPChlor0074_DBPPost_Corrected.csv", "DBPChlor0075_DBPPost_Corrected.csv", 
+        "DBPChlor0091_DBPPost_Corrected.csv", "DBPChlor0092_DBPPost_Corrected.csv", "DBPChlor0093_DBPPost_Corrected.csv", 
+        "DBPChlor0119_DBPPost_Corrected.csv", "DBPChlor0013_DBPPost_Corrected.csv")
+
+
 # remove the green rrof samples from the set prior to PARAFAC modelling
 #filelist_EEMScor <- filelist_EEMScor[ !(filelist_EEMScor  %in% GR) ] 
-filelist_EEMScor <- filelist_EEMScor[!(filelist_EEMScor  %in% GR)]
+filelist_EEMScor <- filelist_EEMScor[!(filelist_EEMScor  %in% GRc)]
 
 setwd("/Users/user/SpecScripts") 
 source("EEMSDrEEMsave_function.R")
@@ -339,7 +389,7 @@ ex.DrEEMS = seq(240, 800, by = 2)
 
 DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
                   exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS, 
-                  DrEEMfolder = "/Users/user/Documents/MATLAB/toolbox/CorrEEMS/DBPPre_noGR")
+                  DrEEMfolder = "/Users/user/Documents/MATLAB/toolbox/CorrEEMS/DBPPost_noGR")
 
 # check DrEEM.data. This is the compiled EEMS for DrEEM PARAFAC modelling
 head(DrEEM.data)
