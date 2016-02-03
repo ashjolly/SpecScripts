@@ -6,7 +6,14 @@
 # Note that the CM PARAFAC code will output three text files, A B and C, containing PARAFAC results.
 # This is in addition to residials in csv files.
 
-# Eventually also add to the code to analyze these residuals to flag when residula EEMS are too high
+# Eventually also add to the code to analyze these residuals to flag when residula EEMS are too high?
+# Code will prodcue two files: 1) with FMax values; 2) one file with Fmax/sum(Fmax) across all components
+# See Murphy, K. R., Stedmon, C. A., Graeber, D., & Bro, R. (2013). Fluorescence spectroscopy and multi-way techniques. PARAFAC. Analytical Methods, 5(23), 6557–11. http://doi.org/10.1039/c3ay41160e
+# pg 6565
+# Fmax = a*maxB*maxC
+# a = model score
+# C = loadings for excitation
+# B = loadings for emission
 #################################
 
 ## set working directory
@@ -44,11 +51,17 @@ A = as.data.frame(read.table(Apath, header= FALSE, sep = ""))
 #bfile = "B_DBPpostandpre.txt"
 bpath <- file.path(directoryCMresults, paste("B_", sample.type, ".txt", sep = ""))
 B = read.table(bpath, header= FALSE, sep = "")
+# add in wavelengths for B (emission wavelengths for CM)
+wave <- seq(350, 550, by = 2)
+rownames(B) <- wave
 
 #Read in the C file
 #cfile = "C_DBPpostandpre.txt"
 cpath <- file.path(directoryCMresults, paste("C_", sample.type, ".txt", sep = ""))
 C = read.table(cpath, header= FALSE, sep = "")
+# add in wavelengths for the c - excitation for CM
+wave <- seq(250,400, by = 5)
+rownames(C) <- wave
 
 #read in the graph headings file used to identify the samples in the A file
 gH <- paste("GraphHeadings_", sample.type, ".txt", sep = "")
@@ -102,12 +115,28 @@ for (i in 1:g){
   }
 }
 
-##################
+# bind sample id
+Fmax.CM <- cbind(sample.ID, loadings)
+colnames(Fmax.CM) <- cbind("sample.ID", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C10", "C11", "C12", "C13")
+
+# write file with Fmax values
+PARAFACpath <- file.path(directoryCMresults, paste(sample.type,"_componentsandloadings_CM_Fmax", ".csv",sep = ""))
+write.table(Fmax.CM, file = PARAFACpath, row.names = FALSE,col.names = TRUE, sep = ",")
+
+### plot the ex/em loadings for each component and save within the PARAFAC folder
+for (i in 1:13){
+  png(filename=paste(directoryCMresults, "/CMC", i, "_Loadings.png", sep = ""))
+  plot(rownames(C), C[,i], type = "l", main = paste("C", i, "- CM", sep = ""), xlim =c(250, 550))
+  lines(rownames(B), B[,i], col = "blue")
+  legend('topright', c('ex','em'), lty=c(1,1), lwd=c(2.5,2.5), col=c('black','blue'), cex = 0.3)
+  dev.off()
+}
+
+################## Fmax/sumFmax (percent)
 #take the sum of each row in the loadings
 sums <- rowSums(loadings)
 
 # find the percent of each, where percent = loading for each component/sum for each sample
-
 num.samples <- dim(loadings)[1] #sample = row
 
 per.loadings <- function(loading, sum) {
