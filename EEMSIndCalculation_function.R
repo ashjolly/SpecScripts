@@ -26,8 +26,8 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
     
     l <- 10 / 1000 #10 mm (1cm) path length expressed in m
-    Naperian = 2.303 * abs.blank/l # naperian
-    Decadic <- abs.blank/l # decadic absorbance. Note that this is what spetrolyzer gives. USE THIS for the 
+    Naperian = 2.303 * abs.temp/l # naperian
+    Decadic <- abs.temp/l # decadic absorbance. Note that this is what spetrolyzer gives. USE THIS for the 
     
     # call function to calculate absorbance indicies
     setwd("/Users/user/SpecScripts") 
