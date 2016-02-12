@@ -300,12 +300,14 @@ wq.sd <- apply(quality.stats[,2:27], 2, sd, na.rm = TRUE)
 wq.stat <- rbind(wq.mean, wq.max, wq.min, wq.sd)  # bind stats back together
 write.table(wq.stat, file = paste(save.directory, "waterqualitystats.csv", sep = ""),  sep = ",")
 
+# Do t-tests to see if certain groups are significantly different.
+
+
 ######################## 
 # Part 1 Figure 2 - Histogram of Fmax values from PARAFAC fits to the 6-component model
 # Partitioned according to region.
 ###############   Variation within Components - prechlorination boxplots
 # assemble data with component in one column and FMax in another
-
 # merge the watershed codes to the water quality tables
 Pre.Fmax <- merge(Pre.Fmax, waterquality[,36:38], by = "samplename")
 
@@ -594,6 +596,31 @@ vcov(model1)
 # Use step function to remove variables with less correlation to DOC concentration
 step = stepAIC(model1, direction = 'both')
 
+# logistic regression function to look at DOC - do this by region?
+# http://www.stat.columbia.edu/~martin/W2024/R11.pdf
+DOC.logr <- glm(wq.all.waterquality.NPOC_DOC_corrected ~ wq.all.Pre_C1+wq.all.Pre_C2+wq.all.Pre_C3 
+              +wq.all.Pre_C4 +wq.all.Pre_C5 +wq.all.Pre_C6 
+              #+wq.all.waterquality.SUVA+
+              +wq.all.waterquality.abs254.dec+
+              wq.all.waterquality.e2e3.dec+ wq.all.waterquality.e4e6.dec+ wq.all.waterquality.SR.dec+
+              wq.all.waterquality.HIX_ohno_area+ wq.all.waterquality.FI+ wq.all.waterquality.FrI+
+              wq.all.waterquality.peakA+wq.all.waterquality.peakC+wq.all.waterquality.peakB+wq.all.waterquality.peakT+
+              wq.all.waterquality.OFI+wq.all.waterquality.redox,
+              data = wq.all.select, family = "gaussian")
+summary(DOC.logr)
+beta =coef(DOC.logr)
+
+DOC.logr.select <- glm(wq.all.waterquality.NPOC_DOC_corrected ~ wq.all.Pre_C1+wq.all.Pre_C2+wq.all.Pre_C3+wq.all.Pre_C4
+                         #wq.all.waterquality.SUVA+
+                         +wq.all.waterquality.abs254.dec,
+                         #wq.all.waterquality.e2e3.dec+ 
+                         #wq.all.waterquality.HIX_ohno_area+ wq.all.waterquality.peakC,
+                       data = wq.all.select, family = "gaussian")
+summary(DOC.logr.select)
+#get error terms for model
+results.reduced =glm(wq.all.waterquality.NPOC_DOC_corrected ~ 1, data = wq.all.select, family = "gaussian")
+anova(results.reduced,DOC.logr.select , test="Chisq")
+
 #Figure - look at the correlation between different variables. Eventually add in THM and HAA formation potential
 corr.matrix <- cor(wq.all.select[,2:23]) # correlation matric between variables
 colnames(corr.matrix) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'NO3', 'abs254.dec', 'e2e3.dec', 'e4e6.dec', 'SR.dec', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index')
@@ -620,7 +647,74 @@ dev.off()
 # calculate the percent difference in water quality and spectral parameters
 # Percent difference = (pre-post)/pre*100
 
+## Merge the pre and post chlorinated EEMS and calculate the difference between them
+# Get the sample ID on the post chlorinated EEM
+spec.indicies.post$samplename.post <- spec.indicies.post$samplename
+sample <- sapply(strsplit(as.character(spec.indicies.post$samplename.post), split='Chlor', fixed=TRUE), function(x) (paste(x[1],x[2], sep = "")))
+samplename <- str_pad(sample, 4, pad = "0")
+spec.indicies.post$samplename <- samplename
+remove(sample, samplename)
+spec.indicies.post$samplename.post <- NULL
+colnames(spec.indicies.post) <- colnames(spec.indicies)
 
+# merge the two together
+spec.all <- merge(spec.indicies,spec.indicies.post,by="samplename", all = FALSE)
+#calculate the percent change (pre-post)/pre*100
+delta.spec <- (spec.all[,grepl("*\\.x$",names(spec.all))] - spec.all[,grepl("*\\.y$",names(spec.all))])/spec.all[,grepl("*\\.x$",names(spec.all))]*100
+delta.spec <- cbind(spec.all[,1,drop=FALSE],delta.spec) # add in sample names
+
+## histogram to show percent changes
+# choose the proxies that are important
+delta.spec.select <- data.frame(delta.spec$abs254.dec.x, delta.spec$abs272.dec.x,
+                                delta.spec$e2e3.dec.x, delta.spec$e4e6.dec.x,
+                                delta.spec$CDOM.total.int.dec.x, delta.spec$SR.dec.x,
+                                delta.spec$FI.x,delta.spec$HIX_ohno_area.x,
+                                delta.spec$FrI.x,
+                                delta.spec$peakA.x,delta.spec$peakC.x, delta.spec$peakB.x,delta.spec$peakT.x,
+                                delta.spec$OFI.x
+                                )
+# unfold the dataframe into a form that can do histograms easily
+remove(perc.spec)
+for (i in 1:(dim(delta.spec.select)[2]-1)){
+  temp.C <- data.frame(delta.spec.select[,i+1])
+  temp.component <- colnames(delta.spec.select)[i+1]
+  temp.C$proxy <- temp.component
+  # if the merged dataset  exists, append to it by row
+  if (exists("perc.spec")){
+    perc.spec <- rbind(perc.spec, temp.C)
+  }
+  # if the merged dataset doesn't exist, create it
+  if (!exists("perc.spec")){
+    perc.spec <- temp.C
+  }
+  remove(temp.C)
+}
+# do box plot
+colnames(perc.spec)[1] <- "Percent" #rename first column that contains Fmax values
+p <- ggplot(perc.spec, aes(x=proxy, y=Percent)) +
+  geom_boxplot(outlier.shape = NA) + #remove extreme values
+  coord_cartesian(ylim = c(-500, 500)) + # change y limits on boxplot
+  labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)")
+p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# do t tests to look at which variables are significantly changed by chlorination (pre versus post)
+t.abs254 <- t.test(spec.indicies$abs254.dec,spec.indicies.post$abs254.dec)
+t.abs272 <- t.test(spec.indicies$abs272.dec,spec.indicies.post$abs272.dec)
+t.e2e3 <- t.test(spec.indicies$e2e3.dec,spec.indicies.post$e2e3.dec)
+t.e4e6 <- t.test(spec.indicies$e4e6.dec,spec.indicies.post$e4e6.dec)
+t.CDOM <- t.test(spec.indicies$CDOM.total.int.dec,spec.indicies.post$CDOM.total.int.dec)
+t.SR <- t.test(spec.indicies$SR.dec,spec.indicies.post$SR.dec)
+# For FI, get rid of Inf values
+spec.indicies.post$FI[!is.finite(spec.indicies.post$FI)] <- NaN
+t.FI <- t.test(spec.indicies$FI,na.omit(spec.indicies.post$FI))
+t.HIX_ohno_area <- t.test(spec.indicies$HIX_ohno_area, spec.indicies.post$HIX_ohno_area)
+t.FrI <- t.test(spec.indicies$FrI,spec.indicies.post$FrI)
+t.peakA <- t.test(spec.indicies$peakA, spec.indicies.post$peakA)
+t.peakC <- t.test(spec.indicies$peakC, spec.indicies.post$peakC)
+t.peakB <- t.test(spec.indicies$peakB, spec.indicies.post$peakB)
+t.peakT <- t.test(spec.indicies$peakT, spec.indicies.post$peakT)
+t.OFI <- t.test(spec.indicies$OFI, spec.indicies.post$OFI)
+# add in parafac fits.
 
 #####################################
 # PCA on corrected EEMS - post chlorination EEMS
