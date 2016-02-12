@@ -24,19 +24,19 @@ ls()
 #Directory
 #DBP
 #directoryCMresults <-"/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_CMPARAFAC" 
-directoryCMresults <-"/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_pre_CM_PARAFAC" 
+#directoryCMresults <-"/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_pre_CM_PARAFAC" 
 #directoryCMresults <-"/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_delta/DBP_delta_CMPARAFACresults"
 #directoryCMresults <- "/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected/DBP_all_CMPARAFACresults"
 #directoryCMresults <- "/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_preandpost/DBP_prepost_CMresults"
 
 # WL
-# directoryCMresults <-"/Users/ashlee/Documents/UBC Data/WL_data/WL_Fluorescence/WL_CMParafac_Results/"
+directoryCMresults <-"/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_CMParafac_Results"
 
 setwd(directoryCMresults) 
 #sample type
 #sample.type <- "DBP"
-#sample.type <- "WL"
-sample.type <- "DBPpre"
+sample.type <- "WL"
+#sample.type <- "DBPpre"
 #sample.type <- "DBPpost"
 #sample.type <- "DBPdelta"
 #sample.type <- "DBPall"
