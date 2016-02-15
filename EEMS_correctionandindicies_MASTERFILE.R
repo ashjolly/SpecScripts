@@ -72,8 +72,11 @@ directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/W
 #directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
 # post DBP
 #directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
+# pre and post DBP samples
+directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_preandpost"
+
 # Waterlogged samples
-directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_CorrectedEEMS"
+#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_CorrectedEEMS"
 
 #___________________________________________________________________________________
 # directory for corrected EEMS - Raleigh corrected as well
@@ -82,7 +85,7 @@ directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluo
 # post DBP
 #directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 # Waterlogged
-directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_correctedEEMRaleigh"
+#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_correctedEEMRaleigh"
 
 #___________________________________________________________________________________
 #######
@@ -98,14 +101,14 @@ directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS"
 # post DBP
 #directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
 # Waterlogged
-directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence"
+#directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence"
 
 #___________________________________________________________________________________
 # project
 #project = "DBPPre"
 #project = "DBPPost"
-project = "WL" #waterlogged code
-
+#project = "WL" #waterlogged code
+project = "DBPprepost"
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
@@ -389,7 +392,7 @@ ex.DrEEMS = seq(240, 800, by = 2)
 
 DrEEM.data = DrEEM(filelist = filelist_EEMScor, project = project, 
                   exmin = 'X240', filedirectory = directoryCorrectedEEMS, ex = ex.DrEEMS, 
-                  DrEEMfolder = "/Users/user/Documents/MATLAB/toolbox/CorrEEMS/DBPPost_noGR")
+                  DrEEMfolder = "/Users/user/Documents/MATLAB/toolbox/CorrEEMS/DBPprepost_noGR")
 
 # check DrEEM.data. This is the compiled EEMS for DrEEM PARAFAC modelling
 head(DrEEM.data)
