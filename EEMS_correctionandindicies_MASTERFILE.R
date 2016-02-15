@@ -367,22 +367,22 @@ CMsave
 
 # Take out the green roof and rainwater harvest sampples. These will be super-imposed on the analysis later
 # samples = 56-63, 73-75, 91-93, 119+13
-GR <- c("DBP0056_DBPPre_Corrected.csv", "DBP0057_DBPPre_Corrected.csv", "DBP0058_DBPPre_Corrected.csv", 
-        "DBP0060_DBPPre_Corrected.csv", "DBP0061_DBPPre_Corrected.csv", "DBP0062_DBPPre_Corrected.csv", 
-        "DBP0073_DBPPre_Corrected.csv", "DBP0074_DBPPre_Corrected.csv", "DBP0075_DBPPre_Corrected.csv", 
-        "DBP0091_DBPPre_Corrected.csv", "DBP0092_DBPPre_Corrected.csv", "DBP0093_DBPPre_Corrected.csv", 
-        "DBP0119_DBPPre_Corrected.csv", "DBP0013_DBPPre_Corrected.csv")
+GR <- c("DBP0056_DBPprepostpost_Corrected.csv", "DBP0057_DBPprepostpost_Corrected.csv", "DBP0058_DBPprepostpost_Corrected.csv", 
+        "DBP0060_DBPprepost_Corrected.csv", "DBP0061_DBPprepost_Corrected.csv", "DBP0062_DBPprepost_Corrected.csv", 
+        "DBP0073_DBPprepost_Corrected.csv", "DBP0074_DBPprepost_Corrected.csv", "DBP0075_DBPprepost_Corrected.csv", 
+        "DBP0091_DBPprepost_Corrected.csv", "DBP0092_DBPprepost_Corrected.csv", "DBP0093_DBPprepost_Corrected.csv", 
+        "DBP0119_DBPprepost_Corrected.csv", "DBP0013_DBPprepost_Corrected.csv")
 
 # chlorinated
-GRc <- c("DBPChlor0056_DBPPost_Corrected.csv", "DBPChlor0057_DBPPost_Corrected.csv", "DBPChlor0058_DBPPost_Corrected.csv", 
-        "DBPChlor0060_DBPPost_Corrected.csv", "DBPChlor0061_DBPPost_Corrected.csv", "DBPChlor0062_DBPPost_Corrected.csv", 
-        "DBPChlor0073_DBPPost_Corrected.csv", "DBPChlor0074_DBPPost_Corrected.csv", "DBPChlor0075_DBPPost_Corrected.csv", 
-        "DBPChlor0091_DBPPost_Corrected.csv", "DBPChlor0092_DBPPost_Corrected.csv", "DBPChlor0093_DBPPost_Corrected.csv", 
-        "DBPChlor0119_DBPPost_Corrected.csv", "DBPChlor0013_DBPPost_Corrected.csv")
+GRc <- c("DBPChlor0056_DBPprepost_Corrected.csv", "DBPChlor0057_DBPprepost_Corrected.csv", "DBPChlor0058_DBPprepost_Corrected.csv", 
+        "DBPChlor0060_DBPprepost_Corrected.csv", "DBPChlor0061_DBPprepost_Corrected.csv", "DBPChlor0062_DBPprepost_Corrected.csv", 
+        "DBPChlor0073_DBPprepost_Corrected.csv", "DBPChlor0074_DBPprepost_Corrected.csv", "DBPChlor0075_DBPprepost_Corrected.csv", 
+        "DBPChlor0091_DBPprepost_Corrected.csv", "DBPChlor0092_DBPprepost_Corrected.csv", "DBPChlor0093_DBPprepost_Corrected.csv", 
+        "DBPChlor0119_DBPprepost_Corrected.csv", "DBPChlor0013_DBPprepost_Corrected.csv")
 
 
 # remove the green rrof samples from the set prior to PARAFAC modelling
-#filelist_EEMScor <- filelist_EEMScor[ !(filelist_EEMScor  %in% GR) ] 
+filelist_EEMScor <- filelist_EEMScor[ !(filelist_EEMScor  %in% GR) ] 
 filelist_EEMScor <- filelist_EEMScor[!(filelist_EEMScor  %in% GRc)]
 
 setwd("/Users/user/SpecScripts") 
