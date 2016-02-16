@@ -6,7 +6,7 @@
 # Ashlee Jollymore's PhD project
 ################
 
-calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs, ex.wavelengths, em.wavelengths){
+calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directorynoncorabs, directoryEEMs, ex.wavelengths, em.wavelengths){
 
   n = dim(filelist_EEMScor)[1]
   
@@ -18,16 +18,21 @@ calc.indicies <- function(filelist_EEMScor, directoryCorrectedAbs, directoryEEMs
     # Calculating absorbance indicies
     # load the Abs file
     setwd(directoryCorrectedAbs)
-    abs.temp <-as.data.frame(read.delim(as.character(filelist_EEMScor[i,3]), 
+    abs.temp.corr <-as.data.frame(read.delim(as.character(filelist_EEMScor[i,3]), 
                                         header= TRUE, sep = ",", stringsAsFactors=FALSE))
+    
+    # load the uncorrected ABS file
+    setwd("/Users/user/SpecScripts") 
+    source("EEMAbsLoadTrim_function.R")
+    abs.temp.uncorr <- ABStrim(graphheadings = filelist_EEMScor, samplewd = directorynoncorabs, loopnum = i, column = 4)
     
     # Calculate absoprtion coefficients from blank corrected data
     # References:
     # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
     
     l <- 10 / 1000 #10 mm (1cm) path length expressed in m
-    Naperian = 2.303 * abs.temp/l # naperian
-    Decadic <- abs.temp/l # decadic absorbance. Note that this is what spetrolyzer gives. USE THIS for the 
+    Naperian = 2.303 * abs.temp.uncorr/l # naperian
+    Decadic <- abs.temp.uncorr/l # decadic absorbance. Note that this is what spetrolyzer gives. USE THIS for the 
     
     # call function to calculate absorbance indicies
     setwd("/Users/user/SpecScripts") 
