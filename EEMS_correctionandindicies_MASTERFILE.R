@@ -61,19 +61,19 @@ library(pracma)
 ####
 # directory with all of the fluorescence files
 # pre DBP
-#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
+directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_all"
 # post DBP
 #directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_all"
 # Waterlogged samples - file with all of the EEMS
-directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_filesfromAqualog _codecorrected"
+#directoryall <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_filesfromAqualog _codecorrected"
 #___________________________________________________________________________________
 # directory for corrected EEMS and corrected Abs files (multiplied by dilution file)
 # pre DBP
-#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
+directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMs"
 # post DBP
 #directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMS"
 # pre and post DBP samples
-directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_preandpost"
+#directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_preandpost"
 
 # Waterlogged samples
 #directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_CorrectedEEMS"
@@ -81,7 +81,7 @@ directoryCorrectedEEMS <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fl
 #___________________________________________________________________________________
 # directory for corrected EEMS - Raleigh corrected as well
 # pre DBP
-#directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
+directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
 # post DBP
 #directoryCorrectedRaleigh <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 # Waterlogged
@@ -97,7 +97,7 @@ directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS"
 #######
 # general directory
 # pre DBP
-#directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
+directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination"
 # post DBP
 #directorygeneral <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination"
 # Waterlogged
@@ -105,19 +105,20 @@ directoryCM <-"/Users/user/Documents/MATLAB/CorrectedEEMS"
 
 #___________________________________________________________________________________
 # project
-#project = "DBPPre"
+project = "DBPPre"
 #project = "DBPPost"
 #project = "WL" #waterlogged code
-project = "DBPprepost"
+#project = "DBPprepost"
+
 ######
 #dilution file
 top = c("sample.ID", "dilutionfactor")
 #DBP pre dilution file
-#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""), sep=",", header = TRUE, col.names = top))
+dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", project, "_Aqualogdilution.csv", sep = ""), sep=",", header = TRUE, col.names = top))
 # DBP post 
 #dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "DBP_postchlor_Aqualogdilution.csv", sep = ""),sep=",", header = TRUE, col.names = top)) 
 # Waterlogged
-dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "WL_dilution_factorsAQUALOG_v2.csv", sep = ""),sep=",", header = FALSE, col.names = top)) 
+#dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "WL_dilution_factorsAQUALOG_v2.csv", sep = ""),sep=",", header = FALSE, col.names = top)) 
 
 #___________________________________________________________________________________
 ###########################
@@ -126,11 +127,11 @@ dilution <-as.data.frame(read.csv(paste(directorygeneral, "/", "WL_dilution_fact
 # wavlengths for Raman corrections
 # tell R where em = 375 nm, em = 430 nm; ex = 350 nm
 #DBP
-#em.375 = 375.7
-#em.430 = 429.8
+em.375 = 375.7
+em.430 = 429.8
 #WL
-em.375 = 375.426
-em.430 = 430.117
+#em.375 = 375.426
+#em.430 = 430.117
 ex.350 = 350
 
 # wavelengths for Fluorescence indicies calculation
@@ -149,40 +150,40 @@ ex.270 <- 270
 ex.300 <- 300
 
 # em wavelengths - DBP
-#em.470 <- 470.394
-#em.520 <- 520.522
-#em.435 <- 435.609
-#em.480 <- 479.697
-#em.300 <- 300.484
-#em.345 <- 344.826
-#em.380 <- 380.302
-#em.420 <- 420.587
-#em.436 <- 436.766
-#em.350 <- 350.534
-#em.410 <- 410.205
-#em.430 <- 429.828
-#em.320 <- 320.908
-#em.326 <- 326.594
-#em.400 <- 400.99
-#em.450 <- 450.663
+em.470 <- 470.394
+em.520 <- 520.522
+em.435 <- 435.609
+em.480 <- 479.697
+em.300 <- 300.484
+em.345 <- 344.826
+em.380 <- 380.302
+em.420 <- 420.587
+em.436 <- 436.766
+em.350 <- 350.534
+em.410 <- 410.205
+em.430 <- 429.828
+em.320 <- 320.908
+em.326 <- 326.594
+em.400 <- 400.99
+em.450 <- 450.663
 
 # em wavelengths - WL
-em.470 <- 470.104
-em.520 <- 520.23
-em.435 <- 435.32
-em.480 <- 479.988
-em.300 <- 300.201
-em.345 <- 345.111
-em.380 <- 380.015
-em.420 <- 420.298
-em.436 <- 435.898
-em.350 <- 350.249
-em.410 <- 409.917
-em.430 <- 430.117
-em.320 <- 320.056
-em.326 <- 326.31
-em.400 <- 400.127
-em.450 <- 450.373
+#em.470 <- 470.104
+#em.520 <- 520.23
+#em.435 <- 435.32
+#em.480 <- 479.988
+#em.300 <- 300.201
+#em.345 <- 345.111
+#em.380 <- 380.015
+#em.420 <- 420.298
+#em.436 <- 435.898
+#em.350 <- 350.249
+#em.410 <- 409.917
+#em.430 <- 430.117
+#em.320 <- 320.056
+#em.326 <- 326.31
+#em.400 <- 400.127
+#em.450 <- 450.373
 
 ex.wavelengths <- data.frame(rbind(ex.350, ex.370, ex.254, ex.310,ex.274,ex.276,ex.320,ex.340,
                                    ex.260, ex.290, ex.240, ex.270, ex.300))
@@ -298,7 +299,7 @@ setwd("/Users/user/SpecScripts")
 source("AbsEEMSfilecomp_function.R")
 
 filelist_EEMScor <- abseemfilecomp(directoryAbsEEMs = directoryCorrectedEEMS, directoryRaleigh = directoryCorrectedRaleigh, 
-                                   projectname = project, 
+                                   projectname = project, directorynoncorabs = directoryall, #directory with the non-corrected Abs
                                    filelist_EEMScor = filelist_EEMS)
 
 # set directory with EEMS that you corrected according to the loop above
@@ -308,6 +309,7 @@ setwd("/Users/user/SpecScripts")
 source("EEMSIndCalculation_function.R")
 
 spec.indicies = calc.indicies(filelist_EEMScor = filelist_EEMScor, directoryCorrectedAbs = directoryCorrectedEEMS,
+                              directorynoncorabs = directoryall, 
                               directoryEEMs = directoryCorrectedRaleigh, ex.wavelengths, em.wavelengths)
 
 # Check spectral indicies
@@ -316,7 +318,7 @@ spec.indicies
 ######## 
 #write file containing spectral indicies + sample IDs
 #after loop is finished with all samples
-corrpath <- file.path(directoryCorrectedRaleigh, paste(project, "SpectralIndicies.csv", sep = ""))
+corrpath <- file.path(directoryCorrectedRaleigh, paste(project, "SpectralIndicies_noncorrABS.csv", sep = ""))
 write.table(spec.indicies, file = corrpath, row.names = FALSE, col.names = TRUE, sep = ",")
 
 ####################################################################################################################################
