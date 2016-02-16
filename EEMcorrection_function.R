@@ -23,6 +23,9 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
   ex_blank = data.frame(matrix(vector(), 5000, n))
   em_blank = data.frame(matrix(vector(), 5000, n)) 
   
+  # create a abs blank dataframe
+  ave.blank = data.frame(matrix(vector(), 1, n))
+  
   # 5000 is a placeholder for the number of rows. Note that this speeds the loop in comparison to leaving it as zero.
   
   ### set up loop to correct files and calculate indicies from all files in folder
@@ -136,6 +139,7 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     # Green, S. A., & Blough, N. V. (1994). Optical absorption and fluorescence properties of chromophoric dissolved organic matter in natural waters. Limnology and Oceanography, 39(8), 1903–1916. http://doi.org/10.4319/lo.1994.39.8.1903
     # Helms, J. R., Stubbins, A., & Ritchie, J. D. (2008). Absorption spectral slopes and slope ratios as indicators of molecular weight, source, and photobleaching of chromophoric dissolved organic matter. Limnology and ….
     blank <- rowMeans(Abstrim[,grep("X800", colnames(Abstrim)):grep("X700", colnames(Abstrim))]) #find average value of abs between 800-700 nm
+    ave.blank[i,1] <- blank
     abs.blank <- Abstrim - blank # subtract the blank from the initial spectra
     
     # apply dilution factor to corrected absorbance
@@ -218,8 +222,11 @@ EEMcorrection = function(data.3, directoryall, directoryCorrectedEEMS, slitwidth
     # you figure out the max emission for your dataset (normalize all of the plots to this)
   }
   
+  # save abs blank file
+  write.csv(abs.blank, directoryCorrectedEEMS, header = FALSE, sep = "")
+  
   #### End of corrections loop!
   wavelengths = cbind(ex_all, em_all, ex_blank, em_blank)
-  return(wavelengths)
+  return(abs.blank)
   
 }
