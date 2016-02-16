@@ -5,7 +5,7 @@
 # 29june2015
 ########
 
-ABStrim <- function(graphheadings, samplewd, loopnum) {
+ABStrim <- function(graphheadings, samplewd, loopnum, column) {
   
   # change wd to file with all of the abs files in it
   setwd(samplewd)
@@ -14,7 +14,7 @@ ABStrim <- function(graphheadings, samplewd, loopnum) {
   #Absfile <- test2[i,3] # set Abs file for the sample
   
   #Abs filename
-  Absfilename <- toString(graphheadings[loopnum,3]) 
+  Absfilename <- toString(graphheadings[loopnum,column]) 
   
   # Read in particular abs filename 
   Absfile <- as.data.frame(read.delim(Absfilename, header= FALSE, sep = "", stringsAsFactors=FALSE))
