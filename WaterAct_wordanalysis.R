@@ -6,6 +6,7 @@
 # https://gist.github.com/benmarwick/11333467
 # https://jhuria.wordpress.com/2012/07/01/text-mining-in-r/
 # 22June2015
+# Ashlee Jollymore
 ################
 
 ## set working directory
