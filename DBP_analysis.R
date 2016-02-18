@@ -8,6 +8,7 @@
 # http://www.sthda.com/english/wiki/principal-component-analysis-how-to-reveal-the-most-important-variables-in-your-data-r-software-and-data-mining#at_pco=smlwn-1.0&at_si=563bc26c64fc73c8&at_ab=per-2&at_pos=0&at_tot=1
 # https://cran.r-project.org/web/packages/EEM/vignettes/vignette.html
 ################################################################################
+
 # clean up list
 rm(list = ls())
 ls()
@@ -75,6 +76,7 @@ make.eem <- function (ex, PCAcomponents){
   return(PCA.var)
 }
 
+
 ####################################################################
 # Reading in data - ALL DATA
 # File with all of the water quality parameters
@@ -118,6 +120,9 @@ Pre.Fmax.key <- t(read.csv("/Users/user/Documents/MATLAB/toolbox/CorrEEMS/DBPPre
 Pre.Fmax$samplename <- Pre.Fmax.key
 colnames(Pre.Fmax) <- c("DR_C1", "DR_C2", "DR_C3", "DR_C4", "DR_C5", "DR_C6", "samplename")
 
+# calculate Fmax Percent - pre chlorination
+Pre.Fmax.per <- cbind(Pre.Fmax[,1:6]/rowSums(Pre.Fmax[,1:6])*100, Pre.Fmax[,7])
+
 #############
 # pre and post chlorination CM data
 prepost.CM.Fmax <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_preandpost/DBP_prepost_CMresults/DBPprepost_componentsandloadings_CM_Fmax.csv", 
@@ -133,6 +138,9 @@ prepost.6comp.Fmax$samplename <- prepost.key # add in the sample ID to the prepo
 
 # add in column names
 colnames(prepost.6comp.Fmax) <- c("DR_C1", "DR_C2", "DR_C3", "DR_C4", "DR_C5", "DR_C6", "samplename")
+
+# calculate Fmax Percent
+prepost.Fmax.per <- cbind(prepost.6comp.Fmax[,1:6]/rowSums(prepost.6comp.Fmax[,1:6])*100, prepost.6comp.Fmax[,7])
 
 #########
 # DBP concentrations
@@ -205,6 +213,12 @@ waterquality$TSS_mgL[waterquality$TSS_mgL< 0] <- 0
 waterquality <- merge(waterquality, spec.indicies, by = "samplename") # merge in the spectral indicies with the water quality parameters
 waterquality$SUVA <- waterquality$abs254.dec/waterquality$NPOC_DOC_corrected
 
+# Normalize peaks a,c,b,t by DOC
+waterquality$peakA.norm <- waterquality$peakA/waterquality$NPOC_DOC_corrected
+waterquality$peakC.norm <- waterquality$peakC/waterquality$NPOC_DOC_corrected
+waterquality$peakB.norm <- waterquality$peakB/waterquality$NPOC_DOC_corrected
+waterquality$peakT.norm <- waterquality$peakT/waterquality$NPOC_DOC_corrected
+
 # merge CM fits into the waterquality dataframe to get the redox index
 waterquality <- merge(waterquality, CM.pre, by = "samplename")
 
@@ -217,8 +231,9 @@ quality.stats <- data.frame(waterquality$samplename, waterquality$pH, waterquali
                        waterquality$NPOC_DOC_corrected, waterquality$TN, waterquality$SUVA, waterquality$F, 
                        waterquality$Br, waterquality$NO3,
                        waterquality$abs254.dec, waterquality$SUVA, waterquality$e2e3.dec, waterquality$e4e6.dec, waterquality$SR.dec,
-                       waterquality$HIX_ohno_area, waterquality$FI, waterquality$FrI, waterquality$peakA, waterquality$peakC, waterquality$peakB,
-                       waterquality$peakT, waterquality$OFI,
+                       waterquality$HIX_ohno_area, waterquality$FI, waterquality$FrI, 
+                       waterquality$peakA.norm, waterquality$peakC.norm, waterquality$peakB.norm,
+                       waterquality$peakT.norm, waterquality$OFI,
                        waterquality$redox, waterquality$perprotein,
                        waterquality$Region, waterquality$Watershed
                        )
@@ -301,9 +316,16 @@ wq.all.select <- data.frame(wq.all$waterquality.Region, wq.all$DR_C1, wq.all$DR_
                        wq.all$waterquality.SUVA, wq.all$waterquality.NO3,wq.all$waterquality.abs254.dec,
                        wq.all$waterquality.e2e3.dec, wq.all$waterquality.e4e6.dec, wq.all$waterquality.SR.dec,
                        wq.all$waterquality.HIX_ohno_area, wq.all$waterquality.FI, wq.all$waterquality.FrI,
-                       wq.all$waterquality.peakA,wq.all$waterquality.peakC,wq.all$waterquality.peakB,wq.all$waterquality.peakT,
+                       wq.all$waterquality.peakA.norm,wq.all$waterquality.peakC.norm,wq.all$waterquality.peakB.norm,wq.all$waterquality.peakT.norm,
                        wq.all$waterquality.OFI,wq.all$waterquality.redox
                        )
+colnames(wq.all.select) <- gsub("\\wq.all.", "", colnames(wq.all.select))
+colnames(wq.all.select) <- gsub("\\waterquality.", "", colnames(wq.all.select))
+colnames(wq.all.select) <- gsub("\\DR_", "", colnames(wq.all.select))
+colnames(wq.all.select) <- gsub("\\.norm", "", colnames(wq.all.select))
+colnames(wq.all.select) <- gsub("\\_ohno_area", "", colnames(wq.all.select))
+colnames(wq.all.select) <- gsub("\\.dec", "", colnames(wq.all.select))
+colnames(wq.all.select)[8] <- "DOC"
 
 # replace infinities in data with Nans
 is.na(wq.all.select) <- sapply(wq.all.select, is.infinite)
@@ -343,14 +365,14 @@ fviz_contrib(wq.pca, choice = "var", axes = 2)
 
 pairs(wq.all.select[,2:23], panel = panel.smooth) #figure marigins too large
 
-model1 <- lm(wq.all.select$wq.all.waterquality.NPOC_DOC_corrected ~ wq.all.select$wq.all.DR_C1+wq.all.select$wq.all.DR_C2+wq.all.select$wq.all.DR_C3 
-   +wq.all.select$wq.all.DR_C4 +wq.all.select$wq.all.DR_C5 +wq.all.select$wq.all.DR_C6 +
-    wq.all.select$wq.all.waterquality.SUVA+
-   #+wq.all.select$wq.all.waterquality.abs254.dec+
-    wq.all.select$wq.all.waterquality.e2e3.dec+ wq.all.select$wq.all.waterquality.e4e6.dec+ wq.all.select$wq.all.waterquality.SR.dec+
-    wq.all.select$wq.all.waterquality.HIX_ohno_area+ wq.all.select$wq.all.waterquality.FI+ wq.all.select$wq.all.waterquality.FrI+
-    wq.all.select$wq.all.waterquality.peakA+wq.all.select$wq.all.waterquality.peakC+wq.all.select$wq.all.waterquality.peakB+wq.all.select$wq.all.waterquality.peakT+
-    wq.all.select$wq.all.waterquality.OFI+wq.all.select$wq.all.waterquality.redox)
+model1 <- lm(wq.all.select$DOC ~ wq.all.select$C1+wq.all.select$C2+wq.all.select$C3 + 
+    wq.all.select$C4 + wq.all.select$C5 +wq.all.select$C6 +
+    wq.all.select$SUVA +
+    wq.all.select$abs254+
+    wq.all.select$e2e3+ wq.all.select$e4e6 + wq.all.select$SR +
+    wq.all.select$HIX + wq.all.select$FI+ wq.all.select$FrI+
+    wq.all.select$peakA +wq.all.select$peakC+wq.all.select$peakB+wq.all.select$peakT +
+    wq.all.select$OFI+wq.all.select$redox)
 # Investigate linear model fits
 summary(model1)
 anova(model1)
@@ -364,44 +386,26 @@ step = stepAIC(model1, direction = 'both')
 
 # logistic regression function to look at DOC - do this by region?
 # http://www.stat.columbia.edu/~martin/W2024/R11.pdf
-DOC.logr <- glm(wq.all.waterquality.NPOC_DOC_corrected ~ wq.all.DR_C1+wq.all.DR_C2+wq.all.DR_C3 
-              +wq.all.DR_C4 +wq.all.DR_C5 +wq.all.DR_C6 
-              #+wq.all.waterquality.SUVA+
-              +wq.all.waterquality.abs254.dec+
-              wq.all.waterquality.e2e3.dec+ wq.all.waterquality.e4e6.dec+ wq.all.waterquality.SR.dec+
-              wq.all.waterquality.HIX_ohno_area+ wq.all.waterquality.FI+ wq.all.waterquality.FrI+
-              wq.all.waterquality.peakA+wq.all.waterquality.peakC+wq.all.waterquality.peakB+wq.all.waterquality.peakT+
-              wq.all.waterquality.OFI+wq.all.waterquality.redox,
-              data = wq.all.select, family = "gaussian")
+DOC.logr <- glm(wq.all.select$DOC ~ wq.all.select$C1+wq.all.select$C2+wq.all.select$C3 + 
+                wq.all.select$C4 + wq.all.select$C5 +wq.all.select$C6 +
+                 wq.all.select$SUVA +
+                 wq.all.select$abs254+
+                 wq.all.select$e2e3+ wq.all.select$e4e6 + wq.all.select$SR +
+                 wq.all.select$HIX + wq.all.select$FI+ wq.all.select$FrI+
+                 wq.all.select$peakA +wq.all.select$peakC+wq.all.select$peakB+wq.all.select$peakT +
+                 wq.all.select$OFI+wq.all.select$redox,
+                data = wq.all.select, family = "gaussian")
 summary(DOC.logr)
 beta =coef(DOC.logr)
+stepAIC(DOC.logr, direction = 'both')
 
-DOC.logr.select <- glm(wq.all.waterquality.NPOC_DOC_corrected ~ wq.all.DR_C1+wq.all.DR_C2+wq.all.DR_C3+wq.all.DR_C4
-                         #wq.all.waterquality.SUVA+
-                         +wq.all.waterquality.abs254.dec,
-                         #wq.all.waterquality.e2e3.dec+ 
-                         #wq.all.waterquality.HIX_ohno_area+ wq.all.waterquality.peakC,
-                       data = wq.all.select, family = "gaussian")
+DOC.logr.select <- glm(DOC ~ C1 + C3 
+                      + abs254 + peakC + peakT +OFI,
+                      data = wq.all.select, family = "gaussian")
 summary(DOC.logr.select)
 #get error terms for model
-results.reduced =glm(wq.all.waterquality.NPOC_DOC_corrected ~ 1, data = wq.all.select, family = "gaussian")
+results.reduced =glm(DOC ~ 1, data = wq.all.select, family = "gaussian")
 anova(results.reduced,DOC.logr.select , test="Chisq")
-
-#Figure - look at the correlation between different variables. Eventually add in THM and HAA formation potential
-corr.matrix <- cor(wq.all.select[,2:23]) # correlation matric between variables
-colnames(corr.matrix) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'NO3', 'abs254.dec', 'e2e3.dec', 'e4e6.dec', 'SR.dec', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index')
-row.names(corr.matrix) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'NO3', 'abs254.dec', 'e2e3.dec', 'e4e6.dec', 'SR.dec', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index')
-write.csv(corr.matrix, file = paste(save.directory, "WQpre_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
-
-# plot the correlation matrix of the spectral parameters
-png(paste(save.directory, "DBPPre_correlations.png", sep = "/"),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-  corrplot(corr.matrix, method = "circle") #plot matrix
-dev.off()
 
 ################################################################################################################################################################
 # Pt 2 - how does chlorination change the spectral composition of EEMS?
@@ -449,13 +453,18 @@ spec.all <- merge(spec.indicies.PARAFAC,spec.indicies.post.PARAFAC,by="samplenam
 
 #calculate the percent change (pre-post)/pre*100
 delta.spec <- (spec.all[,grepl("*\\.x$",names(spec.all))] - spec.all[,grepl("*\\.y$",names(spec.all))])/spec.all[,grepl("*\\.x$",names(spec.all))]*100
-delta.spec <- cbind(spec.all[,1,drop=FALSE],delta.spec) # add in sample names
+# calculate delat abs 272
+delta.abs272 <- spec.all$abs272.dec.x - spec.all$abs272.dec.y
+
+delta.spec <- cbind(spec.all[,1,drop=FALSE],delta.abs272,delta.spec) # add in sample names
 
 ## boxplots to show percent changes
 # choose the proxies that are important
-delta.spec.select <- data.frame(delta.spec$abs254.dec.x, delta.spec$abs272.dec.x,
+delta.spec.select <- data.frame(delta.spec$samplename, 
+                                delta.spec$abs254.dec.x, delta.spec$abs272.dec.x,
                                 delta.spec$e2e3.dec.x, delta.spec$e4e6.dec.x,
-                                delta.spec$CDOM.total.int.dec.x, delta.spec$SR.dec.x,
+                                #delta.spec$CDOM.total.int.dec.x, 
+                                delta.spec$SR.dec.x,
                                 delta.spec$FI.x,delta.spec$HIX_ohno_area.x,
                                 delta.spec$FrI.x,
                                 delta.spec$peakA.x,delta.spec$peakC.x, delta.spec$peakB.x,delta.spec$peakT.x,
@@ -463,6 +472,12 @@ delta.spec.select <- data.frame(delta.spec$abs254.dec.x, delta.spec$abs272.dec.x
                                 delta.spec$perprotein.x, delta.spec$redox.x,
                                 delta.spec$DR_C1.x, delta.spec$DR_C2.x,delta.spec$DR_C3.x,delta.spec$DR_C4.x,delta.spec$DR_C5.x,delta.spec$DR_C6.x
                                 )
+colnames(delta.spec.select) <- gsub("\\.x", "", colnames(delta.spec.select))
+colnames(delta.spec.select) <- gsub("\\.dec", "", colnames(delta.spec.select))
+colnames(delta.spec.select) <- gsub("\\DR_", "", colnames(delta.spec.select))
+colnames(delta.spec.select) <- gsub("delta.spec.", "", colnames(delta.spec.select))
+colnames(delta.spec.select) <- gsub("_ohno_area", "", colnames(delta.spec.select))
+
 # unfold the dataframe into a form that can do histograms easily
 remove(perc.spec)
 for (i in 1:(dim(delta.spec.select)[2]-1)){
@@ -497,7 +512,8 @@ t.CDOM <- t.test(spec.indicies.PARAFAC$CDOM.total.int.dec, spec.indicies.post.PA
 t.SR <- t.test(spec.indicies.PARAFAC$SR.dec,spec.indicies.post.PARAFAC$SR.dec)
 # For FI, get rid of Inf values
 spec.indicies.post$FI[!is.finite(spec.indicies.post.PARAFAC$FI)] <- NaN
-t.FI <- t.test(spec.indicies.PARAFAC$FI,na.omit(spec.indicies.post.PARAFAC$FI))
+FI.post <- na.omit(spec.indicies.post$FI)
+t.FI <- t.test(spec.indicies.PARAFAC$FI,FI.post, na.rm = TRUE)
 
 t.HIX_ohno_area <- t.test(spec.indicies.PARAFAC$HIX_ohno_area, spec.indicies.post.PARAFAC$HIX_ohno_area)
 t.FrI <- t.test(spec.indicies.PARAFAC$FrI, spec.indicies.post.PARAFAC$FrI)
@@ -516,7 +532,7 @@ t.DR_C5 <- t.test(spec.indicies.PARAFAC$DR_C5, spec.indicies.post.PARAFAC$DR_C5)
 t.DR_C6 <- t.test(spec.indicies.PARAFAC$DR_C6, spec.indicies.post.PARAFAC$DR_C6)
 
 # do correlation matrix between the percent change upon chlorination
-delta.spec.select <- do.call(data.frame,lapply(delta.spec.select, function(x) replace(x, is.infinite(x),NA)))
+delta.spec.select <- do.call(data.frame,lapply(delta.spec.select[,2:22], function(x) replace(x, is.infinite(x),NA)))
 corr.matrix.delta <- cor(na.omit(delta.spec.select)) # correlation matric between variables
 
 png(paste(save.directory, "DBPdelta_correlations.png", sep = "/"),    # create graphic for the correlations plot       
@@ -525,8 +541,12 @@ png(paste(save.directory, "DBPdelta_correlations.png", sep = "/"),    # create g
     res = 300,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
-corrplot(corr.matrix.delta, method = "circle") #plot matrix
+  corrplot(corr.matrix.delta, method = "circle") #plot matrix
 dev.off()
+
+# write correlation matrix to csv file
+write.csv(corr.matrix.delta, file = paste(save.directory, "DBPDelta_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
+
 #########################################################################################################################
 # Pt 3 - How does EEMS and Water Quality parameters predict DBP formation?
 # Thoughts:
@@ -551,78 +571,117 @@ THM$total <- apply(THM[,2:5], 1, sum)
 # TO DO - add PCA components for pre chlorinated EEMs; add in the delta eems for the 6 component fit?
 
 ####### Bind spectral and water quality parameters with DBP data
-waterquality.mod <- waterquality[,c(1,9,10,11,12,15,16:20,22,25,35:37)]
-HAA.waterq <- Reduce(function(x, y) merge(x, y, by = 'samplename', all=FALSE), list(HAA, waterquality.mod[,c(1,15)],CM.pre, spec.indicies, Pre.Fmax))
-THM.waterq <- Reduce(function(x, y) merge(x, y, by = 'samplename', all=FALSE), list(THM, waterquality.mod[,c(1,15)],CM.pre, spec.indicies, Pre.Fmax))
+waterquality.mod <- data.frame(waterquality$samplename, waterquality$NPOC_DOC_corrected, waterquality$SUVA, 
+                               waterquality$abs254.dec, waterquality$abs272.dec, delta.spec$delta.abs272 , 
+                               waterquality$e2e3.dec, 
+                               waterquality$e4e6.dec, waterquality$SR.dec, 
+                               waterquality$FI, waterquality$HIX_ohno_area, waterquality$FrI, 
+                               waterquality$peakA.norm, waterquality$peakC.norm, waterquality$peakB.norm, waterquality$peakT.norm, 
+                               waterquality$OFI, waterquality$perprotein, waterquality$redox)
+
+colnames(waterquality.mod) <- gsub("\\waterquality.", "", colnames(waterquality.mod))
+colnames(waterquality.mod) <- gsub("\\.norm", "", colnames(waterquality.mod))
+colnames(waterquality.mod)[6] <- "delta.abs272"
+
+# add in the PARAFAC fits
+waterquality.mod.1 <- merge(waterquality.mod, Pre.Fmax, by = 'samplename', all = TRUE)
+
+HAA.waterq <- Reduce(function(x, y) merge(x, y, by = 'samplename', all=FALSE), list(HAA, waterquality.mod, Pre.Fmax))
+THM.waterq <- Reduce(function(x, y) merge(x, y, by = 'samplename', all=FALSE), list(THM, waterquality.mod, Pre.Fmax))
 
 # get rid of columns you don't need
 HAA.waterq$sample.ID <- NULL
 THM.waterq$sample.ID <- NULL
+
+# calculate THM and HAA yield
+HAA.waterq$total.yield <- HAA.waterq$total/HAA.waterq$NPOC_DOC_corrected
+THM.waterq$total.yield <- THM.waterq$total/THM.waterq$NPOC_DOC_corrected
 
 # Do linear models for total HAA and total THMs
 # Note that expect some of the variables to co-relate, thus use gls linear fit model
 HAA.waterq <- lapply(HAA.waterq, as.numeric)
 THM.waterq <- lapply(THM.waterq, as.numeric)
 
+############ total HAAs
 # use tree to look at the correlation between variables - first, CM model
-library("tree")
-HAA.total <- CM.model.HAA$total
-HAA.CM <-lapply(CM.model.HAA[,2:17], as.numeric) # convert to numeric prior to running model
+#library("tree")
+#HAA.total <- CM.model.HAA$total
+#HAA.CM <-lapply(CM.model.HAA[,2:17], as.numeric) # convert to numeric prior to running model
 
 model.HAAtotal <- tree(HAA.total ~ ., data = HAA.CM) # run tree model on CM data
 plot(model.HAAtotal) # plot tree model
 text(model.HAAtotal) # put in text labels into the tree label
 
-model.HAAtotal <- lm(HAA.waterq$total ~ HAA.waterq$NPOC + HAA.waterq$C1.x + HAA.waterq$C2.x +
-                       HAA.waterq$C3.x + HAA.waterq$C4.x + HAA.waterq$C5.x +
-                       HAA.waterq$C6.x + HAA.waterq$C7 + HAA.waterq$C8 + HAA.waterq$C9 + 
-                       HAA.waterq$C10 + HAA.waterq$C11 + HAA.waterq$C12 + HAA.waterq$C13)
-summary(model.HAAtotal)
+# initial model - linear model
+lmmodel.HAAtotal <- lm(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected 
+                         + HAA.waterq$DR_C1 + HAA.waterq$DR_C2 +
+                           HAA.waterq$DR_C3 + HAA.waterq$DR_C4 + HAA.waterq$DR_C5 +
+                           HAA.waterq$DR_C6 + HAA.waterq$perprotein + HAA.waterq$redox 
+                         + HAA.waterq$SUVA + HAA.waterq$abs254.dec + HAA.waterq$abs272.dec + HAA.waterq$delta.abs272
+                         + HAA.waterq$e2e3.dec + HAA.waterq$e4e6.dec + HAA.waterq$SR.dec)
+summary(lmmodel.HAAtotal)
 
-# plot all of the 
-plot(HAA.waterq$total ~ HAA.waterq$NPOC)
-plot(HAA.waterq$total ~ HAA.waterq$C1.x)
-plot(HAA.waterq$total ~ HAA.waterq$C2.x)
-plot(HAA.waterq$total ~ HAA.waterq$C3.x)
-plot(HAA.waterq$total ~ HAA.waterq$C4.x)
-plot(HAA.waterq$total ~ HAA.waterq$C5.x)
-plot(HAA.waterq$total ~ HAA.waterq$C6.x)
-plot(HAA.waterq$total ~ HAA.waterq$C7)
-plot(HAA.waterq$total ~ HAA.waterq$C8)
-plot(HAA.waterq$total ~ HAA.waterq$C9)
-plot(HAA.waterq$total ~ HAA.waterq$C10)
-plot(HAA.waterq$total ~ HAA.waterq$C11)
-plot(HAA.waterq$total ~ HAA.waterq$C12)
-plot(HAA.waterq$total ~ HAA.waterq$C13)
+# Use step function to remove variables with less correlation to DOC concentration
+step.lm.haa = summary(step(lmmodel.HAAtotal, direction = 'both'))
 
-## try custom PARAFAC components - linear model
+# generalized least squres model
+glmmodel.HAAtotal <- glm(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected 
+                      + HAA.waterq$SUVA + HAA.waterq$abs254.dec + HAA.waterq$abs272.dec + HAA.waterq$delta.abs272
+                      + HAA.waterq$DR_C1 + HAA.waterq$DR_C2 + HAA.waterq$DR_C3 + HAA.waterq$DR_C4 + HAA.waterq$DR_C5 + HAA.waterq$DR_C6  
+                      + HAA.waterq$perprotein + HAA.waterq$redox 
+                      + HAA.waterq$e2e3.dec + HAA.waterq$e4e6.dec + HAA.waterq$SR.dec,
+                      family = "gaussian")
 
-model.HAAtotal.6comp <- lm(HAA.waterq$total ~ HAA.waterq$NPOC + 
-                      HAA.waterq$Pre_C1 + HAA.waterq$Pre_C2 +                      # custom 6 component PARAFAC model
-                      HAA.waterq$Pre_C3 + HAA.waterq$Pre_C4 + HAA.waterq$Pre_C5 +
-                      HAA.waterq$Pre_C6+ 
-                      HAA.waterq$perprotein + HAA.waterq$redox +                   # from CM fits
-                      HAA.waterq$e2e3+ HAA.waterq$e4e6 + HAA.waterq$CDOM.total +   # spectral parameters
-                      HAA.waterq$slope_ratio + HAA.waterq$SR + HAA.waterq$FI + HAA.waterq$FrI + 
-                      HAA.waterq$peakt.peakC + HAA.waterq$HIX_ohno_area )
+summary(glmmodel.HAAtotal)
 
-summary(step(model.HAAtotal.6comp, direction="both")) #stepwise regression. Also try 'leave one out'
+# Use step function to remove variables with less correlation to DOC concentration
+step.glm.haa = summary(step(glmmodel.HAAtotal, direction = 'both'))
+
+# Do individual lm fits
+summary(lm(HAA.waterq$total~ HAA.waterq$NPOC_DOC_corrected))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$SUVA))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$abs254.dec))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$abs272.dec))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$delta.abs272))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C1))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C2))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C3))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C4))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C5))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C6))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$perprotein))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$redox))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$e2e3))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$e4e6))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$CDOM.total))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$slope_ratio))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$SR))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$FI))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$FrI))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$peakt.peakC))$r.squared
+summary(lm(HAA.waterq$total.yield ~ HAA.waterq$HIX_ohno_area))$r.squared
+
 # export the linear model results
 #write.table(HAA.total.lm, file = paste(save.directory, "HAATotal_lmresults.csv", sep = ","))
 # plot the total HAA versus all variables above
-plot(HAA.waterq$total ~ HAA.waterq$NPOC)
-plot(HAA.waterq$total ~ HAA.waterq$Pre_C1)
-plot(HAA.waterq$total ~ HAA.waterq$Pre_C2)
-plot(HAA.waterq$total ~ HAA.waterq$Pre_C3)
-plot(HAA.waterq$total ~ HAA.waterq$Pre_C4)
-plot(HAA.waterq$total ~ HAA.waterq$Pre_C5)
-plot(HAA.waterq$total ~ HAA.waterq$Pre_C6)
+plot(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected)
+plot(HAA.waterq$total ~ HAA.waterq$SUVA)
+plot(HAA.waterq$total ~ HAA.waterq$abs254.dec)
+plot(HAA.waterq$total ~ HAA.waterq$abs272.dec)
+plot(HAA.waterq$total ~ HAA.waterq$delta.abs272)
+
+plot(HAA.waterq$total ~ HAA.waterq$DR_C1)
+plot(HAA.waterq$total ~ HAA.waterq$DR_C2)
+plot(HAA.waterq$total ~ HAA.waterq$DR_C3)
+plot(HAA.waterq$total ~ HAA.waterq$DR_C4)
+plot(HAA.waterq$total ~ HAA.waterq$DR_C5)
+plot(HAA.waterq$total ~ HAA.waterq$DR_C6)
 plot(HAA.waterq$total ~ HAA.waterq$perprotein)
 plot(HAA.waterq$total ~ HAA.waterq$redox)
 plot(HAA.waterq$total ~ HAA.waterq$e2e3)
 plot(HAA.waterq$total ~ HAA.waterq$e4e6)
 plot(HAA.waterq$total ~ HAA.waterq$CDOM.total)
-plot(HAA.waterq$total ~ HAA.waterq$slope_ratio)
+plot(THM.waterq$total ~ HAA.waterq$slope_ratio)
 plot(HAA.waterq$total ~ HAA.waterq$SR)
 plot(HAA.waterq$total ~ HAA.waterq$FI)
 plot(HAA.waterq$total ~ HAA.waterq$FrI)
@@ -634,36 +693,42 @@ plot(HAA.waterq$total ~ HAA.waterq$HIX_ohno_area)
 NPOC.model.THM <- lm(THM.waterq$total ~ THM.waterq$NPOC)
 summary(NPOC.model.THM)
 plot(THM.waterq$total ~ THM.waterq$NPOC) #note high outliers! are these green roofs? may have to remove
+test <- lm(THM.waterq$total ~ THM.waterq$NPOC)
 
-# tree model
-model.THMtotal.6comp <- tree(THM.waterq$total ~ THM.waterq$NPOC + 
-                             THM.waterq$Pre_C1 + THM.waterq$Pre_C2 +                      # custom 6 component PARAFAC model
-                             THM.waterq$Pre_C3 + THM.waterq$Pre_C4 + THM.waterq$Pre_C5 +
-                             THM.waterq$Pre_C6+ 
-                             THM.waterq$perprotein + THM.waterq$redox +                   # from CM fits
-                             THM.waterq$e2e3+ THM.waterq$e4e6 + THM.waterq$CDOM.total +   # spectral parameters
-                             THM.waterq$slope_ratio + THM.waterq$SR + THM.waterq$FI + THM.waterq$FrI + 
-                             THM.waterq$peakt.peakC + THM.waterq$HIX_ohno_area )
-plot(model.THMtotal.6comp)
-#linear model
-model.THMtotal.6comp <- lm(THM.waterq$total ~ THM.waterq$NPOC + 
-                             THM.waterq$Pre_C1 + THM.waterq$Pre_C2 +                      # custom 6 component PARAFAC model
-                             THM.waterq$Pre_C3 + THM.waterq$Pre_C4 + THM.waterq$Pre_C5 +
-                             THM.waterq$Pre_C6 + 
-                             THM.waterq$perprotein + THM.waterq$redox +                   # from CM fits
-                             THM.waterq$e2e3+ THM.waterq$e4e6 + THM.waterq$CDOM.total +   # spectral parameters
-                             THM.waterq$slope_ratio + THM.waterq$SR + THM.waterq$FI + THM.waterq$FrI + 
-                             THM.waterq$peakt.peakC + THM.waterq$HIX_ohno_area)
+# initial linear model - lm model
+model.THMtotal.lm <- lm(THM.waterq$total ~ THM.waterq$NPOC_DOC_corrected 
+                      + THM.waterq$DR_C1 + THM.waterq$DR_C2 +
+                        THM.waterq$DR_C3 + THM.waterq$DR_C4 + THM.waterq$DR_C5 +
+                        THM.waterq$DR_C6 + THM.waterq$perprotein + THM.waterq$redox 
+                      + THM.waterq$SUVA + THM.waterq$abs254.dec + THM.waterq$abs272.dec + THMwaterq$delta
+                      + THM.waterq$e2e3.dec + THM.waterq$e4e6.dec + THM.waterq$SR.dec
+                    )
+summary(model.THMtotal.lm)
 
-summary(step(model.THMtotal.6comp, direction="both")) # summary of linear model
-# plot the total THM versus all variables above
-plot(THM.waterq$total ~ THM.waterq$NPOC)
-plot(THM.waterq$total ~ THM.waterq$Pre_C1)
-plot(THM.waterq$total ~ THM.waterq$Pre_C2)
-plot(THM.waterq$total ~ THM.waterq$Pre_C3)
-plot(THM.waterq$total ~ THM.waterq$Pre_C4)
-plot(THM.waterq$total ~ THM.waterq$Pre_C5)
-plot(THM.waterq$total ~ THM.waterq$Pre_C6)
+# try step function
+lm.step.THM <- summary(step(model.THMtotal.lm, direction="both")) # summary of linear model
+
+# initial linear model - glm model
+glmmodel.THMtotal <- glm(THM.waterq$total ~ THM.waterq$NPOC_DOC_corrected 
+                         + THM.waterq$SUVA + THM.waterq$abs254.dec + THM.waterq$abs272.dec + THM.waterq$delta.abs272
+                         + THM.waterq$DR_C1 + THM.waterq$DR_C2 + THM.waterq$DR_C3 + THM.waterq$DR_C4 + THM.waterq$DR_C5 + THM.waterq$DR_C6  
+                         + THM.waterq$perprotein + THM.waterq$redox 
+                         + THM.waterq$e2e3.dec + THM.waterq$e4e6.dec + THM.waterq$SR.dec,
+                         family = "gaussian")
+summary(glmmodel.THMtotal)
+
+# try step function
+glm.step.THM <- summary(step(glmmodel.THMtotal, direction="both")) # summary of linear model
+
+plot(model.THMtotal.glm)
+plot(THM.waterq$total ~ THM.waterq$NPOC_DOC_corrected)
+plot(THM.waterq$total ~ THM.waterq$SUVA)
+plot(THM.waterq$total ~ THM.waterq$DR_C1)
+plot(THM.waterq$total ~ THM.waterq$DR_C2)
+plot(THM.waterq$total ~ THM.waterq$DR_C3)
+plot(THM.waterq$total ~ THM.waterq$DR_C4)
+plot(THM.waterq$total ~ THM.waterq$DR_C5)
+plot(THM.waterq$total ~ THM.waterq$DR_C6)
 plot(THM.waterq$total ~ THM.waterq$perprotein)
 plot(THM.waterq$total ~ THM.waterq$redox)
 plot(THM.waterq$total ~ THM.waterq$e2e3)
@@ -675,6 +740,52 @@ plot(THM.waterq$total ~ THM.waterq$FI)
 plot(THM.waterq$total ~ THM.waterq$FrI)
 plot(THM.waterq$total ~ THM.waterq$peakt.peakC)
 plot(THM.waterq$total ~ THM.waterq$HIX_ohno_area)
+
+#################################################################################
+######### correlation matrix - spectral parameters and total THM/HAA
+#Figure - look at the correlation between different variables. Eventually add in THM and HAA formation potential
+# merge THM/HAA with wq parameters
+wq.all.select.cor <- data.frame(wq.all$samplename, wq.all$waterquality.Region, wq.all$DR_C1, wq.all$DR_C2,wq.all$DR_C3,wq.all$DR_C4,wq.all$DR_C5,wq.all$DR_C6,
+                            wq.all$waterquality.NPOC_DOC_corrected,
+                            wq.all$waterquality.SUVA, wq.all$waterquality.abs254.dec, waterquality$abs272.dec, delta.spec$delta.abs272,
+                            wq.all$waterquality.e2e3.dec, wq.all$waterquality.e4e6.dec, wq.all$waterquality.SR.dec,
+                            wq.all$waterquality.HIX_ohno_area, wq.all$waterquality.FI, wq.all$waterquality.FrI,
+                            wq.all$waterquality.peakA.norm,wq.all$waterquality.peakC.norm,wq.all$waterquality.peakB.norm,wq.all$waterquality.peakT.norm,
+                            wq.all$waterquality.OFI,wq.all$waterquality.redox
+)
+
+colnames(wq.all.select.cor) <- gsub("\\wq.all.", "", colnames(wq.all.select.cor))
+corr.data1 <- merge(wq.all.select.cor, HAA, by = "samplename", all = TRUE)
+corr.data <- merge(corr.data1, THM, by = "samplename", all = TRUE)
+
+corr.data2 <- cbind(corr.data, corr.data$total.x, corr.data$total.y)
+corr.data2 <- na.omit(corr.data2)
+
+corr.matrix <- cor(corr.data[,3:25]) # correlation matric between variables
+corr.matrix.dbps <- cor(corr.data2[,c(3:25, 41:42)])
+
+# bind two rows of DBPS correlations to corr matrix of other variables
+test <- corr.matrix.dbps[24:25,-24:-25]
+test2 <- corr.matrix.dbps[,24:25]
+
+corr.all.2 <- rbind(corr.matrix, test)
+corr.all <- as.matrix(cbind(corr.all.2, test2))
+
+colnames(corr.all) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'abs254', 'abs272', 'Delta abs272', 'e2e3', 'e4e6', 'SR', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index', "Total HAAs", "Total THMs")
+row.names(corr.all) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'abs254', 'abs272', 'Delta abs272', 'e2e3', 'e4e6', 'SR', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index',"Total HAAs", "Total THMs")
+
+write.csv(corr.all, file = paste(save.directory, "WQpre_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
+#corr.all <- na.omit(corr.all)
+
+# plot the correlation matrix of the spectral parameters
+png(paste(save.directory, "DBPtotalDBPs_correlations.png", sep = "/"),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+corrplot(na.omit(corr.all), method = "circle") #plot matrix
+dev.off()
 
 #########################################
 # try #2: 
