@@ -297,8 +297,56 @@ for (i in 1:6){
 }
 
 colnames(PCApre6)[1] <- "values" #rename first column that contains Fmax values
-ggplot(PCApre6, aes(x=component, y=values, fill=Region)) + geom_boxplot()  +
-  labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values")
+
+# save the boxplot as a figure in file
+png(paste(save.directory, "/PrePARAFACboxplot.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 3*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+  ggplot(PCApre6, aes(x=component, y=values, fill=Region)) + 
+    geom_boxplot(outlier.shape = NA)  +#remove extreme values
+    labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values") 
+dev.off()
+
+# Express as the percentgae, rather than the Fmax value:
+colnames(Pre.Fmax.per)[7] <- "samplename"
+Pre.Fmax.per <- merge(Pre.Fmax.per, waterquality[,c(1,36:38)], by = "samplename")
+
+# unfold the dataframe into a form that can do boxplots easily
+remove(PCApre6.per)
+for (i in 1:6){
+  temp.C <- data.frame(Pre.Fmax.per[,i+1])
+  temp.component <- colnames(Pre.Fmax.per)[i+1]
+  temp.C$component <- temp.component
+  temp.C$Region <- Pre.Fmax.per$Region
+  temp.C$samplename <- Pre.Fmax.per$samplename
+  
+  # if the merged dataset  exists, append to it by row
+  if (exists("PCApre6.per")){
+    PCApre6.per <- rbind(PCApre6.per, temp.C)
+  }
+  
+  # if the merged dataset doesn't exist, create it
+  if (!exists("PCApre6.per")){
+    PCApre6.per <- temp.C
+  }
+}
+
+colnames(PCApre6.per)[1] <- "values" #rename first column that contains Fmax values
+
+# save the boxplot as a figure in file
+png(paste(save.directory, "/PrePARAFAC_per_boxplot.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 3*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+ggplot(PCApre6.per, aes(x=component, y=values, fill=Region)) + 
+  geom_boxplot(outlier.shape = NA)  +#remove extreme values
+  labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax (% of total fluorescence)") 
+dev.off()
 
 ########################
 # Part 1 Figure 3 - PCA on the water quality, CM, spectral proxies, and PARAFAC Fmax values.
@@ -607,30 +655,46 @@ THM.waterq <- lapply(THM.waterq, as.numeric)
 #library("tree")
 #HAA.total <- CM.model.HAA$total
 #HAA.CM <-lapply(CM.model.HAA[,2:17], as.numeric) # convert to numeric prior to running model
+# Note this reference about trying to fit linear models to highly correalated data
+# https://www.researchgate.net/post/R_Squared_Value_is_high_about_070_however_the_p_value_for_all_my_independent_value_is_over_005_How_could_this_happen
+###############
 
 model.HAAtotal <- tree(HAA.total ~ ., data = HAA.CM) # run tree model on CM data
 plot(model.HAAtotal) # plot tree model
 text(model.HAAtotal) # put in text labels into the tree label
 
 # initial model - linear model
-lmmodel.HAAtotal <- lm(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected 
+lmmodel.HAAtotal <- lm(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected*HAA.waterq$SUVA 
                          + HAA.waterq$DR_C1 + HAA.waterq$DR_C2 +
                            HAA.waterq$DR_C3 + HAA.waterq$DR_C4 + HAA.waterq$DR_C5 +
                            HAA.waterq$DR_C6 + HAA.waterq$perprotein + HAA.waterq$redox 
-                         + HAA.waterq$SUVA + HAA.waterq$abs254.dec + HAA.waterq$abs272.dec + HAA.waterq$delta.abs272
+                         + HAA.waterq$abs254.dec + HAA.waterq$abs272.dec + HAA.waterq$delta.abs272
                          + HAA.waterq$e2e3.dec + HAA.waterq$e4e6.dec + HAA.waterq$SR.dec)
 summary(lmmodel.HAAtotal)
 
 # Use step function to remove variables with less correlation to DOC concentration
 step.lm.haa = summary(step(lmmodel.HAAtotal, direction = 'both'))
 
+# generalized least squres model - specific variables
+glmmodel.HAAtotal.select <- glm(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected 
+                      #* HAA.waterq$SUVA #+ HAA.waterq$abs254.dec 
+                      + HAA.waterq$abs272.dec 
+                      + HAA.waterq$DR_C1 + HAA.waterq$DR_C2 + HAA.waterq$DR_C3 + HAA.waterq$DR_C4 + HAA.waterq$DR_C5 + HAA.waterq$DR_C6,
+                      family = "gaussian")
+
+summary(glmmodel.HAAtotal.select)
+
+# Use step function to remove variables with less correlation to DOC concentration
+step.glm.haa.select = summary(step(glmmodel.HAAtotal.select, direction = 'both'))
+test <- anova(glmmodel.HAAtotal.select)
+
 # generalized least squres model
 glmmodel.HAAtotal <- glm(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected 
-                      + HAA.waterq$SUVA + HAA.waterq$abs254.dec + HAA.waterq$abs272.dec + HAA.waterq$delta.abs272
-                      + HAA.waterq$DR_C1 + HAA.waterq$DR_C2 + HAA.waterq$DR_C3 + HAA.waterq$DR_C4 + HAA.waterq$DR_C5 + HAA.waterq$DR_C6  
-                      + HAA.waterq$perprotein + HAA.waterq$redox 
-                      + HAA.waterq$e2e3.dec + HAA.waterq$e4e6.dec + HAA.waterq$SR.dec,
-                      family = "gaussian")
+                         + HAA.waterq$SUVA + HAA.waterq$abs254.dec + HAA.waterq$abs272.dec + HAA.waterq$delta.abs272
+                         + HAA.waterq$DR_C1 + HAA.waterq$DR_C2 + HAA.waterq$DR_C3 + HAA.waterq$DR_C4 + HAA.waterq$DR_C5 + HAA.waterq$DR_C6  
+                         + HAA.waterq$perprotein + HAA.waterq$redox 
+                         + HAA.waterq$e2e3.dec + HAA.waterq$e4e6.dec + HAA.waterq$SR.dec,
+                         family = "gaussian")
 
 summary(glmmodel.HAAtotal)
 
@@ -639,27 +703,27 @@ step.glm.haa = summary(step(glmmodel.HAAtotal, direction = 'both'))
 
 # Do individual lm fits
 summary(lm(HAA.waterq$total~ HAA.waterq$NPOC_DOC_corrected))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$SUVA))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$abs254.dec))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$abs272.dec))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$delta.abs272))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C1))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C2))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C3))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C4))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C5))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$DR_C6))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$perprotein))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$redox))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$e2e3))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$e4e6))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$CDOM.total))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$slope_ratio))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$SR))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$FI))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$FrI))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$peakt.peakC))$r.squared
-summary(lm(HAA.waterq$total.yield ~ HAA.waterq$HIX_ohno_area))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$SUVA))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$abs254.dec))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$abs272.dec))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$delta.abs272))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$DR_C1))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$DR_C2))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$DR_C3))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$DR_C4))$r.squared
+summary(lm(HAA.waterq$total~ HAA.waterq$DR_C5))$r.squared
+summary(lm(HAA.waterq$total~ HAA.waterq$DR_C6))$r.squared
+summary(lm(HAA.waterq$total~ HAA.waterq$perprotein))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$redox))$r.squared
+summary(lm(HAA.waterq$total~ HAA.waterq$e2e3))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$e4e6))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$CDOM.total))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$slope_ratio))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$SR))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$FI))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$FrI))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$peakt.peakC))$r.squared
+summary(lm(HAA.waterq$total ~ HAA.waterq$HIX_ohno_area))$r.squared
 
 # export the linear model results
 #write.table(HAA.total.lm, file = paste(save.directory, "HAATotal_lmresults.csv", sep = ","))
@@ -669,7 +733,6 @@ plot(HAA.waterq$total ~ HAA.waterq$SUVA)
 plot(HAA.waterq$total ~ HAA.waterq$abs254.dec)
 plot(HAA.waterq$total ~ HAA.waterq$abs272.dec)
 plot(HAA.waterq$total ~ HAA.waterq$delta.abs272)
-
 plot(HAA.waterq$total ~ HAA.waterq$DR_C1)
 plot(HAA.waterq$total ~ HAA.waterq$DR_C2)
 plot(HAA.waterq$total ~ HAA.waterq$DR_C3)
@@ -687,6 +750,72 @@ plot(HAA.waterq$total ~ HAA.waterq$FI)
 plot(HAA.waterq$total ~ HAA.waterq$FrI)
 plot(HAA.waterq$total ~ HAA.waterq$peakt.peakC)
 plot(HAA.waterq$total ~ HAA.waterq$HIX_ohno_area)
+
+####################### plot the significant variables nicely using ggplot
+library(ggpmisc)
+
+HAA.waterq.data <- as.data.frame(HAA.waterq) # convert to data frame
+HAA.waterq.data<- HAA.waterq.data[-22,]
+my.formula = y~x
+# HAA versus DOC
+ggplot(HAA.waterq.data, aes(x=NPOC_DOC_corrected, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[THAAs] versus [DOC]") +
+  labs(x="DOC Concentration (mg/L)",y="THAAs Concentration (ug/L)")
+
+# HAA versus abs254
+ggplot(HAA.waterq.data, aes(x=abs254.dec, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[THAAs] versus a254") +
+  labs(x="a254 (1/m)",y="THAAs Concentration (ug/L)")
+
+# HAA versus abs272
+ggplot(HAA.waterq.data, aes(x=abs272.dec, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[THAAs] versus a272") +
+  labs(x="a272 (1/m)",y="THAAs Concentration (ug/L)")
+
+# HAA versus C1
+ggplot(HAA.waterq.data, aes(x=DR_C1, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[THAAs] versus C1") +
+  labs(x="C1 Fmax (R.U)",y="THAAs Concentration (ug/L)")
+
+# HAA versus C2
+ggplot(HAA.waterq.data, aes(x=DR_C2, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[THAAs] versus C2") +
+  labs(x="C2 Fmax (R.U)",y="THAAs Concentration (ug/L)")
+
+# HAA versus C3
+ggplot(HAA.waterq.data, aes(x=DR_C3, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[THAAs] versus C3") +
+  labs(x="C3 Fmax (R.U)",y="THAAs Concentration (ug/L)")
 
 ####################### Total THMs
 #NPOC and THMs
@@ -720,9 +849,38 @@ summary(glmmodel.THMtotal)
 # try step function
 glm.step.THM <- summary(step(glmmodel.THMtotal, direction="both")) # summary of linear model
 
-plot(model.THMtotal.glm)
+# Do individual lm fits
+summary(lm(THM.waterq$total~ THM.waterq$NPOC_DOC_corrected))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$SUVA))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$abs254.dec))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$abs272.dec))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$delta.abs272))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$DR_C1))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$DR_C2))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$DR_C3))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$DR_C4))$r.squared
+summary(lm(THM.waterq$total~ THM.waterq$DR_C5))$r.squared
+summary(lm(THM.waterq$total~ THM.waterq$DR_C6))$r.squared
+summary(lm(THM.waterq$total~ THM.waterq$perprotein))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$redox))$r.squared
+summary(lm(THM.waterq$total~ THM.waterq$e2e3))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$e4e6))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$CDOM.total))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$slope_ratio))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$SR))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$FI))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$FrI))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$peakt.peakC))$r.squared
+summary(lm(THM.waterq$total ~ THM.waterq$HIX_ohno_area))$r.squared
+
+
+#write.table(THM.total.lm, file = paste(save.directory, "THMTotal_lmresults.csv", sep = ","))
+# plot the total THM versus all variables above
 plot(THM.waterq$total ~ THM.waterq$NPOC_DOC_corrected)
 plot(THM.waterq$total ~ THM.waterq$SUVA)
+plot(THM.waterq$total ~ THM.waterq$abs254.dec)
+plot(THM.waterq$total ~ THM.waterq$abs272.dec)
+plot(THM.waterq$total ~ THM.waterq$delta.abs272)
 plot(THM.waterq$total ~ THM.waterq$DR_C1)
 plot(THM.waterq$total ~ THM.waterq$DR_C2)
 plot(THM.waterq$total ~ THM.waterq$DR_C3)
@@ -740,6 +898,40 @@ plot(THM.waterq$total ~ THM.waterq$FI)
 plot(THM.waterq$total ~ THM.waterq$FrI)
 plot(THM.waterq$total ~ THM.waterq$peakt.peakC)
 plot(THM.waterq$total ~ THM.waterq$HIX_ohno_area)
+
+####### plot the siginifcant variables 
+THM.waterq.data <- as.data.frame(THM.waterq) # convert to data frame
+my.formula = y~x
+
+# HAA versus C3
+ggplot(THM.waterq.data, aes(x=DR_C4, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[TTHMs] versus C4") +
+  labs(x="Fmax (R.U)",y="TTHMs Concentration (ug/L)")
+#C5
+ggplot(THM.waterq.data, aes(x=DR_C5, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[TTHMs] versus C5") +
+  labs(x="Fmax (R.U)",y="TTHMs Concentration (ug/L)")
+#C6
+ggplot(THM.waterq.data, aes(x=DR_C6, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point() +
+  ggtitle("[TTHMs] versus C6") +
+  labs(x="Fmax (R.U)",y="TTHMs Concentration (ug/L)")
+
+
 
 #################################################################################
 ######### correlation matrix - spectral parameters and total THM/HAA
