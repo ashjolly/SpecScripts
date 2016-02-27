@@ -24,6 +24,17 @@ library("nlme")
 ####### Use viridis packager for colours?
 library(viridis)
 
+# The palette with grey:
+cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+# The palette with black:
+cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# do colour pallet range
+negpos_palette <- colorRampPalette(c("#E69F00", "#999999", "#56B4E9"))(n = 299)
+
+# colour pallet for going 0 - 100 (percent)
+per_palette <- colorRampPalette(c("white", "#0072B2"))(n = 299)
+
 ## load data
 data.original <- as.data.frame(read.csv(paste(directory, 'codestats_heatmap.csv', sep = ''), sep = ",", header = TRUE))
 
@@ -114,7 +125,6 @@ rownames(mat.data) <- rnames                  # assign row names
 
 # do heat map
 # create colour palette
-my_palette <- colorRampPalette(c("red", "yellow", "green"))(n = 299)
 col_breaks = c(seq(-1,0,length=100),  # This is for uneven breaking... WILL NEED TO CHANGE..for red
                seq(0,0.8,length=100),              # for yellow
                seq(0.8,1,length=100))              # for green
@@ -140,6 +150,7 @@ heatmap.2(mat.data,
           #breaks=col_breaks,    # enable color transition at specified limits
           dendrogram="row",     # only draw a row dendrogram
           Colv="NA")            # turn off column clustering
+dev.off()
 
 ####### second method
 # interactive heatmap
@@ -183,6 +194,7 @@ heatmap.2(mat.data,
           #breaks=col_breaks,    # enable color transition at specified limits
           dendrogram="row",     # only draw a row dendrogram
           Colv="NA")            # turn off column clustering
+dev.off()
 
 ####### second method
 # interactive heatmap
@@ -241,8 +253,6 @@ rounded.factors<- format(round(total.factors[,1:16], 1), nsmall = 1)      # ensu
 row.names(rounded.factors) <- cnames                                # assign row names
 mat.data <- t(data.matrix(rounded.factors))                          # convert data to matrix
                                         
-# change colour pallet
-palette <- colorRampPalette(c("#E5F5F9", "#005824"))(n = 299)
 
 # creates a 5 x 5 inch image
 png(paste(directory, "WSA_response_subpolicy.png", sep = ""),    # create PNG for the heat map        
@@ -267,7 +277,7 @@ heatmap.2(mat.data,
           
           # appearance
           margins =c(20,20),     # widens margins around plot
-          col= palette,       # use on color palette defined earlier 
+          col= My_palette,       # use on color palette defined earlier 
           cexCol=1.5, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
@@ -429,7 +439,7 @@ heatmap.2(mat.data,
           
           # Change the data within the heat map boxes
           cellnote = mat.data,    # same data set for cell labels
-          notecex = 0.8,          # Change the font size of the data labels
+          notecex = 0.3,          # Change the font size of the data labels
           notecol="black",        # change font color of cell labels to black
           
           # labels
@@ -452,6 +462,7 @@ heatmap.2(mat.data,
           keysize = 1,         # size of the colour key
           Rowv = TRUE,
           Colv=TRUE)            # turn off column clustering
+dev.off()
 
 #########################################################
 ##### Decision prediction
@@ -524,7 +535,7 @@ heatmap.2(mat.data,
           
           # appearance
           margins =c(20,20),     # widens margins around plot
-          col= palette,       # use on color palette defined earlier 
+          col= my_palette,       # use on color palette defined earlier 
           cexCol=1.5, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
@@ -712,7 +723,7 @@ op <- par(mar = c(14,4,4,2) + 1) # increase magins, especialy x axis margins
 
 plot <- barplot(as.matrix(sum.total[,c(7:21, 26)]), main = "Number of Submissions Per Stakeholder Group", cex.main = 2, 
                 cex.axis = 2,
-         col = "#005824", axes = FALSE, axisnames = FALSE)
+         col = "#56B4E9", axes = FALSE, axisnames = FALSE)
 par(op)        
 text(plot, par("usr")[3]-.5, labels = (colnames(sum.total)[c(7:21, 26)]),srt = 45,
      adj = c(1.3,1.3), xpd = TRUE, cex=1.3)
@@ -802,13 +813,13 @@ heatmap.2(mat.data,
           
           # dendorgram and groupings
           #breaks=col_breaks,    # enable color transition at specified limits
-          dendrogram=c("row"),     # only draw a row dendrogram
+          dendrogram='none',     # turn off dendrogram
           density.info="density",  # turns on density plot inside color legend
           trace="none",         # turns off trace lines inside the heat map
           
           # appearance
           margins =c(20,20),     # widens margins around plot
-          col= palette,       # use on color palette defined earlier 
+          col= per_palette,       # use on color palette defined earlier 
           cexCol=1.5, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
@@ -890,7 +901,7 @@ heatmap.2(mat.data,
           
           # appearance
           margins =c(20,20),     # widens margins around plot
-          col= palette,       # use on color palette defined earlier 
+          col= per_palette,       # use on color palette defined earlier 
           cexCol=1.2, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
@@ -928,7 +939,7 @@ neg <- consult.response[2,2:19]/consult.response[1,2:19]*100
 pos <- consult.response[3,2:19]/consult.response[1,2:19]*100
 suggestions <- consult.response[4,2:19]/consult.response[1,2:19]*100
 
-#neutral <- 100-pos-neg
+neutral <- 100-pos-neg
 
 percent.happy <- rbind(pos, neutral, suggestions)
 row.names(percent.happy) <- c( "Positive Response", "Negative Response", "Offered Suggestion to Process")
@@ -951,7 +962,7 @@ plot <- barplot(as.matrix(percent.happy[,3:18]), main = "Response to Consultatio
 par(op)        # resize area
 # add legend in top left outside of plot area
 par(xpd=TRUE)
-legend(19.5,100, legend = c("Negative", "Offered Suggestion", "Positive"), 
+legend(19.5,100, legend = c("Negative", "Positive", "suggestions"), 
        fill = (colorRampPalette(c("light blue", "dark blue"))(n = 3)), title="Response")
 
 # add x labels
@@ -964,7 +975,7 @@ title(main = NULL, sub = NULL,
       xlab = NULL, ylab = "Percent of Respondents in Stakeholder Group", cex = 1)
 
 # Add in numbers to top of bar graph showing percent in stakeholder group that responded
-text(x = plot, y = 100+2, labels=(percent.response), xpd=TRUE)
+text(x = plot, y = 60+2, labels=(percent.response), xpd=TRUE)
 dev.off()
 
 ############ express as heat map
@@ -997,13 +1008,13 @@ heatmap.2(mat.data,
           
   #       dendorgram and groupings
           #breaks=col_breaks,    # enable color transition at specified limits
-          dendrogram=c("row"),     # only draw a row dendrogram
+          dendrogram=c("none"),     # only draw a row dendrogram
           density.info="density",  # turns on density plot inside color legend
           trace="none",         # turns off trace lines inside the heat map
           
           # appearance
         margins =c(20,20),     # widens margins around plot
-         col= palette,       # use on color palette defined earlier 
+         col= per_palette,       # use on color palette defined earlier 
          cexCol=1.5, 
          cexRow = 1.5,          # decrease row font size to fit
          srtCol=45,           # rotate the x labels at 45 deg so they fit
