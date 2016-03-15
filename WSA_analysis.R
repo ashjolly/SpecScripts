@@ -40,7 +40,7 @@ ind_palette <- colorRampPalette(c("light grey", "#E69F00"))(n = 299)
 
 ###################################
 ## load data
-data.original <- as.data.frame(read.csv(paste(directory, 'codestats_heatmap.csv', sep = ''), sep = ",", header = TRUE))
+data.original <- as.data.frame(read.csv(paste(directory, 'codestats_heatmap_v2.csv', sep = ''), sep = ",", header = TRUE))
 
 ################# Data Preprocessing
 # take out the 'all' categories from the data
@@ -329,7 +329,7 @@ mat.data <- t(data.matrix(rounded.factors))                          # convert d
 row.names(mat.data) <- stakeholder.n
      
 rownames(mat.data) <- gsub(x = rownames(mat.data),
-                             pattern = "\\_",
+                             pattern = "\\.",
                              replacement = " ") 
 
 # creates a 5 x 5 inch image
@@ -359,6 +359,8 @@ png(paste(directory, "WSA_response_subpolicy.png", sep = ""),    # create PNG fo
           cexCol=1.5, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
+          srtRow=-45,
+          
           #axisnames = FALSE,
           
           na.color = 'white',   # colour of NA blocks
@@ -395,6 +397,8 @@ png(paste(directory, "WSA_response_subpolicy_nonumb.png", sep = ""),    # create
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
           #axisnames = FALSE,
+
+          srtRow=-45,
           
           na.color = 'white',   # colour of NA blocks
           keysize = 1,         # size of the colour key
