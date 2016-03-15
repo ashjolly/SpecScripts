@@ -37,6 +37,8 @@ library(eeptools)
 library(MASS)
 library(Hmisc)
 library('corrplot') #package corrplot
+library(reshape2)
+library(gridExtra)
 ################################################################################
 # Read in data used for analysis
 ## Water quality and location data
@@ -55,6 +57,13 @@ cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
 
 # The palette with black:
 cbbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+### Default theme
+theme = theme_set(theme_bw() + 
+                    theme(strip.text = element_text(size=14),
+                          axis.text=element_text(size=14, color = "black"), 
+                          axis.title = element_text(size=14), legend.text = element_text(size=14),
+                          plot.title = element_text(size=14)))
 
 ##############################################################
 # functions used in script
@@ -115,7 +124,7 @@ CM.pre.Fmax$samplename <- samplename
 remove(sample)
 
 # pre chlorination PARAFAC - Fmax values for 6 component model 
-Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withoutGR/DBPPre_withoutGR/Fmax.csv", header = FALSE, sep = ",")
+Pre.Fmax <- read.csv("/Users/user/Documents/MATLAB/toolbox/PARAFACresults/DOMFluor_DREEMSHydbrid_withoutGR/DBPPre_withoutGR/Fmax_6.csv", header = FALSE, sep = ",")
 Pre.Fmax.key <- t(read.csv("/Users/user/Documents/MATLAB/toolbox/CorrEEMS/DBPPre_noGR/01key.csv", header = FALSE, sep = ","))
 Pre.Fmax$samplename <- Pre.Fmax.key
 colnames(Pre.Fmax) <- c("DR_C1", "DR_C2", "DR_C3", "DR_C4", "DR_C5", "DR_C6", "samplename")
@@ -266,8 +275,6 @@ wq.stat <- rbind(wq.mean, wq.max, wq.min, wq.sd)  # bind stats back together
 write.table(wq.stat, file = paste(save.directory, "waterqualitystats.csv", sep = ""),  sep = ",")
 
 # Do t-tests to see if certain groups are significantly different.
-
-
 ######################## 
 # Part 1 Figure 2 - Boxplot of Fmax values from PARAFAC fits to the 6-component model
 # Partitioned according to region.
@@ -277,26 +284,7 @@ write.table(wq.stat, file = paste(save.directory, "waterqualitystats.csv", sep =
 Pre.Fmax <- merge(Pre.Fmax, waterquality[,c(1,36:38)], by = "samplename")
 
 # unfold the dataframe into a form that can do histograms easily
-remove(PCApre6)
-for (i in 1:6){
-  temp.C <- data.frame(Pre.Fmax[,i+1])
-  temp.component <- colnames(Pre.Fmax)[i+1]
-  temp.C$component <- temp.component
-  temp.C$Region <- Pre.Fmax$Region
-  temp.C$samplename <- Pre.Fmax$samplename
-  
-  # if the merged dataset  exists, append to it by row
-  if (exists("PCApre6")){
-    PCApre6 <- rbind(PCApre6, temp.C)
-  }
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("PCApre6")){
-    PCApre6 <- temp.C
-  }
-}
-
-colnames(PCApre6)[1] <- "values" #rename first column that contains Fmax values
+PCA.pre6 <- melt(Pre.Fmax[,c(1:7,9)])
 
 # save the boxplot as a figure in file
 png(paste(save.directory, "/PrePARAFACboxplot.png", sep = ""),    # create graphic for the         
@@ -305,36 +293,31 @@ png(paste(save.directory, "/PrePARAFACboxplot.png", sep = ""),    # create graph
     res = 300,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
-  ggplot(PCApre6, aes(x=component, y=values, fill=Region)) + 
+  ggplot(PCA.pre6, aes(x=variable, y=value, fill=Region)) + 
     geom_boxplot(outlier.shape = NA)  +#remove extreme values
-    labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values") 
+    labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values")  +
+    scale_fill_manual(values=cbPalette[2:7])
 dev.off()
 
-# Express as the percentgae, rather than the Fmax value:
+# do as boxplot
+png(paste(save.directory, "/PrePARAFACbarplot.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 3*300,
+    res = 300)            # 300 pixels per inch
+    #pointsize = 6)        # smaller font size
+  ggplot(PCA.pre6, aes(x=variable, y=value, fill=Region)) + 
+    geom_bar(stat="identity", position=position_dodge(), colour="black") +  # stat = bin
+    scale_fill_manual(values=cbPalette[2:7]) +
+    labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values") 
+
+dev.off()
+
+# Express as the percentage, rather than the Fmax value:
 colnames(Pre.Fmax.per)[7] <- "samplename"
 Pre.Fmax.per <- merge(Pre.Fmax.per, waterquality[,c(1,36:38)], by = "samplename")
 
 # unfold the dataframe into a form that can do boxplots easily
-remove(PCApre6.per)
-for (i in 1:6){
-  temp.C <- data.frame(Pre.Fmax.per[,i+1])
-  temp.component <- colnames(Pre.Fmax.per)[i+1]
-  temp.C$component <- temp.component
-  temp.C$Region <- Pre.Fmax.per$Region
-  temp.C$samplename <- Pre.Fmax.per$samplename
-  
-  # if the merged dataset  exists, append to it by row
-  if (exists("PCApre6.per")){
-    PCApre6.per <- rbind(PCApre6.per, temp.C)
-  }
-  
-  # if the merged dataset doesn't exist, create it
-  if (!exists("PCApre6.per")){
-    PCApre6.per <- temp.C
-  }
-}
-
-colnames(PCApre6.per)[1] <- "values" #rename first column that contains Fmax values
+PCApre6.per <- melt(Pre.Fmax.per[,c(1:7,9)],id.vars=c("Region", 'samplename'))
 
 # save the boxplot as a figure in file
 png(paste(save.directory, "/PrePARAFAC_per_boxplot.png", sep = ""),    # create graphic for the         
@@ -343,9 +326,27 @@ png(paste(save.directory, "/PrePARAFAC_per_boxplot.png", sep = ""),    # create 
     res = 300,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
-ggplot(PCApre6.per, aes(x=component, y=values, fill=Region)) + 
-  geom_boxplot(outlier.shape = NA)  +#remove extreme values
-  labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax (% of total fluorescence)") 
+  ggplot(PCApre6.per, aes(x=variable, y=value, fill=Region)) + 
+    geom_boxplot(outlier.shape = NA)  +#remove extreme values
+    labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax (% of total fluorescence)") +
+    scale_fill_manual(values=cbPalette[2:7]) 
+
+dev.off()
+
+# Do as bar graph - percentage of Fmax
+png(paste(save.directory, "/PrePARAFAC_per_bargraph.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 3*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+  ggplot(PCApre6.per, aes(x=variable, y=value, fill=Region)) + 
+    geom_bar(stat="identity", position=position_dodge(), colour="black") +  # stat = bin
+    labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax (% of total fluorescence)") +
+    scale_fill_manual(values=cbPalette[2:7]) 
+
+# Add in error bars
+
 dev.off()
 
 ########################
@@ -390,8 +391,11 @@ png(paste(save.directory, "/DBP_PCAWQdata.png", sep = ""),    # create graphic f
     res = 300,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
-ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1, groups = na.omit(wq.all.select[,1]),
-         ellipse = TRUE, circle = FALSE) +ggtitle("PCA Results- WQ Parameters") #+geom_point(colour = cbPalette[2:7]) 
+  ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1, groups = na.omit(wq.all.select[,1]),
+         ellipse = TRUE, circle = FALSE, varname.abbrev = FALSE) +
+    scale_colour_manual(values=cbPalette[2:7]) +
+    theme(legend.direction = 'vertical', legend.position = 'right') 
+
 dev.off()
 
 # show relative contribution of each variable to the first 5 components of PCA
@@ -543,13 +547,34 @@ for (i in 1:(dim(delta.spec.select)[2]-1)){
   remove(temp.C)
 }
 
-# do box plot
+# Express percent change as box plot
 colnames(perc.spec)[1] <- "Percent" #rename first column that contains Fmax values
-p <- ggplot(perc.spec, aes(x=proxy, y=Percent)) +
-  geom_boxplot(outlier.shape = NA) + #remove extreme values
-  coord_cartesian(ylim = c(-500, 500)) + # change y limits on boxplot
-  labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)")
-p + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+png(paste(save.directory, "/DBP_percchange_boxplot.png", sep = ""))
+
+  ggplot(perc.spec, aes(x=proxy, y=Percent)) +
+    geom_boxplot(outlier.shape = NA, fill = cbPalette[1]) + #remove extreme values
+    coord_cartesian(ylim = c(-500, 500)) + # change y limits on boxplot
+    labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)") +
+    theme() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_fill_manual(values=cbPalette[8]) 
+dev.off()
+
+# Express percent change as bar graph
+png(paste(save.directory, "/DBP_percchange_barplot.png", sep = ""),    # create graphic for the         
+    width = 5*300,        # 5 x 300 pixels
+    height = 5*300,
+    res = 300,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+  ggplot(perc.spec, aes(x=proxy, y=Percent)) +
+    geom_bar(stat="identity", position=position_dodge(), colour="black") +  # stat = bin
+    coord_cartesian(ylim = c(-500, 500)) + # change y limits on boxplot
+    labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+    scale_fill_manual(values=cbPalette[8]) 
+dev.off()
 
 # do t tests to look at which variables are significantly changed by chlorination (pre versus post)
 t.abs254 <- t.test(spec.indicies.PARAFAC$abs254.dec, spec.indicies.post.PARAFAC$abs254.dec)
@@ -595,6 +620,20 @@ dev.off()
 # write correlation matrix to csv file
 write.csv(corr.matrix.delta, file = paste(save.directory, "DBPDelta_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
 
+############### boxplots of only variables that are significantly different only
+select <- c("abs254", "SR", "HIX", "OFI", "perprotein", "redox", "C2", "C3", "C4", "C6")
+select.perc.spec <- subset(perc.spec, perc.spec$proxy == select)
+
+png(paste(save.directory, "/DBP_percchangeselect_boxplot.png", sep = ""))
+  ggplot(select.perc.spec, aes(x=proxy, y=Percent)) +
+    geom_boxplot(outlier.shape = NA, fill = cbPalette[1]) + #remove extreme values
+    coord_cartesian(ylim = c(-250, 250)) + # change y limits on boxplot
+    labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)") +
+    theme() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    scale_fill_manual(values=cbPalette[8]) 
+dev.off()
+
 #########################################################################################################################
 # Pt 3 - How does EEMS and Water Quality parameters predict DBP formation?
 # Thoughts:
@@ -610,6 +649,22 @@ write.csv(corr.matrix.delta, file = paste(save.directory, "DBPDelta_Corrmatrix.c
 # calculate THM and HAA total (sum of all of the different species for that sample)
 HAA$total <- apply(HAA[,2:10], 1, sum)
 THM$total <- apply(THM[,2:5], 1, sum)
+
+######## stats on thm and haa data
+## find what the most prevalent THM/HAA species were, etc.
+ave.THM <- mean(THM$total)
+std.THM <- sd(THM$total)
+ave.HAA <- mean(HAA$total)
+std.HAA <- sd(HAA$total)
+
+# average of each of the species of HAA/THM
+ave.THM.sp <- colMeans(THM[,2:6])
+st.THM.sp <- apply(THM[,2:6],2, sd)/sqrt(30)
+percent.THM <- ave.THM.sp[1:4]/ave.THM.sp[5]*100
+
+ave.HAA.sp <- colMeans(HAA[,2:11])
+st.HAA.sp <- apply(HAA[,2:11],2, sd)/sqrt(30-1)
+percent.HAA <- ave.HAA.sp[1:9]/ave.HAA.sp[10]*100
 
 ######## apply linear model, where y = HAA and THMs, and x = spectral variables...
 # try #1: 
@@ -647,8 +702,8 @@ THM.waterq$total.yield <- THM.waterq$total/THM.waterq$NPOC_DOC_corrected
 
 # Do linear models for total HAA and total THMs
 # Note that expect some of the variables to co-relate, thus use gls linear fit model
-HAA.waterq <- lapply(HAA.waterq, as.numeric)
-THM.waterq <- lapply(THM.waterq, as.numeric)
+#HAA.waterq <- lapply(HAA.waterq, as.numeric)
+#THM.waterq <- lapply(THM.waterq, as.numeric)
 
 ############ total HAAs
 # use tree to look at the correlation between variables - first, CM model
@@ -695,7 +750,6 @@ glmmodel.HAAtotal <- glm(HAA.waterq$total ~ HAA.waterq$NPOC_DOC_corrected
                          + HAA.waterq$perprotein + HAA.waterq$redox 
                          + HAA.waterq$e2e3.dec + HAA.waterq$e4e6.dec + HAA.waterq$SR.dec,
                          family = "gaussian")
-
 summary(glmmodel.HAAtotal)
 
 # Use step function to remove variables with less correlation to DOC concentration
@@ -757,65 +811,76 @@ library(ggpmisc)
 HAA.waterq.data <- as.data.frame(HAA.waterq) # convert to data frame
 HAA.waterq.data<- HAA.waterq.data[-22,]
 my.formula = y~x
+
 # HAA versus DOC
-ggplot(HAA.waterq.data, aes(x=NPOC_DOC_corrected, y=total)) +
+pdf(file=paste0(save.directory,"/HAAplots.pdf"), width = 11, height = 8.5)
+
+lf.a <- ggplot(HAA.waterq.data, aes(x=NPOC_DOC_corrected, y=total)) +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
   stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
-               parse = TRUE) +         
-  geom_point() +
+               parse = TRUE) + 
+  geom_point(aes(colour=Region)) +
   ggtitle("[THAAs] versus [DOC]") +
-  labs(x="DOC Concentration (mg/L)",y="THAAs Concentration (ug/L)")
+  labs(x="DOC Concentration (mg/L)",y="[THAAs]  (ug/L)")
 
 # HAA versus abs254
-ggplot(HAA.waterq.data, aes(x=abs254.dec, y=total)) +
+lf.b <- ggplot(HAA.waterq.data, aes(x=abs254.dec, y=total)) +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
   stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
+  geom_point(aes(colour=Region)) +
   ggtitle("[THAAs] versus a254") +
-  labs(x="a254 (1/m)",y="THAAs Concentration (ug/L)")
+  labs(x="a254 (1/m)",y="[THAAs]  (ug/L)")
 
 # HAA versus abs272
-ggplot(HAA.waterq.data, aes(x=abs272.dec, y=total)) +
+lf.c <- ggplot(HAA.waterq.data, aes(x=abs272.dec, y=total)) +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
   stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
+  geom_point(aes(colour=Region)) +
   ggtitle("[THAAs] versus a272") +
-  labs(x="a272 (1/m)",y="THAAs Concentration (ug/L)")
+  labs(x="a272 (1/m)",y="[THAAs]  (ug/L)")
 
 # HAA versus C1
-ggplot(HAA.waterq.data, aes(x=DR_C1, y=total)) +
+lf.d <- ggplot(HAA.waterq.data, aes(x=DR_C1, y=total)) +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
   stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
+  geom_point(aes(colour=Region)) +
   ggtitle("[THAAs] versus C1") +
-  labs(x="C1 Fmax (R.U)",y="THAAs Concentration (ug/L)")
+  labs(x="C1 Fmax (R.U)",y="[THAAs]  (ug/L)")
 
 # HAA versus C2
-ggplot(HAA.waterq.data, aes(x=DR_C2, y=total)) +
+lf.e <- ggplot(HAA.waterq.data, aes(x=DR_C2, y=total)) +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
   stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
+  geom_point(aes(colour=Region)) +
   ggtitle("[THAAs] versus C2") +
-  labs(x="C2 Fmax (R.U)",y="THAAs Concentration (ug/L)")
+  labs(x="C2 Fmax (R.U)",y="[THAAs]  (ug/L)")
 
 # HAA versus C3
-ggplot(HAA.waterq.data, aes(x=DR_C3, y=total)) +
+lf.f <- ggplot(HAA.waterq.data, aes(x=DR_C3, y=total)) +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
   stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
+  geom_point(aes(colour=Region)) +
   ggtitle("[THAAs] versus C3") +
-  labs(x="C3 Fmax (R.U)",y="THAAs Concentration (ug/L)")
+  labs(x="C3 Fmax (R.U)",y="[THAAs]  (ug/L)")
+
+grid.arrange(lf.a,lf.b,lf.c,lf.d,lf.e, ncol=2)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0.5, "npc"),y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc") + unit(2,"mm"), y=unit(0.68, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("D", x=unit(0.5, "npc") , y=unit(0.68, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("E", x=unit(0, "npc")+ unit(2,"mm") , y=unit(0.35, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
 
 ####################### Total THMs
 #NPOC and THMs
@@ -829,7 +894,7 @@ model.THMtotal.lm <- lm(THM.waterq$total ~ THM.waterq$NPOC_DOC_corrected
                       + THM.waterq$DR_C1 + THM.waterq$DR_C2 +
                         THM.waterq$DR_C3 + THM.waterq$DR_C4 + THM.waterq$DR_C5 +
                         THM.waterq$DR_C6 + THM.waterq$perprotein + THM.waterq$redox 
-                      + THM.waterq$SUVA + THM.waterq$abs254.dec + THM.waterq$abs272.dec + THMwaterq$delta
+                      + THM.waterq$SUVA + THM.waterq$abs254.dec + THM.waterq$abs272.dec + THM.waterq$delta
                       + THM.waterq$e2e3.dec + THM.waterq$e4e6.dec + THM.waterq$SR.dec
                     )
 summary(model.THMtotal.lm)
@@ -903,35 +968,40 @@ plot(THM.waterq$total ~ THM.waterq$HIX_ohno_area)
 THM.waterq.data <- as.data.frame(THM.waterq) # convert to data frame
 my.formula = y~x
 
-# HAA versus C3
-ggplot(THM.waterq.data, aes(x=DR_C4, y=total)) +
-  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
-  stat_poly_eq(formula = my.formula, 
+pdf(file=paste0(save.directory,"/THMplots.pdf"), width = 11, height = 8.5)
+# HAA versus C4
+  lf.a <- ggplot(THM.waterq.data, aes(x=DR_C4, y=total)) +
+    geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+    stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
-  ggtitle("[TTHMs] versus C4") +
-  labs(x="Fmax (R.U)",y="TTHMs Concentration (ug/L)")
+    geom_point(aes(colour=Region)) +
+    ggtitle("[TTHMs] versus C4") +
+    labs(x="Fmax (R.U)",y="[TTHMs] (ug/L)")
 #C5
-ggplot(THM.waterq.data, aes(x=DR_C5, y=total)) +
-  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
-  stat_poly_eq(formula = my.formula, 
+  lf.b <- ggplot(THM.waterq.data, aes(x=DR_C5, y=total)) +
+    geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+    stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
-  ggtitle("[TTHMs] versus C5") +
-  labs(x="Fmax (R.U)",y="TTHMs Concentration (ug/L)")
+    geom_point(aes(colour=Region)) +
+    ggtitle("[TTHMs] versus C5") +
+    labs(x="Fmax (R.U)",y="[TTHMs] (ug/L)")
 #C6
-ggplot(THM.waterq.data, aes(x=DR_C6, y=total)) +
-  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
-  stat_poly_eq(formula = my.formula, 
+  lf.c <- ggplot(THM.waterq.data, aes(x=DR_C6, y=total)) +
+    geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+    stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
-  geom_point() +
-  ggtitle("[TTHMs] versus C6") +
-  labs(x="Fmax (R.U)",y="TTHMs Concentration (ug/L)")
+    geom_point(aes(colour=Region)) +
+    ggtitle("[TTHMs] versus C6") +
+    labs(x="Fmax (R.U)",y="[TTHMs] (ug/L)")
 
-
+  grid.arrange(lf.a,lf.b,lf.c, ncol=2)
+  grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+  grid.text("B", x=unit(0.5, "npc"),y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+  grid.text("C", x=unit(0, "npc") + unit(2,"mm"), y=unit(0.5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
 
 #################################################################################
 ######### correlation matrix - spectral parameters and total THM/HAA
