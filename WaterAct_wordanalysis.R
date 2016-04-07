@@ -13,8 +13,8 @@
 rm(list = ls())
 ls()
 
-Selected_individual <- "/Users/ashlee/Documents/WaterAct Paper/Selected_individual"
-dname <-  "/Users/ashlee/Documents/WaterAct Paper/Selected_individual/corpus"
+Selected_individual <- "/Users/user/Dropbox/PhD Work/WaterAct Paper/Selected_individual"
+dname <-  "/Users/user/Dropbox/PhD Work/WaterAct Paper/Selected_individual/corpus"
 # where txt files will be stored
 
 setwd(Selected_individual)
