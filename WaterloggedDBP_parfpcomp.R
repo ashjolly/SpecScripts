@@ -1,8 +1,16 @@
-#
-# 
+
 # Script for compiling par and fp files and calculating DOC, TOC, NO3 averages from multiple measurements
-# Jan 21 2015 AJ
-# For DBP sample files/WL files
+# Started Jan 21 2015 
+# Ashlee Jollymore's PhD awesomesauce
+# For files from s::can spectro:lyzer, or the like. 
+# Purpose of the script is to: 
+# 1. Recognize par and fp files, and compile both accroding to sample name extracted within the title of the filename
+# 2. Account for dilution factor
+# 3. Import the files for each sample, and calculate statistics like mean and st for absorbance measureents and calculated parameters
+# 4. From the abs spectra, calculate spectral parameters like sac254, spectral slope etc. 
+# 5. Export the mean values for TOC/DOC/NO3?Turbid and absorbance parameters, and save them as a csv file.
+#
+# For DBP sample files/WL files (where one file is one sample)
 #######
 
 # set working directory
@@ -59,7 +67,7 @@ filelist.fppar <- as.data.frame(merge(filelist.fpsampleID, filelist.parsampleID,
 #remove(filelist.fpsampleID)
 
 ###########
-#dilution file
+#dilution file. 
 dil.top = c("sample.ID", "dilutionfactor")
 dilution <- as.data.frame(read.csv(paste(spectro.direct, "WL_dilutionfactors.csv", sep = "/"), sep=",", header = FALSE, col.names = dil.top))
 
@@ -73,9 +81,9 @@ remove(dil.top)
 # run loop to calculate averages, calculate absorbance parameters, account for dilution, correct DOC
 
 n = nrow(filelist.all)
-#abs.data <- data.frame(matrix(vector(), 0, 28))
+remove(abs.data) # make sure you don't have the dataframe in which youy will save calculated spectral parameters and averages
+
 for (i in 1:n){
-  
   # par file
   parfilename <- toString(filelist.all[i,3])
   top.par = c('Date','Time', 'Status',  'Turb.FTU',  'Turb.status',  'NO3.N',  'NO3.status',	'TOC',	'TOC.status',	'DOC',	'DOC.status','SAC254',	'SAC254.status',	'Level [m]NaN-NaN_2',	'[Level_0.0_1.0_0.0_0.0]',	'Temp [°C]NaN-NaN_2',	'[Temp_0.0_1.0_0.0_0.0]',	'analogINNaN-NaN_2',	'[analogIN_0.0_1.0_0.0_0.0]')
