@@ -738,7 +738,7 @@ png(paste(directory, "WSA_allocation_nonum.png", sep = ""),         # create PNG
           #notecex = 0.8,          # Change the font size of the data labels
           #notecol="black",      # change font color of cell labels to black
           
-          main = "Percent of Responses to FITFIR ('Allocation System' Sub Policy Area)", # heat map title
+         # main = "Percent of Responses to FITFIR ('Allocation System' Sub Policy Area)", # heat map title
           
           # dendorgram and groupings
           #breaks=col_breaks,    # enable color transition at specified limits
