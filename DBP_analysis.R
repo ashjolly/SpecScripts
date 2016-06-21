@@ -44,6 +44,7 @@ library(gridExtra)
 ## Water quality and location data
 # directory for data used for analysis
 save.directory <- '/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_analysisdata'
+fig.dir <- '/Users/user/Dropbox/PhD Work/Thesis chapters/DBP Chapter/DBP_figure'
 pre.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_prechlor_correctedEEMSRaleigh"
 post.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_postchlorination/DBP_postchlor_correctedEEMSRaleigh"
 Delta.directory <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_delta"
@@ -285,31 +286,24 @@ Pre.Fmax <- merge(Pre.Fmax, waterquality[,c(1,36:38)], by = "samplename")
 
 # unfold the dataframe into a form that can do histograms easily
 PCA.pre6 <- melt(Pre.Fmax[,c(1:7,9)])
+PCA.pre6$variable<- substring(PCA.pre6$variable, 4)
 
 # save the boxplot as a figure in file
-png(paste(save.directory, "/PrePARAFACboxplot.png", sep = ""),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 3*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-  ggplot(PCA.pre6, aes(x=variable, y=value, fill=Region)) + 
-    geom_boxplot(outlier.shape = NA)  +#remove extreme values
-    labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values")  +
-    scale_fill_manual(values=cbPalette[2:7])
+pdf(file=paste0(fig.dir,"/DBP_Fmaxboxplot.pdf"), width = 11, height = 8.5)
+ggplot(PCA.pre6, aes(x=variable, y=value, fill=Region)) + 
+    geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+    scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+    ggtitle(expression('PARAFAC F'[max]*' By Region')) +
+    ylab(expression('F'[max]* ' Values')) +
+    xlab(expression('PARAFAC Components')) 
 dev.off()
 
-# do as boxplot
-png(paste(save.directory, "/PrePARAFACbarplot.png", sep = ""),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 3*300,
-    res = 300)            # 300 pixels per inch
-    #pointsize = 6)        # smaller font size
+# Express Fmax as barplot
+pdf(file=paste0(fig.dir,"/DBP_Fmaxbarplot.pdf"), width = 11, height = 8.5)
   ggplot(PCA.pre6, aes(x=variable, y=value, fill=Region)) + 
     geom_bar(stat="identity", position=position_dodge(), colour="black") +  # stat = bin
     scale_fill_manual(values=cbPalette[2:7]) +
     labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax Values") 
-
 dev.off()
 
 # Express as the percentage, rather than the Fmax value:
@@ -320,33 +314,20 @@ Pre.Fmax.per <- merge(Pre.Fmax.per, waterquality[,c(1,36:38)], by = "samplename"
 PCApre6.per <- melt(Pre.Fmax.per[,c(1:7,9)],id.vars=c("Region", 'samplename'))
 
 # save the boxplot as a figure in file
-png(paste(save.directory, "/PrePARAFAC_per_boxplot.png", sep = ""),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 3*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
+pdf(file=paste0(fig.dir,"/DBP_Fmaxpercentboxplot.pdf"), width = 11, height = 8.5)
   ggplot(PCApre6.per, aes(x=variable, y=value, fill=Region)) + 
     geom_boxplot(outlier.shape = NA)  +#remove extreme values
     labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax (% of total fluorescence)") +
     scale_fill_manual(values=cbPalette[2:7]) 
-
 dev.off()
 
 # Do as bar graph - percentage of Fmax
-png(paste(save.directory, "/PrePARAFAC_per_bargraph.png", sep = ""),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 3*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-  ggplot(PCApre6.per, aes(x=variable, y=value, fill=Region)) + 
+pdf(file=paste0(fig.dir,"/PrePARAFAC_per_bargraph.pdf"), width = 11, height = 8.5)
+ggplot(PCApre6.per, aes(x=variable, y=value, fill=Region)) + 
     geom_bar(stat="identity", position=position_dodge(), colour="black") +  # stat = bin
     labs(title="PARAFAC Fmax by Region",x="PARAFAC Components", y = "Fmax (% of total fluorescence)") +
     scale_fill_manual(values=cbPalette[2:7]) 
-
 # Add in error bars
-
 dev.off()
 
 ########################
@@ -385,17 +366,12 @@ wq.all.pca <- prcomp(wq.all.select[,2:23], center = TRUE, scale. = TRUE, na.acti
 summary(wq.all.pca)
 
 # plot PCA results
-png(paste(save.directory, "/DBP_PCAWQdata.png", sep = ""),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-  ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1, groups = na.omit(wq.all.select[,1]),
+pdf(file=paste0(fig.dir,"/DBP_PCAWQdata.pdf"), width = 11, height = 8.5)
+ggbiplot(wq.all.pca, obs.scale = 1, var.scale = 1, groups = na.omit(wq.all.select[,1]),
          ellipse = TRUE, circle = FALSE, varname.abbrev = FALSE) +
-    scale_colour_manual(values=cbPalette[2:7]) +
-    theme(legend.direction = 'vertical', legend.position = 'right') 
-
+  scale_colour_manual(values=cbPalette[1:6], name="Region") +
+  theme(legend.direction = 'vertical', legend.position = 'right') +
+  ggtitle(expression('PCA - Water Quality Variables'))
 dev.off()
 
 # show relative contribution of each variable to the first 5 components of PCA
@@ -550,9 +526,8 @@ for (i in 1:(dim(delta.spec.select)[2]-1)){
 # Express percent change as box plot
 colnames(perc.spec)[1] <- "Percent" #rename first column that contains Fmax values
 
-png(paste(save.directory, "/DBP_percchange_boxplot.png", sep = ""))
-
-  ggplot(perc.spec, aes(x=proxy, y=Percent)) +
+pdf(file=paste0(fig.dir,"/DBP_percchange_boxplot.pdf"), width = 11, height = 8.5)
+ggplot(perc.spec, aes(x=proxy, y=Percent)) +
     geom_boxplot(outlier.shape = NA, fill = cbPalette[1]) + #remove extreme values
     coord_cartesian(ylim = c(-500, 500)) + # change y limits on boxplot
     labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)") +
@@ -562,13 +537,8 @@ png(paste(save.directory, "/DBP_percchange_boxplot.png", sep = ""))
 dev.off()
 
 # Express percent change as bar graph
-png(paste(save.directory, "/DBP_percchange_barplot.png", sep = ""),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-  ggplot(perc.spec, aes(x=proxy, y=Percent)) +
+pdf(file=paste0(fig.dir,"/DBP_percchange_barplot.pdf"), width = 11, height = 8.5)
+ggplot(perc.spec, aes(x=proxy, y=Percent)) +
     geom_bar(stat="identity", position=position_dodge(), colour="black") +  # stat = bin
     coord_cartesian(ylim = c(-500, 500)) + # change y limits on boxplot
     labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)") +
@@ -608,24 +578,21 @@ t.DR_C6 <- t.test(spec.indicies.PARAFAC$DR_C6, spec.indicies.post.PARAFAC$DR_C6)
 delta.spec.select <- do.call(data.frame,lapply(delta.spec.select[,2:22], function(x) replace(x, is.infinite(x),NA)))
 corr.matrix.delta <- cor(na.omit(delta.spec.select)) # correlation matric between variables
 
-png(paste(save.directory, "DBPdelta_correlations.png", sep = "/"),    # create graphic for the correlations plot       
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
+pdf(file=paste0(fig.dir,"/DBPdelta_correlations.pdf"), width = 11, height = 8.5)
   corrplot(corr.matrix.delta, method = "circle") #plot matrix
 dev.off()
 
 # write correlation matrix to csv file
-write.csv(corr.matrix.delta, file = paste(save.directory, "DBPDelta_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
+write.csv(corr.matrix.delta, file = paste(fig.dir, "DBPDelta_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
 
 ############### boxplots of only variables that are significantly different only
 select <- c("abs254", "SR", "HIX", "OFI", "perprotein", "redox", "C2", "C3", "C4", "C6")
 select.perc.spec <- subset(perc.spec, perc.spec$proxy == select)
+select.perc.specabs <- as.data.frame(cbind(abs(select.perc.spec$Percent), select.perc.spec$proxy))
+colnames(select.perc.specabs) <- c('Percent', 'proxy')
 
-png(paste(save.directory, "/DBP_percchangeselect_boxplot.png", sep = ""))
-  ggplot(select.perc.spec, aes(x=proxy, y=Percent)) +
+pdf(file=paste0(fig.dir,"/DBP_percchangeselect_boxplot.pdf"), width = 11, height = 8.5)
+ggplot(select.perc.spec, aes(x=proxy, y=Percent)) +
     geom_boxplot(outlier.shape = NA, fill = cbPalette[1]) + #remove extreme values
     coord_cartesian(ylim = c(-250, 250)) + # change y limits on boxplot
     labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)") +
@@ -645,7 +612,6 @@ dev.off()
 # First, mutiple linear regression to rank the contribution of water quality variables to 
 
 ########### compile the DBP concentrations + clean the data
-
 # calculate THM and HAA total (sum of all of the different species for that sample)
 HAA$total <- apply(HAA[,2:10], 1, sum)
 THM$total <- apply(THM[,2:5], 1, sum)
