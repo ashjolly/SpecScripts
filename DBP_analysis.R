@@ -39,6 +39,8 @@ library(Hmisc)
 library('corrplot') #package corrplot
 library(reshape2)
 library(gridExtra)
+library(grid)
+library(gtable)
 ################################################################################
 # Read in data used for analysis
 ## Water quality and location data
@@ -588,8 +590,6 @@ write.csv(corr.matrix.delta, file = paste(fig.dir, "DBPDelta_Corrmatrix.csv", se
 ############### boxplots of only variables that are significantly different only
 select <- c("abs254", "SR", "HIX", "OFI", "perprotein", "redox", "C2", "C3", "C4", "C6")
 select.perc.spec <- subset(perc.spec, perc.spec$proxy == select)
-select.perc.specabs <- as.data.frame(cbind(abs(select.perc.spec$Percent), select.perc.spec$proxy))
-colnames(select.perc.specabs) <- c('Percent', 'proxy')
 
 pdf(file=paste0(fig.dir,"/DBP_percchangeselect_boxplot.pdf"), width = 11, height = 8.5)
 ggplot(select.perc.spec, aes(x=proxy, y=Percent)) +
@@ -600,6 +600,18 @@ ggplot(select.perc.spec, aes(x=proxy, y=Percent)) +
     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
     scale_fill_manual(values=cbPalette[8]) 
 dev.off()
+
+# Try and plot as the absolute changes, with positive changes noted in one colour, and negative in the other
+select.perc.specabs <- as.data.frame(cbind(abs(select.perc.spec$Percent), select.perc.spec$proxy))
+colnames(select.perc.specabs) <- c('Percent', 'proxy')
+ggplot(select.perc.specabs, aes(x=proxy, y=Percent)) +
+  geom_boxplot(outlier.shape = NA, fill = cbPalette[1]) + #remove extreme values
+  coord_cartesian(ylim = c(-250, 250)) + # change y limits on boxplot
+  labs(title="Percent Change Upon Chlorination",x="Spectral Proxy", y = "Percent Change (Upon Chlorination)") +
+  theme() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values=cbPalette[8]) 
+
 
 #########################################################################################################################
 # Pt 3 - How does EEMS and Water Quality parameters predict DBP formation?
@@ -779,7 +791,7 @@ HAA.waterq.data<- HAA.waterq.data[-22,]
 my.formula = y~x
 
 # HAA versus DOC
-pdf(file=paste0(save.directory,"/HAAplots.pdf"), width = 11, height = 8.5)
+pdf(file=paste0(fig.dir,"/HAAplots.pdf"), width = 11, height = 8.5)
 
 lf.a <- ggplot(HAA.waterq.data, aes(x=NPOC_DOC_corrected, y=total)) +
   geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
@@ -787,6 +799,7 @@ lf.a <- ggplot(HAA.waterq.data, aes(x=NPOC_DOC_corrected, y=total)) +
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) + 
   geom_point(aes(colour=Region)) +
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
   ggtitle("[THAAs] versus [DOC]") +
   labs(x="DOC Concentration (mg/L)",y="[THAAs]  (ug/L)")
 
@@ -797,8 +810,10 @@ lf.b <- ggplot(HAA.waterq.data, aes(x=abs254.dec, y=total)) +
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
   geom_point(aes(colour=Region)) +
-  ggtitle("[THAAs] versus a254") +
-  labs(x="a254 (1/m)",y="[THAAs]  (ug/L)")
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[THAAs] versus a'[254]*'')) +
+  xlab(expression('a'[254]*' (1/m)')) +
+  ylab(expression('[THAAs] (ug/L)')) 
 
 # HAA versus abs272
 lf.c <- ggplot(HAA.waterq.data, aes(x=abs272.dec, y=total)) +
@@ -807,8 +822,10 @@ lf.c <- ggplot(HAA.waterq.data, aes(x=abs272.dec, y=total)) +
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
   geom_point(aes(colour=Region)) +
-  ggtitle("[THAAs] versus a272") +
-  labs(x="a272 (1/m)",y="[THAAs]  (ug/L)")
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[THAAs] versus a'[272]*'')) +
+  xlab(expression('a'[272]*' (1/m)')) +
+  ylab(expression('[THAAs] (ug/L)')) 
 
 # HAA versus C1
 lf.d <- ggplot(HAA.waterq.data, aes(x=DR_C1, y=total)) +
@@ -817,8 +834,10 @@ lf.d <- ggplot(HAA.waterq.data, aes(x=DR_C1, y=total)) +
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
   geom_point(aes(colour=Region)) +
-  ggtitle("[THAAs] versus C1") +
-  labs(x="C1 Fmax (R.U)",y="[THAAs]  (ug/L)")
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[THAAs] versus C1')) +
+  xlab(expression('C1 F'[max]*' (R.U)')) +
+  ylab(expression('[THAAs] (ug/L)')) 
 
 # HAA versus C2
 lf.e <- ggplot(HAA.waterq.data, aes(x=DR_C2, y=total)) +
@@ -827,8 +846,10 @@ lf.e <- ggplot(HAA.waterq.data, aes(x=DR_C2, y=total)) +
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
   geom_point(aes(colour=Region)) +
-  ggtitle("[THAAs] versus C2") +
-  labs(x="C2 Fmax (R.U)",y="[THAAs]  (ug/L)")
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[THAAs] versus C2')) +
+  xlab(expression('C2 F'[max]*' (R.U)')) +
+  ylab(expression('[THAAs] (ug/L)')) 
 
 # HAA versus C3
 lf.f <- ggplot(HAA.waterq.data, aes(x=DR_C3, y=total)) +
@@ -837,8 +858,10 @@ lf.f <- ggplot(HAA.waterq.data, aes(x=DR_C3, y=total)) +
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
   geom_point(aes(colour=Region)) +
-  ggtitle("[THAAs] versus C3") +
-  labs(x="C3 Fmax (R.U)",y="[THAAs]  (ug/L)")
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[THAAs] versus C3')) +
+  xlab(expression('C3 F'[max]*' (R.U)')) +
+  ylab(expression('[THAAs] (ug/L)')) 
 
 grid.arrange(lf.a,lf.b,lf.c,lf.d,lf.e, ncol=2)
 grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
@@ -904,7 +927,6 @@ summary(lm(THM.waterq$total ~ THM.waterq$FrI))$r.squared
 summary(lm(THM.waterq$total ~ THM.waterq$peakt.peakC))$r.squared
 summary(lm(THM.waterq$total ~ THM.waterq$HIX_ohno_area))$r.squared
 
-
 #write.table(THM.total.lm, file = paste(save.directory, "THMTotal_lmresults.csv", sep = ","))
 # plot the total THM versus all variables above
 plot(THM.waterq$total ~ THM.waterq$NPOC_DOC_corrected)
@@ -934,16 +956,19 @@ plot(THM.waterq$total ~ THM.waterq$HIX_ohno_area)
 THM.waterq.data <- as.data.frame(THM.waterq) # convert to data frame
 my.formula = y~x
 
-pdf(file=paste0(save.directory,"/THMplots.pdf"), width = 11, height = 8.5)
-# HAA versus C4
+pdf(file=paste0(fig.dir,"/THMplots.pdf"), width = 11, height = 8.5)
+# THM versus C4
   lf.a <- ggplot(THM.waterq.data, aes(x=DR_C4, y=total)) +
     geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
     stat_poly_eq(formula = my.formula, 
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
     geom_point(aes(colour=Region)) +
-    ggtitle("[TTHMs] versus C4") +
-    labs(x="Fmax (R.U)",y="[TTHMs] (ug/L)")
+    scale_colour_manual(name = "", values=cbPalette[1:6]) +
+    ggtitle(expression('[TTHMs] versus C4')) +
+    xlab(expression('C4 F'[max]*' (R.U)')) +
+    ylab(expression('[TTHMs] (ug/L)')) 
+  
 #C5
   lf.b <- ggplot(THM.waterq.data, aes(x=DR_C5, y=total)) +
     geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
@@ -951,8 +976,10 @@ pdf(file=paste0(save.directory,"/THMplots.pdf"), width = 11, height = 8.5)
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
     geom_point(aes(colour=Region)) +
-    ggtitle("[TTHMs] versus C5") +
-    labs(x="Fmax (R.U)",y="[TTHMs] (ug/L)")
+    scale_colour_manual(name = "", values=cbPalette[1:6]) +
+    ggtitle(expression('[TTHMs] versus C5')) +
+    xlab(expression('C5 F'[max]*' (R.U)')) +
+    ylab(expression('[TTHMs] (ug/L)')) 
 #C6
   lf.c <- ggplot(THM.waterq.data, aes(x=DR_C6, y=total)) +
     geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
@@ -960,8 +987,10 @@ pdf(file=paste0(save.directory,"/THMplots.pdf"), width = 11, height = 8.5)
                aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
                parse = TRUE) +         
     geom_point(aes(colour=Region)) +
-    ggtitle("[TTHMs] versus C6") +
-    labs(x="Fmax (R.U)",y="[TTHMs] (ug/L)")
+    scale_colour_manual(name = "", values=cbPalette[1:6]) +
+    ggtitle(expression('[TTHMs] versus C6')) +
+    xlab(expression('C6 F'[max]*' (R.U)')) +
+    ylab(expression('[TTHMs] (ug/L)')) 
 
   grid.arrange(lf.a,lf.b,lf.c, ncol=2)
   grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
@@ -1002,23 +1031,188 @@ corr.all <- as.matrix(cbind(corr.all.2, test2))
 colnames(corr.all) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'abs254', 'abs272', 'Delta abs272', 'e2e3', 'e4e6', 'SR', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index', "Total HAAs", "Total THMs")
 row.names(corr.all) <- c('C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'DOC', 'SUVA', 'abs254', 'abs272', 'Delta abs272', 'e2e3', 'e4e6', 'SR', 'HIX', 'FI', 'FrI', 'Peak A', 'Peak C', 'Peak B', 'Peak T', 'OFI', 'Redox Index',"Total HAAs", "Total THMs")
 
-write.csv(corr.all, file = paste(save.directory, "WQpre_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
+write.csv(corr.all, file = paste(fig.dir, "WQpre_Corrmatrix.csv", sep ="/")) #write correlation matrix to a csv file
 #corr.all <- na.omit(corr.all)
 
 # plot the correlation matrix of the spectral parameters
-png(paste(save.directory, "DBPtotalDBPs_correlations.png", sep = "/"),    # create graphic for the         
-    width = 5*300,        # 5 x 300 pixels
-    height = 5*300,
-    res = 300,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
-
-corrplot(na.omit(corr.all), method = "circle") #plot matrix
+pdf(file=paste0(fig.dir,"/DBPtotalDBPs_correlations.pdf"), width = 11, height = 8.5)
+  corrplot(na.omit(corr.all), method = "circle") #plot matrix
 dev.off()
 
 #########################################
-# try #2: 
-# y = specific HAA and THMs (multiple models)
-# x = PARAFAC components from the prechlorinated EEMS, water quality parameters, spectral parameters
-# TO DO - add PCA components for pre chlorinated EEMs; add in the delta eems for the 6 component fit?
+# TTHMs take 2
+# Try taking out the few extreme points that have a lot of leverage - try models and that sort of thing without the extreme leverage points
+# Try taking TTHMs >1000 ug/L out
+TTHM.sub <- subset(THM.waterq, THM.waterq$total <= 1000)
 
-# Try cca from vegan package
+# Do individual lm fits
+summary(lm(TTHM.sub$total~ TTHM.sub$NPOC_DOC_corrected))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$SUVA))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$abs254.dec))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$abs272.dec))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$delta.abs272))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$DR_C1))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$DR_C2))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$DR_C3))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$DR_C4))$r.squared
+summary(lm(TTHM.sub$total~ TTHM.sub$DR_C5))$r.squared
+summary(lm(TTHM.sub$total~ TTHM.sub$DR_C6))$r.squared
+summary(lm(TTHM.sub$total~ TTHM.sub$perprotein))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$redox))$r.squared
+summary(lm(TTHM.sub$total~ TTHM.sub$e2e3))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$e4e6))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$CDOM.total))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$slope_ratio))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$SR))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$FI))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$FrI))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$peakt.peakC))$r.squared
+summary(lm(TTHM.sub$total ~ TTHM.sub$HIX_ohno_area))$r.squared
+
+# C4, C5, C6 r2 < 0.7
+# Plot these
+pdf(file=paste0(fig.dir,"/THMplots_lessthan1000.pdf"), width = 11, height = 8.5)
+# THM versus C4
+lf.a <- ggplot(TTHM.sub, aes(x=DR_C4, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point(aes(colour=Region)) +
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[TTHMs] versus C4')) +
+  xlab(expression('C4 F'[max]*' (R.U)')) +
+  ylab(expression('[TTHMs] (ug/L)')) 
+
+#C5
+lf.b <- ggplot(TTHM.sub, aes(x=DR_C5, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point(aes(colour=Region)) +
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[TTHMs] versus C5')) +
+  xlab(expression('C5 F'[max]*' (R.U)')) +
+  ylab(expression('[TTHMs] (ug/L)')) 
+#C6
+lf.c <- ggplot(TTHM.sub, aes(x=DR_C6, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point(aes(colour=Region)) +
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[TTHMs] versus C6')) +
+  xlab(expression('C6 F'[max]*' (R.U)')) +
+  ylab(expression('[TTHMs] (ug/L)')) 
+
+grid.arrange(lf.a,lf.b,lf.c, ncol=2)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0.5, "npc"),y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc") + unit(2,"mm"), y=unit(0.5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+
+######### Plot the three with the subset data, and then a plot of the whole trace within the plot.
+vp = viewport(width=0.6, height=0.45, x=0.73, y=0.25)
+
+lf.a <- ggplot(THM.waterq, aes(x=DR_C4, y=total)) +
+  ggtitle(expression('[TTHMs] versus C4')) +
+  xlab(expression('C4 F'[max]*' (R.U)')) +
+  ylab(expression('[TTHMs] (ug/L)')) 
+  
+lf.a <- lf.a %+% subset(THM.waterq, THM.waterq$total <= 1000) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point(aes(colour=Region)) +
+  scale_colour_manual(name = "", values=cbPalette[1:6])
+
+lf.a.inset <- ggplot(THM.waterq, aes(x=DR_C4, y=total)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+  stat_poly_eq(formula = my.formula, 
+               aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+               parse = TRUE) +         
+  geom_point(aes(colour=Region)) +
+  scale_colour_manual(name = "", values=cbPalette[1:6]) +
+  ggtitle(expression('[TTHMs] versus C4: All Data')) +
+  xlab("") +
+  ylab("") +
+  theme(legend.position="none")
+
+gm <- ggplotGrob(lf.a)
+gs <- ggplotGrob(lf.a.inset)
+panel <- gm$layout[gm$layout$name == "panel",][panel.id,]
+inset <- grobTree(gs, vp=vp)
+thm.a <- gtable_add_grob(gm, inset, l=panel$l, t=panel$t)
+
+#####
+lf.b <- ggplot(THM.waterq, aes(x=DR_C5, y=total)) +
+  ggtitle(expression('[TTHMs] versus C5')) +
+  xlab(expression('C5 F'[max]*' (R.U)')) +
+  ylab(expression('[TTHMs] (ug/L)')) 
+
+lf.b <- lf.b %+% subset(THM.waterq, THM.waterq$total <= 1000) +
+                     geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+                     stat_poly_eq(formula = my.formula, 
+                                  aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                                  parse = TRUE) +         
+                     geom_point(aes(colour=Region)) +
+                     scale_colour_manual(name = "", values=cbPalette[1:6])
+
+lf.b.inset <- ggplot(THM.waterq, aes(x=DR_C5, y=total)) +
+                           geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+                           stat_poly_eq(formula = my.formula, 
+                                        aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                                        parse = TRUE) +         
+                           geom_point(aes(colour=Region)) +
+                           scale_colour_manual(name = "", values=cbPalette[1:6]) +
+                           ggtitle(expression('[TTHMs] versus C5: All Data')) +
+                           xlab("") +
+                           ylab("") +
+                           theme(legend.position="none")
+gm <- ggplotGrob(lf.b)
+gs <- ggplotGrob(lf.b.inset)
+panel <- gm$layout[gm$layout$name == "panel",][panel.id,]
+inset <- grobTree(gs, vp=vp)
+thm.b <- gtable_add_grob(gm, inset, l=panel$l, t=panel$t)
+########
+lf.c <- ggplot(THM.waterq, aes(x=DR_C6, y=total)) +
+  ggtitle(expression('[TTHMs] versus C6')) +
+  xlab(expression('C6 F'[max]*' (R.U)')) +
+  ylab(expression('[TTHMs] (ug/L)')) 
+
+lf.c <- lf.c %+% subset(THM.waterq, THM.waterq$total <= 1000) +
+                     geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+                     stat_poly_eq(formula = my.formula, 
+                                  aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                                  parse = TRUE) +         
+                     geom_point(aes(colour=Region)) +
+                     scale_colour_manual(name = "", values=cbPalette[1:6])
+
+lf.c.inset <- ggplot(THM.waterq, aes(x=DR_C6, y=total)) +
+                           geom_smooth(method = "lm", se=FALSE, color="black", formula = my.formula) +
+                           stat_poly_eq(formula = my.formula, 
+                                        aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")), 
+                                        parse = TRUE) +         
+                           geom_point(aes(colour=Region)) +
+                           scale_colour_manual(name = "", values=cbPalette[1:6]) +
+                           ggtitle(expression('[TTHMs] versus C6: All Data')) +
+                           xlab("") +
+                           ylab("") +
+                           theme(legend.position="none")
+gm <- ggplotGrob(lf.c)
+gs <- ggplotGrob(lf.c.inset)
+panel <- gm$layout[gm$layout$name == "panel",][panel.id,]
+inset <- grobTree(gs, vp=vp)
+thm.c <- gtable_add_grob(gm, inset, l=panel$l, t=panel$t)
+
+### graph all three together
+pdf(file=paste0(fig.dir,"/THMplots_inset.pdf"), width = 11, height = 8.5)
+grid.arrange(thm.a, thm.b, thm.c, ncol=2)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0.5, "npc"),y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc") + unit(2,"mm"), y=unit(0.5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+##############
