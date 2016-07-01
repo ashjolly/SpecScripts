@@ -41,7 +41,17 @@ mean.function <- function(filename, interval){
   return(mean)
 }
 
-
+# function for adding column of pre/post time to data
+logstatus.f <- function(filename){
+  filename$logstatus = ifelse(as.Date(filename$date) <= "2010-10-10 00:00:00", "pre", "post")
+  return(filename)
+}
+  
+# function for partitioning between wet and dry seasons
+wetdry.f <- function(filename){
+  filename$hydro <- ifelse(month(filename$date) %in% 4:9, "dry", "wet") 
+  return(filename)
+}
 
 ###### Set paths for data
 fig.dir <- "/Users/user/Dropbox/PhD Work/Thesis chapters/CR Chapter/CRDOCconcP1/Figures" # directory for saving figures
@@ -66,6 +76,11 @@ spectro.all <- data.frame(spectro.all)
 # Note - took out the open air function to convert to 30 min. Not working?
 source("/Users/user/SpecScripts/CRDischargeCompilation_function.R")
 discharge <- discharge.comp(discharge.dir = discharge.path)
+
+# add column for pre/post harvest
+discharge <- logstatus.f(discharge)
+# add column for wet/dry  period
+discharge <- wetdry.f(discharge)
 
 #### Climate variables from Biomet
 # Function for compiling climate from biomet
@@ -97,7 +112,7 @@ theme = theme_set(theme_bw() +
                           plot.title = element_text(size=14)))
 
 ########################################################################################################################
-#### Figure 2
+#### figure 2 - precip, discharge changes
 # timeseries of discharge, precip, groundwater, DOC arranged on top of one another
 # Table of max, min sum of climatic and discharge variables
 # As per figure 1 in Strohmeier, S, K H Knorr, M Reichert, and S Frei. 2013. 
@@ -123,21 +138,114 @@ time.DOC <- ggplot(spectro.all, aes(date, DOCcorr)) + geom_point(size = 0.4) +
 
 # Save as stacked figure
 pdf(file=paste0(fig.dir,"/CRFigures_timeseries.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(time.DOC, ncol=1)
+grid.arrange(time.disc, time.precip, time.groundwater, time.DOC, ncol=1)
 #grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 #grid.text("B", x=unit(0.5, "npc"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
 
 ##############
+# Precipitation sum per month - when does precipitation come?
+# Supplemental figure 1 - weather over the year
+# calculate the sum of precip over each month
+climate$date<- as.Date(climate$date)
+climate$month <- format(climate$date, format = "%m")
+meanmonth.precip <- ddply(climate,.(format(climate$date, format = "%Y-%m")),
+                     summarise, sum.P = sum(Precip, na.rm = TRUE))
+colnames(meanmonth.precip)[1] <- "date"
+meanmonth.precip$date <- as.Date(paste(meanmonth.precip$date, "-01", sep = ""), format = "%Y-%m-%d")
+meanmonth.precip$month <- format(meanmonth.precip$date, format = "%m")
+
+# average precip by month
+mean.P <- ddply(meanmonth.precip,.(format(meanmonth.precip$date, format='%m')),
+                          summarise, ave.P = mean(sum.P, na.rm = TRUE), sd.p = sd(sum.P, na.rm = TRUE))
+mean.P <- as.data.frame(mean.P)
+colnames(mean.P) <- c("month", "meanP", "sdP")
+
+# make boxplot of average monthly P and daily temp - not working! Boxplot instead
+meanP.month <- ggplot(meanmonth.precip,
+       aes(y = sum.P, x = month)) +
+  geom_boxplot() +  
+  ggtitle("Monthly Average Precipitation") + 
+  xlab("Month") +
+  ylab(expression("Mean Total Monthly Precipitation (mm/month)"))
+
+## get average temperature by month
+mean.Tdaily <- ddply(climate,.(format(climate$date, format='%Y-%m-%d')),
+                summarise, ave.T = mean(Tair, na.rm = TRUE), sd.T = sd(Tair, na.rm = TRUE))
+colnames(mean.Tdaily)[1] <- "date"
+mean.Tdaily$date <- as.Date(mean.Tdaily$date, format = "%Y-%m-%d")
+mean.Tdaily$month <- format(mean.Tdaily$date, format = "%m")
+
+# daily mean temp by month
+meanT.plot <- ggplot(mean.Tdaily,
+       aes(y = ave.T, x = month)) +
+  geom_boxplot() + 
+  ggtitle("Monthly Average Temperature") + 
+  xlab("Month") +
+  ylab(expression("Mean Temperature ("~degree~"C)"))
+
+# save the precip and averahe daily temp boxplots as one plot
+pdf(file=paste0(fig.dir,"/CRFigures_climate.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(meanP.month, meanT.plot, ncol=1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc"), y=unit(0.5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+
+#################
 ## Effect of harvest on discharge
 # 8.64 is the conversion factor from L s 1 ha 1 to mm d 1.From: Sørensen, Rasmus, Eva Ring, Markus Meili, Lars Högbom, Jan Seibert, Thomas Grabs, Hjalmar Laudon, and Kevin Bishop. 2009. “Forest Harvest Increases Runoff Most During Low Flows in Two Boreal Streams.” AMBIO: a Journal of the Human Environment 38 (7): 357–63. doi:10.1579/0044-7447-38.7.357.
 
 ## Cumulative distribution function of discharge - by year
-CDF.runoff <- ggplot(discharge, aes(x = Q.L.s)) + 
-  stat_ecdf(aes(group = format(discharge$date, format='%Y'), colour = format(discharge$date, format='%Y')))
-pdf(file=paste0(fig.dir,"/CRFigures_CDFrunoff.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(CDF.runoff, ncol=1)
-dev.off()            
+CDF.runoff.year <- ggplot(discharge, aes(x = Q.L.s)) + 
+  stat_ecdf(aes(group = format(discharge$date, format='%Y'), colour = format(discharge$date, format='%Y'))) +
+  scale_fill_manual(values=c(cbPalette[1:8]),
+                    name="Year") +
+  #theme(legend.title=element_text("Year")) +
+  scale_color_manual(breaks=c("2007","2008", "2009", "2010", "2011", "2012", "2013", "2014"),
+                     values=c(cbPalette[1:8])) +
+  theme(legend.position=c(.8, .3)) +
+  ggtitle("Discharge by Year") +
+  scale_y_continuous(name="Cumulative Distribution") +
+  scale_x_continuous(name="Q (L/s)", limits = c(0, 600))
+
+## Cumulative distribution function of discharge - by year
+CDF.runoff.log <- ggplot(discharge, aes(x = Q.L.s, color = logstatus)) + 
+  stat_ecdf(aes(group = logstatus)) +
+  scale_fill_manual(values=c(cbPalette[1:2]),
+                    name="Logging\nStatus",
+                    labels=c("Pre-Harvest", "Post-Harvest")) +
+  #theme(legend.title=element_text("Year")) +
+  scale_color_manual(breaks=c("post","pre"),
+                     values=c(cbPalette[1],cbPalette[2])) +
+  theme(legend.position=c(.8, .3)) +
+  ggtitle("Discharge by Logging Status") +
+  scale_y_continuous(name="Cumulative Distribution") +
+  scale_x_continuous(name="Q (L/s)", limits = c(0, 600))
+
+## Frequency Distribution - by year
+frequ.year <- ggplot(discharge, aes(Q.L.s, fill = format(discharge$date, format='%Y'))) + geom_density(alpha = 0.2) +
+  scale_fill_manual(values=c(cbPalette[1:8]),
+                    name="Year") + 
+  theme(legend.position=c(.8, .6)) +
+  ggtitle("Discharge by Year") +
+  scale_y_continuous(name="Density") +
+  scale_x_continuous(name="Q (L/s)", limits = c(0, 600))
+
+# Frequency distribution - preharvest verusus post
+frequ.log <- ggplot(discharge, aes(Q.L.s, fill = logstatus)) + geom_density(alpha = 0.2) +
+  scale_fill_manual(values=c(cbPalette[1:2]),
+                    name="Logging\nStatus",
+                    labels=c("Post-Harvest", "Pre-Harvest")) + 
+  theme(legend.position=c(.8, .8)) +
+  ggtitle("Discharge by Pre-Post Status") +
+  scale_y_continuous(name="Density") +
+  scale_x_continuous(name="Q (L/s)", limits = c(0, 600)) + 
+  theme()
+
+# save distribution functions - all four in one document
+pdf(file=paste0(fig.dir,"/CRFigures_distributionrunoff.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(CDF.runoff.year, CDF.runoff.log, frequ.year, frequ.log, ncol=2)
+dev.off()  
             
 ## Boxplot of mean daily Q (L/s) - presented per month
 # calculate the mean daily Q
@@ -145,14 +253,23 @@ meandaily.Q <- ddply(discharge,.(format(discharge$date, format='%Y-%m-%d')),
                      summarise, mean.Q=mean(Q.L.s, na.rm = TRUE))
 colnames(meandaily.Q)[1] <- "date"
 meandaily.Q$date <- as.POSIXct(strptime(meandaily.Q$date, format = "%Y-%m-%d"))
+meandaily.Q$year_month <- paste(month(as.Date(meandaily.Q$date)), year(as.Date(meandaily.Q$date)))
+meandaily.Q <- logstatus.f(meandaily.Q)
 
 # boxplot the mean daily Q by month
-boxplot.discharge <- ggplot(meandaily.Q, aes(x=format(meandaily.Q$date, format='%Y-%m'), y=mean.Q)) + 
-  geom_boxplot() + xlab("Date") + 
-  scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
-  ylab("Mean Daily Q (L/s)") + theme()
+boxplot.discharge <- ggplot(meandaily.Q, aes(x=date, y=mean.Q, group = year_month, fill=logstatus)) + 
+  geom_boxplot() + 
+  scale_fill_manual(breaks = c('pre', 'post'),
+                    values = c(cbPalette[1], cbPalette[2]),
+                    name="Logging\nStatus") +
+  xlab("Date") + 
+  #scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
+  ylab("Mean Daily Q (L/s)") + 
+  #geom_line() + # line to show where 
+  ggtitle("Mean Daily Q - By Month") +
+  theme()
 
-# save
+# save 
 pdf(file=paste0(fig.dir,"/CRFigures_boxplotQ.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(boxplot.discharge, ncol=1)
 dev.off()
@@ -161,21 +278,28 @@ dev.off()
 meanmonthly.Q <- ddply(discharge,.(format(discharge$date, format='%Y-%m')),
                        summarise, mean.Q=mean(Q.L.s, na.rm = TRUE))
 colnames(meanmonthly.Q)[1] <- "date"
-meanmonthly.Q$date1 <- as.character(meanmonthly.Q$date)
-meanmonthly.Q$date1 <- as.POSIXct(strptime(meanmonthly.Q$date1, format = '%Y-%m')) # not working!
+meanmonthly.Q$date1 <- as.Date(as.character(meanmonthly.Q$date))
+#meanmonthly.Q$date1 <- as.POSIXct(strptime(meanmonthly.Q$date, format = '%Y-%m')) # not working!
 
 meanmonth.Q <- ggplot(data=meanmonthly.Q, aes(x=date, y=mean.Q, group=1)) +
   geom_line() +
   geom_point() +
-  scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
+  #scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
   expand_limits(y=0) +
   xlab("Date") + ylab("Monthly Mean Q (L/s)") +
-  ggtitle("Monthly Mean Q")
+  ggtitle("Monthly Mean Q") + 
+  theme()
 
 # save
 pdf(file=paste0(fig.dir,"/CRFigures_monthlymeanQ.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(meanmonth.Q, ncol=1)
 dev.off()
+
+
+## Flood frequency Analysis
+# http://www.headwateranalytics.com/blog/flood-frequency-analysis-in-r
+
+
 
 ## Percent change in discharge table 
 # Sørensen, Rasmus, Eva Ring, Markus Meili, Lars Högbom, Jan Seibert, Thomas Grabs, Hjalmar Laudon, and Kevin Bishop. 2009. “Forest Harvest Increases Runoff Most During Low Flows in Two Boreal Streams.” AMBIO: a Journal of the Human Environment 38 (7): 357–63. doi:10.1579/0044-7447-38.7.357.
