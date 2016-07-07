@@ -96,7 +96,7 @@ axis(2)
 text(x = plot, y = (sum.total.order)+12, labels=(sum.total.order), xpd=TRUE)
 
 title(main = NULL, sub = NULL, 
-      xlab = NULL, ylab = "Number of Responses per Stakeholder Group", cex.lab = 1.6)
+      xlab = NULL, ylab = "Number of Responses per Submitter Group", cex.lab = 1.6)
 dev.off()
 ########## do bar graph without the main individuals bar
 sum.tot.2 <- sum.total.order[,-9]
@@ -107,12 +107,13 @@ png(paste(directory, "WSA_number of submissions_noind.png", sep = ""),         #
     res = 600,            # 300 pixels per inch
     pointsize = 6)        # smaller font size
 
-op <- par(mar = c(14,4,4,2) + 1) # increase magins, especialy x axis margins
+par(mar = c(14,5,4,2) + 1) # increase magins, especialy x axis margins
+par(oma=c(0,0,0,0) )
 
 plot <- barplot(as.matrix(sum.tot.2), main = "", cex.main = 2, 
                 cex.axis = 2,
                 col = "#56B4E9", axes = FALSE, axisnames = FALSE)
-par(op)        
+#par(op)        
 text(plot, par("usr")[3]-.5, labels = (colnames(sum.tot.2)),srt = 45,
      adj = c(1.3,1.3), xpd = TRUE, cex=1.3)
 axis(2)
@@ -121,7 +122,7 @@ axis(2)
 text(x = plot, y = (sum.tot.2)+12, labels=(sum.tot.2), xpd=TRUE)
 
 title(main = NULL, sub = NULL, 
-      xlab = NULL, ylab = "Number of Responses per Stakeholder Group", cex.lab = 1.6)
+      xlab = NULL, ylab = "Number of Responses per Submitter Group", cex.lab = 1.6)
 dev.off()
 
 ##################### Data normalization
@@ -752,7 +753,9 @@ png(paste(directory, "WSA_allocation_nonum.png", sep = ""),         # create PNG
           cexCol=1.5, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
-          #axisnames = FALSE,
+          srtRow=-45,           # rotate the x labels at 45 deg so they fit
+         
+         #axisnames = FALSE,
           
           na.color = 'white',   # colour of NA blocks
           keysize = 1,         # size of the colour key
@@ -1341,3 +1344,210 @@ heatmap.2(mat.data,
           Rowv = FALSE,
           Colv=FALSE)            # turn off column clustering
 dev.off()
+########## ########## ########## ########## ########## ########## ########## 
+########## Greyscale figures
+shadesOfGrey <- colorRampPalette(c("grey90", "grey20"))(n = 299)
+#fiftyGreys <- shadesOfGrey(50)
+
+# redo figure 3 - bargraph of number of submissions
+png(paste(directory, "WSA_number of submissions_noind_grey.png", sep = ""),         # create PNG for the heat map        
+    width = 20*300,        # 5 x 300 pixels
+    height = 10*300,
+    res = 600,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+par(mar = c(14,5,4,2) + 1) # increase magins, especialy x axis margins
+par(oma=c(0,0,0,0) )
+
+plot <- barplot(as.matrix(sum.tot.2), main = "", cex.main = 2, 
+                cex.axis = 2,
+                col = shadesOfGrey[25], axes = FALSE, axisnames = FALSE)
+#par(op)        
+text(plot, par("usr")[3]-.5, labels = (colnames(sum.tot.2)),srt = 45,
+     adj = c(1.3,1.3), xpd = TRUE, cex=1.3)
+axis(2)
+
+# add to top of graph the total number for each stakeholder group
+text(x = plot, y = (sum.tot.2)+12, labels=(sum.tot.2), xpd=TRUE)
+
+title(main = NULL, sub = NULL, 
+      xlab = NULL, ylab = "Number of Responses per Submitter Group", cex.lab = 1.6)
+dev.off()
+
+## Figure 4 - grey scale
+# take away column with main policy - leave only sub policy
+#total.factors <- total.factors.1[,c(-1,-19)]
+
+######  Heat map
+#Where the stakeholder groups are the rows (Thus, grouping by stakeholdr groups)
+# bind stakeholder groups to the number of submissions
+stakeholder1 <- colnames(total.factors)[1:16]
+temp <- paste(" (n=", as.numeric(sum.total[,c(7:21,26)]), ")", sep = "")
+stakeholder.n <- paste(stakeholder1, temp, sep = "")
+
+# find row names
+#rnames <- colnames(total.factors)
+#rnames = stakeholder.n
+cnames <- total.factors$Sub_policy 
+rounded.factors<- format(round(total.factors[,1:16], 1), nsmall = 1)      # ensure that only have 2 decimal places
+row.names(rounded.factors) <- cnames                                # assign row names
+mat.data <- t(data.matrix(rounded.factors))                          # convert data to matrix
+row.names(mat.data) <- stakeholder.n
+
+rownames(mat.data) <- gsub(x = rownames(mat.data),
+                           pattern = "\\.",
+                           replacement = " ") 
+
+# creates a 5 x 5 inch image - without numbers in boxes
+png(paste(directory, "WSA_response_subpolicy_nonumb_grey.png", sep = ""),    # create PNG for the heat map        
+    width = 11*300,        # 5 x 300 pixels
+    height = 11*300,
+    res = 600,            # 300 pixels per inch
+    pointsize = 5)        # smaller font size
+
+heatmap.2(mat.data,
+          # Change the data within the heat map boxes
+          #cellnote = NA,    # same data set for cell labels
+          #notecex = 0.8,          # Change the font size of the data labels
+          #notecol=NA,             # change font color of cell labels to black
+          
+          # labels
+          main = "", # heat map title
+          # dendorgram and groupings
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram=c("row"),     # only draw a row dendrogram
+          density.info="histogram",  # turns on density plot inside color legend
+          denscol="white",
+          trace="none",         # turns off trace lines inside the heat map
+          
+          # appearance
+          margins =c(20,20),     # widens margins around plot
+          col= shadesOfGrey,       # use grey colour palette
+          cexCol=1.5, 
+          cexRow = 1.5,          # decrease row font size to fit
+          srtCol=45,           # rotate the x labels at 45 deg so they fit
+          #axisnames = FALSE,
+          
+          srtRow=-45,
+          
+          na.color = 'white',   # colour of NA blocks
+          keysize = 1,         # size of the colour key
+          Rowv = TRUE,
+          Colv=TRUE)            # turn off column clustering
+dev.off()
+
+#### Figure 5 - grey and checkered
+# http://stackoverflow.com/questions/15014595/how-to-use-black-and-white-fill-patterns-instead-of-color-coding-on-calendar-hea
+### Do heat map of the influence factors
+# find row names
+rnames <- colnames(Influence)
+cnames <- Influence[,1]
+rounded.factors<- format(round(Influence[,2:17], 1), nsmall = 0)      # ensure that only have 2 decimal places
+row.names(rounded.factors) <- cnames      # assign column names to data matrix
+mat.data <- t(data.matrix(rounded.factors))            # convert data to matrix
+row.names(mat.data) <- stakeholder.n
+
+rownames(mat.data) <- gsub(x = rownames(mat.data),
+                           pattern = "\\.",
+                           replacement = " ") 
+# create matrix for cell notation - pos or neg
+test.1 <- sign(mat.data)
+test.2 <- gsub("1", " ", test.1)
+test.2 <- str_replace_all(test.1, "1", "")
+
+greyInfluence<- colorRampPalette(c("grey20", "grey90", "grey20"))(n = 299)
+
+### without numbers in the heat map
+# creates a 5 x 5 inch image
+png(paste(directory, "WSA_InfluenceMap_columngrouping_nonum_grey.png", sep = ""),    # create PNG for the heat map        
+    width = 10*300,        # 5 x 300 pixels
+    height = 10*300,
+    res = 600,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          # Change the data within the heat map boxes
+          #cellnote = test.1,    # same data set for cell labels
+          #notecex = 0.8,        # Change the font size of the data labels
+          #notecol="white",      # change font color of cell labels to black
+          
+          # labels
+          #main = "Influence Map - WSA Sub-Policy Areas", # heat map title
+          # dendorgram and groupings
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram=c("row"),     # only draw a row dendrogram
+          denscol="white",
+          density.info="histogram",  # turns on histogram plot inside color legend
+          trace="none",         # turns off trace lines across both rows and columns
+          
+          # appearance
+          margins =c(15,12),     # widens margins around plot
+          col= greyInfluence,       # use on color palette defined earlier 
+          cexCol=1, 
+          cexRow = 1,          # decrease row font size to fit
+          srtCol=45,           # rotate the x labels at 45 deg so they fit
+          srtRow=-45,
+          
+          #axisnames = FALSE,
+          
+          na.color = 'white',   # colour of NA blocks
+          keysize = 1,         # size of the colour key
+          Rowv = TRUE,
+          Colv=TRUE)            # turn on column clustering
+dev.off()
+
+# Figure 6 - grey scale
+# Focus Area - FITFIR ("General' main policy area)
+general <- subset(normalized, normalized$Sub_Policy == "Allocation system")
+
+# express as percent
+general = cbind(general[,1:16] *100, general$Sub_Policy, general$Status)
+colnames(general)[18] <- "Status"
+colnames(general)[17] <- "Sub_Policy"
+
+# do heat map
+# find row names - where the stakeholder groups are the rows
+rnames <- colnames(general[,1:16])
+cnames <- general$Status 
+rounded.factors<- format(round(general[,1:16], 1), nsmall = 1) # ensure that only have 2 decimal places
+row.names(rounded.factors) <- cnames
+mat.data <- t(data.matrix(rounded.factors))                          # convert data to matrix
+
+# creates a 5 x 5 inch image
+png(paste(directory, "WSA_allocation_nonum_grey.png", sep = ""),         # create PNG for the heat map        
+    width = 20*300,        # 5 x 300 pixels
+    height = 10*300,
+    res = 600,            # 300 pixels per inch
+    pointsize = 6)        # smaller font size
+
+heatmap.2(mat.data,
+          
+          # Change the data within the heat map boxes
+          #cellnote = mat.data,  # same data set for cell labels
+          #notecex = 0.8,          # Change the font size of the data labels
+          #notecol="black",      # change font color of cell labels to black
+          
+          # main = "Percent of Responses to FITFIR ('Allocation System' Sub Policy Area)", # heat map title
+          
+          # dendorgram and groupings
+          #breaks=col_breaks,    # enable color transition at specified limits
+          dendrogram="none",     # only draw a row dendrogram
+          density.info="histogram",  # turns on density plot inside color legend
+          trace="none",         # turns off trace lines inside the heat map
+          
+          # appearance
+          margins =c(20,20),     # widens margins around plot
+          col= shadesOfGrey,       # use on color palette defined earlier 
+          cexCol=1.5, 
+          cexRow = 1.5,          # decrease row font size to fit
+          srtCol=45,           # rotate the x labels at 45 deg so they fit
+          srtRow=-45,
+          
+          #axisnames = FALSE,
+          
+          na.color = 'white',   # colour of NA blocks
+          keysize = 1,         # size of the colour key
+          Rowv = TRUE,
+          Colv=FALSE)            # turn off column clustering
+dev.off()
+
