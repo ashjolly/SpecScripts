@@ -39,5 +39,5 @@ climate.comp <- function(climate.dir) {
   #sort according to date
   climate.test2<- climate.test2[order((climate.test2$date)),] 
   climate.test2 <- subset(climate.test2,!duplicated(climate.test2$date)) # get rid of duplicate dates
-  return(climate.2)
+  return(climate.test2)
   }

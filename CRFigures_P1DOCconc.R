@@ -308,58 +308,58 @@ dev.off()
 # Also, one plot with both with the pre and post discharge in different colours?
 
 # extract instantaneous maxima flow series
-input_data.pre <- subset(discharge$Q.L.s, discharge$logstatus == "pre")
+#input_data.pre <- subset(discharge$Q.L.s, discharge$logstatus == "pre")
 
 # choose a distribution 
 # (see ?dist.list for available distributions)
 # log Pearson 3 is not one of them but is a log-transformed equivalent of pe3
 # note: this script recognizes 'lp3' to stand for log Pearson Type 3
 #dist <- "gev" doesn't work for our data! different distribution
-dist <- 'lp3'
+#dist <- 'lp3'
 
 # fit frequency distribution
-source("/Users/user/SpecScripts/frequ_function.R")
-fa.pre <- FrequencyAnalysis(series=input_data.pre, distribution=dist)
+#source("/Users/user/SpecScripts/frequ_function.R")
+#fa.pre <- FrequencyAnalysis(series=input_data.pre, distribution=dist)
 
 # estimate 90% confidence intervals
-source("/Users/user/SpecScripts/bootstrap_function.R")
-ci.pre <- BootstrapCI(series=input_data.pre,   # flow data
-                  distribution=dist,   # distribution
-                  n.resamples = 2E3, # number of re-samples to conduct
-                  ci = 0.90)           # confidence interval level
+#source("/Users/user/SpecScripts/bootstrap_function.R")
+#ci.pre <- BootstrapCI(series=input_data.pre,   # flow data
+#                  distribution=dist,   # distribution
+#                  n.resamples = 2E3, # number of re-samples to conduct
+#                  ci = 0.90)           # confidence interval level
 # generate frequency plot
-source("/Users/user/SpecScripts/frequplot_function.R")
-frequ.plot.pre <- frequencyPlot(series=input_data.pre, ci.pre$ci)
+#source("/Users/user/SpecScripts/frequplot_function.R")
+#frequ.plot.pre <- frequencyPlot(series=input_data.pre, ci.pre$ci)
 
 # postharvest
-input_data.post <- subset(discharge$Q.L.s, discharge$logstatus == "post")
+#input_data.post <- subset(discharge$Q.L.s, discharge$logstatus == "post")
 # choose a distribution 
 # (see ?dist.list for available distributions)
 # log Pearson 3 is not one of them but is a log-transformed equivalent of pe3
 # note: this script recognizes 'lp3' to stand for log Pearson Type 3
 #dist <- "gev" doesn't work for our data! different distribution
-dist <- 'lp3'
+#dist <- 'lp3'
 
 # fit frequency distribution
-source("/Users/user/SpecScripts/frequ_function.R")
-fa.post <- FrequencyAnalysis(series=input_data.post, distribution=dist)
+#source("/Users/user/SpecScripts/frequ_function.R")
+#fa.post <- FrequencyAnalysis(series=input_data.post, distribution=dist)
 
 # estimate 90% confidence intervals
-source("/Users/user/SpecScripts/bootstrap_function.R")
-ci.post <- BootstrapCI(series=input_data.post,   # flow data
-                      distribution=dist,   # distribution
-                      n.resamples = 2E3, # number of re-samples to conduct
-                      ci = 0.90)           # confidence interval level
+#source("/Users/user/SpecScripts/bootstrap_function.R")
+#ci.post <- BootstrapCI(series=input_data.post,   # flow data
+ #                     distribution=dist,   # distribution
+#                      n.resamples = 2E3, # number of re-samples to conduct
+#                      ci = 0.90)           # confidence interval level
 # generate frequency plot
-source("/Users/user/SpecScripts/frequplot_function.R")
-frequ.plot.post <- frequencyPlot(series=input_data.post, ci.post$ci)
+#source("/Users/user/SpecScripts/frequplot_function.R")
+#frequ.plot.post <- frequencyPlot(series=input_data.post, ci.post$ci)
 
 #save the pre and post distributions
-pdf(file=paste0(fig.dir,"/CRFigures_floodfrequ.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(frequ.plot.pre, frequ.plot.post, ncol=2)
-grid.text("Pre-Harvest", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-grid.text("Post-Harvest", x=unit(00.5, "npc"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-dev.off()
+#pdf(file=paste0(fig.dir,"/CRFigures_floodfrequ.pdf"), width = 8.5, height = 11) #save figure
+#grid.arrange(frequ.plot.pre, frequ.plot.post, ncol=2)
+#grid.text("Pre-Harvest", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+#grid.text("Post-Harvest", x=unit(00.5, "npc"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+#dev.off()
 
 ## Percent change in discharge table 
 # Sørensen, Rasmus, Eva Ring, Markus Meili, Lars Högbom, Jan Seibert, Thomas Grabs, Hjalmar Laudon, and Kevin Bishop. 2009. “Forest Harvest Increases Runoff Most During Low Flows in Two Boreal Streams.” AMBIO: a Journal of the Human Environment 38 (7): 357–63. doi:10.1579/0044-7447-38.7.357.
@@ -578,8 +578,8 @@ spectro.all <- logstatus.f(spectro.all)
 boxplot.DOC30 <- ggplot(spectro.all, aes(x=date, y=DOCcorr, group = format(spectro.all$date, format="%Y-%m"), fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA) + # don't show outliers
   scale_fill_manual(breaks = c('pre', 'post'),
-  values = c(cbPalette[1], cbPalette[2]),
-  name="Logging\nStatus") +
+    values = c(cbPalette[1], cbPalette[2]),
+    name="Logging\nStatus") +
   xlab("Date") + 
   ylab("30 Minute DOC (mg/L)") + 
   #geom_line() + # line to show where logging occureed
@@ -587,18 +587,39 @@ boxplot.DOC30 <- ggplot(spectro.all, aes(x=date, y=DOCcorr, group = format(spect
   theme() +
   theme(legend.position=c(0.93, 0.87))
 
-# save figure - boxplots of DOC concentration and flux.... DOC on top, flux on bottom
-pdf(file=paste0(fig.dir,"/CRFigures_DOCboxplots.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(boxplot.DOC30, ncol = 1)
+# Cumulative distribution function - DOC concentrations in the pre/post wet dry period (as per discharge)
+## Cumulative distribution function of DOC - partitioned according to pre/post, wet/dry (30 minute measurements)
+# create partitions in 30 minute data
+DOC.partition <- logstatus.f(spectro.all)
+DOC.partition <- wetdry.f(DOC.partition)
+DOC.partition$hydro.log <- paste(DOC.partition$hydro, DOC.partition$logstatus, sep = "")
+
+CDF.DOC.part <- ggplot(DOC.partition, aes(x = DOCcorr)) + 
+  stat_ecdf(aes(group = hydro.log, colour = hydro.log)) +
+  scale_fill_manual(values=c(cbPalette[1:4]),
+                    name="Status") +
+  #theme(legend.title=element_text("Year")) +
+  scale_color_manual(breaks=c("drypost","drypre", "wetpost", "wetpre"),
+                     values=c(cbPalette[1:4]), 
+                     name = "Status") +
+  theme(legend.position=c(0.2, 0.8)) +
+  ggtitle("") +
+  scale_y_continuous(name="Cumulative Distribution") +
+  scale_x_continuous(name="[DOC] (mg/L)") + 
+  coord_flip() + #flip x and y axis + 
+  theme()
+
+## save both together as figure
+pdf(file=paste0(fig.dir,"/CRFigures_deltaDOCconc.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(boxplot.DOC30, CDF.DOC.part,  ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/2, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
 
-# Test whether mean DOC is differenyt in the pre/post period by month
+# Test whether mean DOC is different in the pre/post period by month
 #"nonparametric Kruskal-Wallis one way analysis of variance on ranks (ANOVA-R), which was combined with Dunn’s test to investigate significant differences in median values."
 # From Schelker, J, K Eklöf, and K Bishop. 2012. “Effects of Forestry Operations on Dissolved Organic Carbon Concentrations and Export in Boreal First‐Order Streams.” Journal of Geophysical …. doi:10.1029/2011JG001827.
 # compare the monthly mean DOC in the post period to that of the pre harvest period
-# Take monthly average DOC for entire dataset
-DOC.monthly <- ddply(spectro.all,.(format(spectro.all$date, format='%Y-%m')),
-                                      summarise, meanmonthly.DOC = mean(DOCcorr, na.rm = TRUE))
 
 # First, test whether data is normal or not.
 ## Have a look at the densities
@@ -616,7 +637,6 @@ qqnorm(spectro.all$DOCcorr);qqline(spectro.all$DOCcorr, col = 2)
 # http://rcompanion.org/rcompanion/d_06.html
 
 # first compile the months together (all jan, all feb, all march, etc.) into 
-D
 jan.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "01")
 feb.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "02")
 march.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "03")
@@ -632,7 +652,7 @@ dec.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "12")
 
 # 
 years.DOC <- function(data){
-  test <- data[,c(1, as.numeric(match("DOCcorr",names(data))))]
+  test <- data[,c(as.numeric(match("date",names(data))), as.numeric(match("DOCcorr",names(data))))]
   sub <- cbind.fill(subset(test, format(test$date, format='%Y') == "2009"), 
                             subset(test, format(test$date, format='%Y') == "2010"),
                             subset(test, format(test$date, format='%Y') == "2011"),
@@ -642,7 +662,7 @@ years.DOC <- function(data){
   return(sub)
 }
 
-jan.DOC.sub <- years.DOC(jan.DOC)
+jan.DOC.sub <- years.DOC(data = jan.DOC)
 feb.DOC.sub <- years.DOC(feb.DOC)
 march.DOC.sub <- years.DOC(march.DOC)
 april.DOC.sub <- years.DOC(april.DOC)
@@ -666,17 +686,67 @@ kruskal.test(feb.DOC.sub[,c(6,8,10,12)])
 kruskal.test(jan.DOC.sub[,c(4,6,8,10,12)]) 
 kruskalmc(jan.DOC.sub$date, jan.DOC.sub[,c(4,6,8,10,12)]) 
 
-library(FSA)
-jan.DOC.test <- dunnTest(DOCcorr ~ year,
-         data=jan.DOCselect,
-         method="fdr")    # Can adjust p-values; 
+#library(FSA)
+#jan.DOC.test <- dunnTest(DOCcorr ~ year,
+#         data=jan.DOCselect,
+#         method="none")    # Can adjust p-values; 
 # See ?p.adjust for options
 
+#library(DescTools)
+#DunnTest(x = jan.DOCselect$year,
+#         g = jan.DOCselect$DOCcorr,
+#         method="none")
 
-library(DescTools)
-DunnTest(x = jan.DOCselect$year,
-         g = jan.DOCselect$DOCcorr,
-         method="fdr")
+# really slow! Try on daily means rather than 30 minute data
+#First, aggregate to the daily mean, then look at whether daily means are different
+DOC.daily <- ddply(spectro.all,.(format(spectro.all$date, format='%Y-%m-%d')),
+                     summarise, meandaily.DOC = mean(DOCcorr, na.rm = TRUE)) 
+colnames(DOC.daily)[1] <- "date"
+DOC.daily$date <- as.POSIXct(strptime(DOC.daily$date, format = "%Y-%m-%d"))
+jan.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "01")
+feb.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "02")
+march.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "03")
+april.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "04")
+may.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "05")
+june.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "06")
+july.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "07")
+aug.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "08")
+sept.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "09")
+oct.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "10")
+nov.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "11")
+dec.DOC <- subset(DOC.daily, format(DOC.daily$date, format='%m') == "12")
+
+# compile nov and december in the pre harvest period
+nov.DOC$date <- as.Date(gsub("2009", "2010", nov.DOC$date), format = "%Y-%m-%d")
+dec.DOC$date <- as.Date(gsub("2009", "2010", dec.DOC$date), format = "%Y-%m-%d")
+
+# Function for doing dunn test, specifying method
+Dunns.test <- function(data, method){
+  data$year <- format(data$date, format='%Y')
+  Dunn <- dunnTest(data$meandaily.DOC ~ as.factor(data$year),
+                           data=data,
+                           method=method)
+  return(Dunn)
+}
+
+jan.DOC.test <- Dunns.test(jan.DOC, "by")
+feb.DOC.test <- Dunns.test(feb.DOC, "by")
+march.DOC.test <- Dunns.test(march.DOC, "by")
+april.DOC.test <- Dunns.test(april.DOC, "by")
+may.DOC.test <- Dunns.test(may.DOC, "by")
+june.DOC.test <- Dunns.test(june.DOC, "by")
+july.DOC.test <- Dunns.test(july.DOC, "by")
+aug.DOC.test <- Dunns.test(aug.DOC, "by")
+sept.DOC.test <- Dunns.test(sept.DOC, "by")
+oct.DOC.test <- Dunns.test(oct.DOC, "by")
+nov.DOC.test <- Dunns.test(nov.DOC, "by")
+dec.DOC.test <- Dunns.test(dec.DOC, "by")
+
+# take the mean of the pre-logging period by month to compare to months in the post-logging period
+DOC.monthly <- ddply(spectro.all,.(format(spectro.all$date, format='%Y-%m')),
+                   summarise, meanmonthly.DOC = mean(DOCcorr, na.rm = TRUE),
+                   sdmonthly.DOC = sd(DOCcorr, na.rm = TRUE)) 
+write.csv(DOC.monthly, file=paste0(fig.dir,"/CRmonthlymeanDOCconc.csv")) # write mean DOC
 
 #######################
 # How does harvest affect DOC flux?
@@ -695,11 +765,12 @@ discharge.ave <- timeAverage(discharge.ave, avg.time = "30 min", start.date = "2
 discharge.ave$date1 <- as.POSIXct(strptime(discharge.ave$date, format = "%Y-%m-%d %H:%M", tz = "America/Los_Angeles"))
 
 DOC.Q <- merge(spectro.all, discharge.ave[,c(1,2)], by = 'date', all = FALSE)
-DOC.Q$cflux.mgs = (DOC.Q$DOCcorr * test$Q.L.s )
-q = as.numeric(match("DOCcorr",names(DOC.Q)))
-c.flux= DOC.Q[complete.cases(DOC.Q[,q]),]
+DOC.Q$cflux.mgs = (DOC.Q$DOCcorr * DOC.Q$Q.L.s )
+DOC.Q$cflux.mgshec <- DOC.Q$cflux.mgs / area.hect # get the cflux normalized for watershed area (in hectares)
+DOC.Q$cflux.gshec <- DOC.Q$cflux.mgshec/1000
+c.flux= DOC.Q[complete.cases(DOC.Q[,as.numeric(match("DOCcorr",names(DOC.Q)))]),] # get the dataframe with complete cases of DOCcorr
 
-# calculating cflux by first calculating the tim e intervals.. no interpolation
+# calculating cflux by first calculating the time intervals.. no interpolation
 n <- dim(c.flux)[1]
 for (i in 2:n) {
   timeinterval <- c.flux$date[i]-c.flux$date[(i-1)]
@@ -742,41 +813,171 @@ cflux.all$splinecflux.mgs <- na.spline(cflux.all$cflux.mgs) #interpolation by sp
 cflux.all$approxcflux.mgs <- na.approx(cflux.all$cflux.mgs) #interpolation by linear approximation
 
 #get the percentage of missing data
-permissing.30min <- length(which(is.na(cflux.all$cflux.mgs)))/length(cflux.all$cflux.mgs)*100 #30% missing 30 minute data!
+permissing.30min <- length(which(is.na(cflux.all$cflux.mgs)))/length(cflux.all$cflux.mgs)*100 #29% missing 30 minute data!
 
-
-
-#do by day
+# do by day - to compensate for missing data
 daily.DOC <- ddply(c.flux,.(format(c.flux$date, format='%Y-%m-%d')),
-                    summarise, daily.DOCcorr = mean(DOCcorr, na.rm = TRUE))
+                    summarise, daily.cflux.mgs = mean(cflux.mgs, na.rm = TRUE)) # get the daily mean cflux
+colnames(daily.DOC)[1] <- "date"
+daily.DOC$date <- as.POSIXct(strptime(daily.DOC$date, format = "%Y-%m-%d"))
+# get a timeseries of dates for interpolation
+date.seq <- as.data.frame(as.POSIXct(strptime(seq(min(daily.DOC$date), max(daily.DOC$date), by = "day"), 
+                                          format = "%Y-%m-%d")))
+colnames(date.seq)[1] <- "date"
+# merge into daily DOC to creat NAs for interpolation
+cflux.day <- merge(daily.DOC, date.seq, by = "date", all = TRUE) # merge together, creating NAs for missing data
+# convert mg/s to mg/day
+cflux.day$daily.cflux.mgday <- cflux.day$daily.cflux.mgs*60*60*24
 
+#  interpolate disharge for missing data - 1 day intervals
+# cut missing beginning
+cflux.day <- cflux.day[-c(1:22),]
+cflux.day$daily.cflux.mgday.spline <- na.spline(cflux.day$daily.cflux.mgday) #interpolation by spline (polynmial)
+cflux.day$daily.cflux.mgday.linear <- na.approx(cflux.day$daily.cflux.mgday) #interpolation by linear approximation
 
-c.flux$cflux.g = c.flux$cflux.mg/1000
+# percent of missing data - daily average DOC flux (mg/day)
+permissing.day <- length(which(is.na(cflux.day$daily.cflux.mgday)))/length(cflux.day$daily.cflux.mgday)*100 #30% missing 30 minute data!
 
-#select only columns with cflux in mg and g and merge back into spectro.all
-date = as.numeric(match("date",names(c.flux)))
-cflux.mg.column = as.numeric(match("cflux.mg",names(c.flux)))
-cflux.g.column = as.numeric(match("cflux.g",names(c.flux)))
-column <- c(date, cflux.mg.column,cflux.g.column)
-c.flux <- c.flux[,column]
-spectro.all <- merge(spectro.all, c.flux, by = "date", all = TRUE)
+# sum linear approximation to get monthly DOC export
+monthly.DOCflux <- ddply(cflux.day,.(format(cflux.day$date, format='%Y-%m')),
+                                      summarise, monthlysumCs = sum(daily.cflux.mgday.linear, na.rm = TRUE)) # get the daily mean cflux
+colnames(monthly.DOCflux)[1] <- 'date'
 
-#### c flux per hectares
-# in hectares
-# 1 hectare = 10000 m2.  91 hectares total
-area.h = 91
-area.m2 = area.h* 10000 
-spectro.all$cflux.gm2 = spectro.all$cflux.g/area.m2
-spectro.all$cflux.mgm2 = spectro.all$cflux.mg/area.m2
+monthly.DOCflux$date <- as.POSIXct(strptime(paste(monthly.DOCflux$date, "-01", sep = ""), format = "%Y-%m-%d"))
+monthly.DOCflux$cflux.gmonth = monthly.DOCflux$monthlysumCs/1000
+monthly.DOCflux$cflux.gmonthhect <- monthly.DOCflux$monthlysumCs/area.hect
+# add in pre/post harvest
+monthly.DOCflux <- logstatus.f(monthly.DOCflux)
+monthly.DOCflux$logstatus
 
+# do boxplot for c-export by month. Pre and post harvest coloured.
+boxplot.monthcexport <- ggplot(monthly.DOCflux, aes(as.Date(date), cflux.gmonthhect)) + 
+  geom_bar(aes(fill=logstatus),   # fill depends on cond2
+           stat="identity",
+           colour="black") +    # Black outline for all
+  scale_fill_manual(breaks = c('pre', 'post'),
+                    values = c(cbPalette[1], cbPalette[2]),
+                    name="Logging\nStatus") +
+  xlab("Date") + ylab("C Flux - DOC (g/monthhect)") + 
+  theme() +
+  scale_x_date(date_breaks = "year", 
+               labels=date_format("%Y")) +
+  theme(legend.position=c(0.8, 0.8))
 
+# save monthly doc flux barplot figures
+pdf(file=paste0(fig.dir,"/CRFigures_DOCboxplot_CFluxmonth.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(boxplot.monthcexport, ncol = 1)
+dev.off()
 
-#### Figure 3
-# How does Forest Harvest Affect DOC Concentration?
-# Figure: Boxplot of mean DOC flux; table of ranked ANOVA scored to look for significant differences
+## do boxplot of 30 minute DOC flux c - aggregared by month (as per DOC concentration)
+DOC.Q <- logstatus.f(DOC.Q)
+boxplot.DOCflux30 <- ggplot(DOC.Q, aes(x=date, y=cflux.gshec, group = format(spectro.all$date, format="%Y-%m"), fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA, position = position_dodge(width = 0.3),  width = 0.3) + # don't show outliers
+  scale_fill_manual(breaks = c('pre', 'post'),
+                    values = c(cbPalette[1], cbPalette[2]),
+                    name="Logging\nStatus") +
+  xlab("Date") + 
+  ylab("30 Minute DOC flux (g/(s hectares)") + 
+  #geom_line() + # line to show where logging occureed
+  ggtitle("DOC Flux (30 minute measurements") +
+  theme() +
+  theme(legend.position=c(0.93, 0.87))
+
+## do cumulative distribution function - Cflux pre/post, and wet/dry
+DOC.Q <- wetdry.f(DOC.Q)
+DOC.Q$hydro.log <- paste(DOC.Q$hydro, DOC.Q$logstatus, sep = "")
+
+CDF.DOC.flux <- ggplot(DOC.Q, aes(x = cflux.gshec)) + 
+  stat_ecdf(aes(group = hydro.log, colour = hydro.log)) +
+  scale_fill_manual(values=c(cbPalette[1:4]),
+                    name="Status") +
+  #theme(legend.title=element_text("Year")) +
+  scale_color_manual(breaks=c("drypost","drypre", "wetpost", "wetpre"),
+                     values=c(cbPalette[1:4]), 
+                     name = "Status") +
+  theme(legend.position=c(0.2, 0.8)) +
+  ggtitle("") +
+  scale_y_continuous(name="Cumulative Distribution") +
+  scale_x_continuous(name="DOC flux (g/(s*hectare))") + 
+  coord_flip() + #flip x and y axis + 
+  theme()
+
+# save as figure
+pdf(file=paste0(fig.dir,"/CRFigures_CFlux.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(boxplot.monthcexport, boxplot.DOCflux30, CDF.DOC.flux, ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+
+# sum daily flux by year to get yearly fluxes
+yearly.DOCflux <- ddply(cflux.day,.(format(cflux.day$date, format='%Y')),
+                         summarise, yearlymgyear = sum(daily.cflux.mgday.linear, na.rm = TRUE)) # get the daily mean cflux
+# get in kg/yearhect
+yearly.DOCflux$yearlygyear <- yearly.DOCflux$yearlymgyear/1000
+yearly.DOCflux$yearlykgyear <- yearly.DOCflux$yearlygyear/1000
+yearly.DOCflux$yearlykgyearhect <- yearly.DOCflux$yearlykgyear / area.hect
+
+## test 30 minute data for significant differences
+plot(density(DOC.Q$cflux.gshec, na.rm = TRUE))
+
+## Perform the test
+shapiro.test(DOC.Q$cflux.gshec)
+
+## Plot using a qqplot
+qqnorm(DOC.Q$cflux.gshec);qqline(DOC.Q$cflux.gshec, col = 2)
+# non-normal again
+
+# test daily flux 
+# really slow! Try on daily means rather than 30 minute data
+#First, aggregate to the daily mean, then look at whether daily means are different
+DOC.daily.flux <- ddply(DOC.Q,.(format(DOC.Q$date, format='%Y-%m-%d')),
+                   summarise, meandaily.DOC.gshe = mean(cflux.gshec, na.rm = TRUE)) 
+
+colnames(DOC.daily.flux)[1] <- "date"
+DOC.daily.flux$date <- as.POSIXct(strptime(DOC.daily.flux$date, format = "%Y-%m-%d"))
+
+jan.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "01")
+feb.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "02")
+march.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "03")
+april.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "04")
+may.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "05")
+june.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "06")
+july.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "07")
+aug.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "08")
+sept.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "09")
+oct.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "10")
+nov.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "11")
+dec.DOC <- subset(DOC.daily.flux, format(DOC.daily.flux$date, format='%m') == "12")
+
+# compile nov and december in the pre harvest period
+nov.DOC$date <- as.Date(gsub("2009", "2010", nov.DOC$date), format = "%Y-%m-%d")
+dec.DOC$date <- as.Date(gsub("2009", "2010", dec.DOC$date), format = "%Y-%m-%d")
+
+jan.DOC.test <- Dunns.test(jan.DOC, "by")
+feb.DOC.test <- Dunns.test(feb.DOC, "by")
+march.DOC.test <- Dunns.test(march.DOC, "by")
+april.DOC.test <- Dunns.test(april.DOC, "by")
+may.DOC.test <- Dunns.test(may.DOC, "by")
+june.DOC.test <- Dunns.test(june.DOC, "by")
+july.DOC.test <- Dunns.test(july.DOC, "by")
+aug.DOC.test <- Dunns.test(aug.DOC, "by")
+sept.DOC.test <- Dunns.test(sept.DOC, "by")
+oct.DOC.test <- Dunns.test(oct.DOC, "by")
+nov.DOC.test <- Dunns.test(nov.DOC, "by")
+dec.DOC.test <- Dunns.test(dec.DOC, "by")
+
+# take the mean of the pre-logging period by month to compare to months in the post-logging period
+DOC.monthly <- ddply(DOC.Q,.(format(DOC.Q$date, format='%Y-%m')),
+                     summarise, meanmonthly.DOCflux = mean(cflux.gshec, na.rm = TRUE),
+                     sdmonthly.DOCflux = sd(cflux.gshec, na.rm = TRUE)) 
+write.csv(DOC.monthly, file=paste0(fig.dir,"/CRmonthlymeanDOCflux.csv")) # write mean DOC
 
 #### Figure 4
-# Figure 4: Hysterisis loops for event pre/post harvest. 
+# Hysterisis loops for event pre/post harvest. 
+# as per Butturini, A, M Alvarez, and S Bernal. 2008. “Diversity and Temporal Sequences of Forms of DOC and NO3‐Discharge Responses in an Intermittent Stream: Predictable or Random Succession?.” Journal of …. doi:10.1029/2008JG000721/full.
+# Threshold event for rainfall events
+
 # Percent of DOC from top precipitation events pre and post harvest. 
 # Show the amount of discharge generated and the DOC flux for an event pre and post harvest. Is this relationship changed?
 

@@ -24,7 +24,7 @@ setwd("/Users/ashlee/Dropbox/par and fp compilation")
 
 ##### Read in data
 # read in spectro.all data (all variables)
-spectro.all<- read.csv(file = "/Users/ashlee/Dropbox/par and fp compilation/spectro.all.csv", head=TRUE,sep=",")
+spectro.all<- read.csv(file = "/Users/user/Dropbox/par and fp compilation/spectro.all.csv", head=TRUE,sep=",")
 attach(spectro.all)
 names(spectro.all)
 spectro.all$date <- as.POSIXct(strptime(spectro.all$date, format = "%Y-%m-%d %H:%M:%S", tz = "America/Los_Angeles"))
