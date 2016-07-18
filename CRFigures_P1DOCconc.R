@@ -11,7 +11,8 @@ ls()
 ###### Necessary toolboxes
 library(pacman)
 p_load(lubridate,plyr,ggplot2,reshape2,car,grid,gridBase,gridExtra, taRifx,magrittr, ggpmisc,
-       stringi,stringr,plyr,dplyr,tidyr,EcoHydRology,openair,reshape,lmomco, zoo, hydroTSM, rowr, reshape2, pgirmess)
+       stringi,stringr,plyr,dplyr,tidyr,EcoHydRology,openair,reshape,lmomco, zoo, hydroTSM, rowr, 
+       reshape2, pgirmess, nlme)
 
 ############ functions
 mean.function <- function(filename, interval){
@@ -81,6 +82,12 @@ climate <- as.data.frame(climate.comp(climate.dir = climate.path))
 #### Groundwater depth from groundwater well - trutrack closest to the weir
 source("/Users/user/SpecScripts/CRGroundwaterComp_function.R")
 groundwater <- groundwater.comp(ground.dir = groundwater.path)
+
+# convert groundwater trace to 30 minute using open air, and convert time zone from GMT to Pacific
+groundwater$date <- as.POSIXct(strptime(groundwater$date, format = "%Y-%m-%d %H:%M"), tz = "GMT")
+groundwater.ave <- timeAverage(groundwater, avg.time = "30 min", start.date = "2010-09-22", fill = TRUE)
+attr(groundwater.ave$date, "tzone") <- "America/Los_Angeles"
+
 
 #####
 # add pH/EC/DO
@@ -976,16 +983,260 @@ write.csv(DOC.monthly, file=paste0(fig.dir,"/CRmonthlymeanDOCflux.csv")) # write
 #### Figure 4
 # Hysterisis loops for event pre/post harvest. 
 # as per Butturini, A, M Alvarez, and S Bernal. 2008. “Diversity and Temporal Sequences of Forms of DOC and NO3‐Discharge Responses in an Intermittent Stream: Predictable or Random Succession?.” Journal of …. doi:10.1029/2008JG000721/full.
-# Threshold event for rainfall events
+# identification of rainfall events
+# relationship between discharge and precipitation
+# merge in the rainfall from climate
+precip.discharge <- as.data.frame(merge(climate[,c(1,3)], discharge.ave[,c(1,2)], by = "date", all = FALSE))
+linearQ.precip <- lm(as.numeric(precip.discharge$Precip) ~ precip.discharge$Q.L.s, na.rm = TRUE)
+summary(linearQ.precip)
+plot(as.numeric(precip.discharge$Precip) ~ precip.discharge$Q.L.s)
+# Really low R2!!
+plot(as.numeric(precip.discharge$Precip))
+plot(precip.discharge$Q.L.s)
 
-# Percent of DOC from top precipitation events pre and post harvest. 
+# plot the discharge by year in order to more closely 
+discharge2009 <- ggplot(subset(discharge, format(discharge$date, format='%Y') == "2009"), 
+                    aes(date, Q.L.s)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + theme()
+
+discharge2010 <- ggplot(subset(discharge, format(discharge$date, format='%Y') == "2010"), 
+                    aes(date, Q.L.s)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + theme()
+
+discharge2011 <- ggplot(subset(discharge, format(discharge$date, format='%Y') == "2011"), 
+                       aes(date, Q.L.s)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + theme()
+
+discharge2012 <- ggplot(subset(discharge, format(discharge$date, format='%Y') == "2012"), 
+                        aes(date, Q.L.s)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + theme()
+
+discharge2013 <- ggplot(subset(discharge, format(discharge$date, format='%Y') == "2013"), 
+                        aes(date, Q.L.s)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + theme()
+
+discharge2014 <- ggplot(subset(discharge, format(discharge$date, format='%Y') == "2014"), 
+                        aes(date, Q.L.s)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + theme()
+
+# breakpoint analysis to indicate when a hydrologic event occurs
+#https://rpubs.com/MarkusLoew/12164
+disch2014 <- ts(subset(discharge, format(discharge$date, format='%Y') == "2014")[,c(1,2)])
+
+my.lm <- lm(Q.L.s ~ date, data = disch2014)
+summary(my.lm)
+library(segmented)
+my.seg <- segmented(my.lm, 
+                    seg.Z = ~ date, 
+                    psi = NA, 
+                    control = seg.control(K=50))
+
+# try finding peaks within Q timeseries? peak Q to identify hydrologically significant e=vents within timeseries.
+#http://www.inside-r.org/packages/cran/pracma/docs/findpeaks
+require("pracma")
+
+test <- findpeaks(disch2014[,2], minpeakheight = 30, thresh = 1)
+
+# finding average dicharge for a event versus baseflow:
+# http://www.lancs.ac.uk/~killick/Pub/KillickEckley2011.pdf - use to find average in baseflow conditions, as well as for 
+require(changepoint)
+pelt.disch2014 = cpt.mean(disch2014,method='PELT', test.stat='Normal')
+plot(pelt.disch2014,type='l',cpt.col='blue',xlab='Index',cpt.width=4)
+coef(pelt.disch2014)
+# Threshold event for rainfall events. Get threshold for precipitation that causes a increase in discharge...
+
+################
+## Percent of DOC from top precipitation events pre and post harvest. 
+################
 # Show the amount of discharge generated and the DOC flux for an event pre and post harvest. Is this relationship changed?
+
+###############
+# Timing between peak precip, peak discharge and peak DOC as identified for hydrologically significant events identified previously.
+
 
 #### Figure 5
 # Timing of DOC and precipitation/groundwater levels: is DOC being mobilized into the stream faster after harvest?
 # Figure 5 How to show this? Average time between peak precip to peak discharge, DOC?
-
+# Cross correlation function
+# http://www.ltrr.arizona.edu/~dmeko/notes_10.pdf
 
 #### Figure 6
 # What are the drivers of DOC concentration? Model of DOC and climatic/discharge/stream chemistry variables.
 # Figure 6: Relationship between [DOC] and variables. Outline model of DOC concentration within the pre and post harvest period. Correlation table? Also, include soil temp?
+# linear regression between DOC and different variables
+# compile dataframe for analysis - DOC, precip, groundwater, Q, Q(stormflow), Q(baseflow), wet/dry, pre/post,  soilT, solarR
+DOCmerged <- Reduce(function(x, y) merge(x, y, by = 'date', all=TRUE), 
+                    list(spectro.all[,c(as.numeric(match("date", names(spectro.all))), as.numeric(match("DOCcorr", names(spectro.all))))], 
+                         discharge.ave[,c(as.numeric(match("date", names(discharge.ave))), as.numeric(match("Q.L.s", names(discharge.ave))), 
+                                      as.numeric(match("bt", names(discharge.ave)), 4))], 
+                         climate[,c(1:7)],
+                         groundwater.ave[,c(as.numeric(match("date", names(groundwater.ave))), 6)]))
+
+# check normality of DOC
+qqnorm(DOCmerged$DOCcorr);qqline(DOCmerged$DOCcorr, col = 2)
+# check the log transformed DOC
+qqnorm(log(DOCmerged$DOCcorr));qqline(log(DOCmerged$DOCcorr), col = 2) # still looks pretty funky. Log transformed data still not normal
+
+# Generalized least square model - DOC and variables
+#http://www.r-bloggers.com/in-depth-introduction-to-machine-learning-in-15-hours-of-expert-videos/
+DOCmerged <- DOCmerged[complete.cases(DOCmerged[,as.numeric(match("DOCcorr",names(DOCmerged)))]),] # get only the cases where this is DOC data
+DOCmerged$Precip <- as.numeric(DOCmerged$Precip)
+DOCmerged$Tair<- as.numeric(DOCmerged$Tair)
+# add in column for wet/dry. pre/post, month, time of day
+mod1 <- gls(DOCcorr ~ Q.L.s * bt * Precip + SoilT * Tair * Solar + , na.action = na.omit, data = DOCmerged) 
+mod2 <- update(mod1, correlation=corARMA(q = 1)) # not working!! hmm...
+   
+lmmod1 <- lm(DOCcorr ~ Q.L.s + Precip, data = DOCmerged)
+summary(lmmod1)
+lmmod2 <- lm(DOCcorr ~ Precip, data = DOCmerged)
+summary(lmmod2)
+lmmod3 <- lm(DOCcorr ~ SoilT, data = DOCmerged)
+summary(lmmod3)
+lmmod4 <- lm(DOCcorr ~ bt, data = DOCmerged)
+summary(lmmod4)
+
+# Use ANOVA to look at models
+anova(lmmod1,lmmod4)
+summary(mod1)
+# Idea: Correlation table between DOC and different climatic variables....
+## logistic regression for pre/post; wet/dry. Can use data to predict pre/post; wet'dry?
+#http://www.r-bloggers.com/how-to-perform-a-logistic-regression-in-r/
+
+#####################################################################
+
+########## timeseries analysis of discharge/DOC concentration
+# https://a-little-book-of-r-for-time-series.readthedocs.io/en/latest/src/timeseries.html
+ts.DOC.30min <- ts(spectro.all$DOCcorr, frequency=17520, start=c(2009,11,18,06,00,00))
+plot.ts(ts.DOC.30min)
+plot.ts(ts.DOC.30min)
+# autocorrleaction behavior
+acf(ts.DOC.30min, main ="30 min data", na.action = na.pass)
+
+# go to daily mean DOC interpolation
+# daily DOC concentartiol
+dailyDOC.conc <- ddply(DOCmerged,.(format(DOCmerged$date, format='%Y-%m-%d')),
+                       summarise, meandailyDOC= mean(DOCcorr, na.rm = TRUE))
+colnames(dailyDOC.conc)[1] <- "date"
+dailyDOC.conc$date <-as.POSIXct(strptime(dailyDOC.conc$date, format = "%Y-%m-%d")) 
+
+# interpolate for missing measurements 
+date <- as.data.frame(as.POSIXct(strptime(seq(min(dailyDOC.conc$date), max(dailyDOC.conc$date), by = "day"), 
+                                          format = "%Y-%m-%d")))
+colnames(date)[1] <- "date"
+
+DOC.daily.all <- merge(dailyDOC.conc, date, by = "date", all = TRUE) # merge together, creating NAs for missing data
+# percent missing
+permissing.day <- length(which(is.na(DOC.daily.all$meandailyDOC)))/length(DOC.daily.all$meandailyDOC)*100 #30% missing 30 minute data!
+#  interpolate disharge for missing data - 1 day intervals
+DOC.daily.all$splineDOC.mgL <- na.spline(DOC.daily.all$meandailyDOC) #interpolation by spline (polynmial)
+DOC.daily.all$approxDOC.mgL <- na.approx(DOC.daily.all$meandailyDOC) #interpolation by linear approximation
+
+# create time series data with the interpolated daily DOC
+daily.ts <- ts(DOC.daily.all$approxDOC.mgL, start=c(2009,11,18,06,00,00), frequency=365)
+acf(daily.ts , main ="daily data", na.action = na.pass)
+
+DOC.daily.comp <- stl(daily.ts, "periodic") #decompose into seasonal, trend and irregular components
+DOC.daily.com <- as.matrix(DOC.daily.comp)
+DOC.daily.com <- data.frame(DOC.daily.comp)
+seasonal.daily   <- data.frame(DOC.daily.comp$components[,1])
+trend.daily      <- DOC.daily.comp$approxDOC.mgL[,2]
+remainder.daily  <- DOC.daily.comp$approxDOC.mgL[,3]
+
+decomposed <- stl(daily.ts, s.window="periodic")
+seasonal   <- decomposed$daily.ts[,"trend"]
+trend      <- decomposed$time.series[,2]
+remainder  <- decomposed$time.series[,3]
+plot(DOC.daily.comp) # plot components
+plot(daily.ts)
+lines(trend.daily)
+# - no clear trend or seasonality
+
+## Try same on daily cflux
+# daily cflux
+# create time series data with the interpolated daily DOC flux
+daily.ts <- ts(cflux.day$daily.cflux.mgday.linear, start=c(2009,11,18,06,00,00), frequency=365)
+acf(daily.ts , main ="daily data", na.action = na.pass)
+
+DOC.daily.comp <- stl(daily.ts, "periodic") #decompose into seasonal, trend and irregular components
+DOC.daily.com <- as.matrix(DOC.daily.comp)
+DOC.daily.com <- data.frame(DOC.daily.comp)
+seasonal.daily   <- data.frame(DOC.daily.comp$components[,1])
+trend.daily      <- DOC.daily.comp$approxDOC.mgL[,2]
+remainder.daily  <- DOC.daily.comp$approxDOC.mgL[,3]
+
+decomposed <- stl(daily.ts, s.window="periodic")
+seasonal   <- decomposed$daily.ts[,"trend"]
+trend      <- decomposed$time.series[,2]
+remainder  <- decomposed$time.series[,3]
+plot(DOC.daily.comp) # plot components
+plot(daily.ts)
+lines(trend.daily)
+
+# try on weekly cflux
+# try on monthly cflux
+monthlyDOC.flux <- ddply(cflux.day,.(format(cflux.day$date, format='%Y-%m')),
+                       summarise, monthlyDOCflux= sum(daily.cflux.mgday.linear, na.rm = TRUE))
+
+monthly.ts <- ts(monthlyDOC.flux$monthlyDOCflux, start=c(2009,12,01,00,00,00), frequency=12)
+acf(monthly.ts , main ="monthly data", na.action = na.pass)
+
+DOC.monthly.comp <- stl(monthly.ts, "periodic") #decompose into seasonal, trend and irregular components
+DOC.monthly.com <- as.matrix(DOC.monthly.comp)
+DOC.monthly.com <- data.frame(DOC.monthly.comp)
+seasonal.monthly   <- data.frame(DOC.monthly.comp$components[,1])
+trend.monthly      <- DOC.monthly.comp$approxDOC.mgL[,2]
+remainder.monthly  <- DOC.monthly.comp$approxDOC.mgL[,3]
+
+decomposed <- stl(monthly.ts, s.window="periodic")
+seasonal   <- decomposed$monthly.ts[,"trend"]
+trend      <- decomposed$time.series[,2]
+remainder  <- decomposed$time.series[,3]
+plot(DOC.monthly.comp) # plot components
+plot(monthly.ts)
+lines(trend.monthly)
+
+#### discharge - daily Q
+daily.ts <- ts(daily.Q.all$approxQ.mm.day, start=c(2007,11,15,00,00,00), frequency=365)
+acf(daily.ts , main ="daily data", na.action = na.pass)
+
+Q.daily.comp <- stl(daily.ts, "periodic") #decompose into seasonal, trend and irregular components
+Q.daily.com <- as.matrix(Q.daily.comp)
+Q.daily.com <- data.frame(Q.daily.comp)
+seasonal.daily   <- data.frame(Q.daily.comp$components[,1])
+trend.daily      <- Q.daily.comp$approxQ.mgL[,2]
+remainder.daily  <- Q.daily.comp$approxQ.mgL[,3]
+
+decomposed <- stl(daily.ts, s.window="periodic")
+seasonal   <- decomposed$daily.ts[,"trend"]
+trend      <- decomposed$time.series[,2]
+remainder  <- decomposed$time.series[,3]
+plot(Q.daily.comp) # plot components
+plot(daily.ts)
+lines(trend.daily)
+
+# monthly Q
+monthlyQ <- ddply(daily.Q.all,.(format(daily.Q.all$date, format='%Y-%m')),
+                         summarise, monthlyQflux= sum(approxQ.mm.day, na.rm = TRUE))
+
+monthly.ts <- ts(monthlyQ$monthlyQflux, start=c(2007,11,00,00,00,00), frequency=12)
+acf(monthly.ts , main ="monthly data", na.action = na.pass)
+
+Q.monthly.comp <- stl(monthly.ts, "periodic") #decompose into seasonal, trend and irregular components
+Q.monthly.com <- as.matrix(Q.monthly.comp)
+Q.monthly.com <- data.frame(Q.monthly.comp)
+seasonal.monthly   <- data.frame(Q.monthly.comp$components[,1])
+trend.monthly      <- Q.monthly.comp$approxQ.mgL[,2]
+remainder.monthly  <- Q.monthly.comp$approxQ.mgL[,3]
+
+decomposed <- stl(monthly.ts, s.window="periodic")
+seasonal   <- decomposed$monthly.ts[,"trend"]
+trend      <- decomposed$time.series[,2]
+remainder  <- decomposed$time.series[,3]
+plot(Q.monthly.comp) # plot components
+plot(monthly.ts)
+lines(trend.monthly)
