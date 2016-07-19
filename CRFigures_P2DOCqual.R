@@ -127,19 +127,42 @@ source("/Users/user/SpecScripts/SpecAbsCorr_function.R")
 abspec.corr <- abscorrspec(spectra = spectro.all)
 # put back in date/DOCcorr/NO3
 abspec.corr <- cbind(abspec.corr, spectro.all$date, spectro.all$DOCcorr, spectro.all$NO3.N)
+colnames(abspec.corr)[222] <- "date"
+colnames(abspec.corr)[223] <- "DOCcorr"
+colnames(abspec.corr)[224] <- "NO3"
 
 # calculate the abs spectral indicies from the corrected spectra
-source("/Users/user/SpecScripts/spectral_indicies_v2.R")
-abs.ind <- Abs.ind(spec = abspec.corr, pathlength = 35)
+source("/Users/user/SpecScripts/CRSpectralIndAbs_function.R")
+abs.ind.1 <- as.data.frame(Abs.ind(spec = abspec.corr[1:10000,], pathlength = 35))
+abs.ind.2 <- as.data.frame(Abs.ind(spec = abspec.corr[10001:20000,], pathlength = 35))
+abs.ind.3 <- as.data.frame(Abs.ind(spec = abspec.corr[20001:30000,], pathlength = 35))
+abs.ind.4 <- as.data.frame(Abs.ind(spec = abspec.corr[30001:39046,], pathlength = 35))
+spec.39047 <- Abs.ind(spec = abspec.corr[39047,], pathlength = 35)
+spec.39048 <- Abs.ind(spec = abspec.corr[39048,], pathlength = 35)
+spec.39049 <- Abs.ind(spec = abspec.corr[39049,], pathlength = 35)
+abs.ind.5 <- as.data.frame(Abs.ind(spec = abspec.corr[39050:dim(abspec.corr)[1],], pathlength = 35))
+
+spec.39048 <- c("NA", "NA","NA", "NA", "NA", "NA","NA", "NA" )
+spec.39049 <- c("NA", "NA","NA", "NA", "NA", "NA","NA", "NA" )
+
+# bind together
+abs.all <- rbind(as.data.frame(abs.ind.1), abs.ind.2, abs.ind.3, abs.ind.4, 
+                 spec.39047, spec.39048, spec.39049, abs.ind.5)
+
+# add in date
+abs.all$date <- abspec.corr$date
+abs.all$DOCcorr <- abspec.corr$DOCcorr
+abs.all$NO3 <- abspec.corr$NO3
+
 # this takes forever! Save data to the absorbance folder...
-write.csv(abspec.corr, 
-          file = paste0("/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Spectrodata", "/spectroall.csv"))
+write.csv(abs.all, 
+          file = paste0("/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Spectrodata", "/CRabsind_all.csv"))
 
 # Make sure date is formatted
 
 # Do timeseries plots of spectral indicies
 
-time.SUVA <- ggplot(abs.ind, aes(date, Q.L.s)) + geom_point(size = 0.4) +
+time.SUVA <- ggplot(abs.all, aes(date, SR)) + geom_point(size = 0.4) +
   xlab("Date") + ylab("") + theme()
 
 time.e2e3 <- ggplot(abs.ind, aes(date, Q.L.s)) + geom_point(size = 0.4) +

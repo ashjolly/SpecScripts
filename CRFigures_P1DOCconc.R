@@ -1064,6 +1064,7 @@ coef(pelt.disch2014)
 # Figure 5 How to show this? Average time between peak precip to peak discharge, DOC?
 # Cross correlation function
 # http://www.ltrr.arizona.edu/~dmeko/notes_10.pdf
+# https://www.researchgate.net/post/Can_anyone_help_to_determine_the_time_lag_between_flood_gauges_from_upstream_to_downstream
 
 #### Figure 6
 # What are the drivers of DOC concentration? Model of DOC and climatic/discharge/stream chemistry variables.
