@@ -753,7 +753,7 @@ png(paste(directory, "WSA_allocation_nonum.png", sep = ""),         # create PNG
           cexCol=1.5, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
-          srtRow=-45,           # rotate the x labels at 45 deg so they fit
+          #srtRow=-45,           # rotate the x labels at 45 deg so they fit
          
          #axisnames = FALSE,
           
@@ -1541,7 +1541,7 @@ heatmap.2(mat.data,
           cexCol=1.5, 
           cexRow = 1.5,          # decrease row font size to fit
           srtCol=45,           # rotate the x labels at 45 deg so they fit
-          srtRow=-45,
+          #srtRow=-45,
           
           #axisnames = FALSE,
           
