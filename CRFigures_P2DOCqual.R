@@ -142,8 +142,8 @@ spec.39048 <- Abs.ind(spec = abspec.corr[39048,], pathlength = 35)
 spec.39049 <- Abs.ind(spec = abspec.corr[39049,], pathlength = 35)
 abs.ind.5 <- as.data.frame(Abs.ind(spec = abspec.corr[39050:dim(abspec.corr)[1],], pathlength = 35))
 
-spec.39048 <- c("NA", "NA","NA", "NA", "NA", "NA","NA", "NA" )
-spec.39049 <- c("NA", "NA","NA", "NA", "NA", "NA","NA", "NA" )
+spec.39048 <- c("NA", "NA","NA", "NA", "NA", "NA","NA", "NA", "NA" )
+spec.39049 <- c("NA", "NA","NA", "NA", "NA", "NA","NA", "NA", "NA" )
 
 # bind together
 abs.all <- rbind(as.data.frame(abs.ind.1), abs.ind.2, abs.ind.3, abs.ind.4, 
@@ -154,30 +154,38 @@ abs.all$date <- abspec.corr$date
 abs.all$DOCcorr <- abspec.corr$DOCcorr
 abs.all$NO3 <- abspec.corr$NO3
 
+colnames(abs.all)[6:9] <- c("S1", "S2", "S3", "SlopeRatio")
+
 # this takes forever! Save data to the absorbance folder...
 write.csv(abs.all, 
           file = paste0("/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Spectrodata", "/CRabsind_all.csv"))
+abs.all$date <- as.POSIXct(strptime(abs.all$date, format = "%Y-%m-%d %H:%M"))
+attr(abs.all$date, "tzone") <- "America/Los_Angeles"
 
-# Make sure date is formatted
+# Timeseries plots of spectral indicies
+time.SUVA <- ggplot(abs.all, aes(date, SUVA)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("SUVA") + theme()
 
-# Do timeseries plots of spectral indicies
+time.e2e3 <- ggplot(abs.ind, aes(date, e2e3)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("e2e3") + theme()
 
-time.SUVA <- ggplot(abs.all, aes(date, SR)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("") + theme()
-
-time.e2e3 <- ggplot(abs.ind, aes(date, Q.L.s)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("") + theme()
-
-time.e4e6 <- 
+time.e4e6 <- ggplot(abs.ind, aes(date, e4e6)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("e4e6") + theme()
   
-time.SR <-   
+time.SR <-   ggplot(abs.ind, aes(date, e4e6)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("e4e6") + theme()
 
 # get the CM fits
 # Get PARAFAC fits 
 
-
-
 # for grab sample data, compile by sample ID, and ensure sample date/time correctly associated.
+# Fluorescence (CM), Fluorescence (PARAFAC), Fluorescence (Indicies)
+# Have one dataframe with grab samlpes, the other with the timeseries data  
+  
+# Add in the pre/post loggin
+# Add in wet/dry
+# add in the time of day (diurnal cycles)
+# add in the month
 
 
 # Figure 1 PCA analysis

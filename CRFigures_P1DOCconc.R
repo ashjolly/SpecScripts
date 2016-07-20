@@ -1089,7 +1089,7 @@ DOCmerged <- DOCmerged[complete.cases(DOCmerged[,as.numeric(match("DOCcorr",name
 DOCmerged$Precip <- as.numeric(DOCmerged$Precip)
 DOCmerged$Tair<- as.numeric(DOCmerged$Tair)
 # add in column for wet/dry. pre/post, month, time of day
-mod1 <- gls(DOCcorr ~ Q.L.s * bt * Precip + SoilT * Tair * Solar + , na.action = na.omit, data = DOCmerged) 
+mod1 <- gls(DOCcorr ~ Q.L.s * bt * Precip + SoilT * Tair * Solar , na.action = na.omit, data = DOCmerged) 
 mod2 <- update(mod1, correlation=corARMA(q = 1)) # not working!! hmm...
    
 lmmod1 <- lm(DOCcorr ~ Q.L.s + Precip, data = DOCmerged)
