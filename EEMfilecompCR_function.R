@@ -54,6 +54,22 @@ EEMfilecompCR <- function(workdir, dil, EEMfiletype) {
   # Merge blank, EEM, abs and dilution files according to sample ID
   #alter so that it mearges according to sample ID, which is contained
   data.3 <- Reduce(function(x, y) merge(x, y, by = "sample.ID", all=TRUE), list(filelist_EEMS, filelist_Abs, filelist_Blank, dil))
+  data.4 <- unique(data.3)
   
-  return(data.3)
+  ## Data massaging!
+  # for samples 286 - 344 (8jan2014), use abs from Jan 20, 2014 (1339-1359)
+  data.4[145:199,4] <- "CR1339Blank_BEM.dat"
+  # for sample 1031, use blank 1031
+  data.4[(which(data.4$sample.ID == "CR1031")), 4] <- "CR1032Blank_BEM.dat"
+  # For sample755, use blank 756
+  data.4[(which(data.4$sample.ID == "CR756")), 4] <- "CR755Blank_BEM.dat"
+  # For sample 840- 845, use blank 839
+  data.4[(which(data.4$sample.ID == "CR840"):which(data.4$sample.ID == "CR845")), 4] <- "CR839Blank_BEM.dat"
+  # For sample 851, use blank 850
+  data.4[(which(data.4$sample.ID == "CR851")), 4] <- "CR850Blank_BEM.dat"
+  
+  # only return the data that has an EEMs associatedwith it.
+  data.5 <- data.4[complete.cases(data.4$filelist_EEMS),]
+  
+  return(data.5)
 }
