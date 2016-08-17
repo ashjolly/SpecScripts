@@ -51,10 +51,12 @@ discharge.comp <- function(discharge.dir){
 
   # use open air to convert to 30 minute dataset
   #discharge.1 <- timeAverage(discharge, avg.time = "30 min", start.date = "2007-11-15 12:30:00", fill = FALSE)
-  discharge.1 <- timeAverage(discharge, avg.time = "30 min", fill = TRUE)
+  discharge.1 <- timeAverage(discharge, avg.time = "30 min", start.date = "2007-11-15 04:40:00", fill = TRUE)
   
   #convert from GST to PST
-  attributes(discharge$date)$tzone <- "America/Los_Angeles"  
+   
+  discharge$date2 <- format(discharge$date, tz="America/Los_Angeles",usetz=TRUE)
+  attributes(discharge$date2)$tzone <- "America/Los_Angeles" 
   attributes(discharge.1$date)$tzone <- "America/Los_Angeles"  
   return(discharge)
 }
