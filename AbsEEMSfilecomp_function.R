@@ -5,9 +5,9 @@
 # AJ PhD project
 ##################
 
-abseemfilecomp <- function(directoryAbsEEMs, directoryRaleigh, projectname, directorynoncorabs, filelist_EEMScor){
+abseemfilecomp <- function(directoryRaleigh, projectname, directorynoncorabs, filelist_EEMScor){
   
-  setwd(directoryAbsEEMs)
+  setwd(directoryRaleigh)
   #create column with sample ID - extracted from corrected EEMS filename
   
   y = length(filelist_EEMScor)
