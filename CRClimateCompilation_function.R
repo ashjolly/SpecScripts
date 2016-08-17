@@ -20,7 +20,7 @@ climate.comp <- function(climate.dir) {
   filelist_climateIain <- list.files(path = paste(climate.dir,"HDF11_Climate", sep= "/"), pattern = ".csv$")
   setwd(paste(climate.dir,"HDF11_Climate", sep= "/"))
   cnames <- c("first", "date","Tair","pressure","ave","Precip","rainsnow", "date2")
-  climate.I <- ldply(filelist_climateIain, read.csv, header=FALSE, skip=1, col.names=cnames, na.strings = "NaN", 
+  climate.I <- ldply(filelist_climateIain, read.delim, header=FALSE, skip=1, col.names=cnames, na.strings = "NaN", 
                    stringsAsFactors = FALSE)
   # convert date to date
   climate.I$date <- as.POSIXct(strptime(climate.I$date, format = "%Y-%m-%d %H:%M", tz = "GMT"))
