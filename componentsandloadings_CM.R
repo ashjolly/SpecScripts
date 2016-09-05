@@ -27,10 +27,15 @@ ls()
 #directoryCMresults <-"/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_prechlorination/DBP_pre_CM_PARAFAC" 
 #directoryCMresults <-"/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_delta/DBP_delta_CMPARAFACresults"
 #directoryCMresults <- "/Users/user/Documents/UBC Data/DBP_data/DBP_fluorescence/DBP_all_corrected/DBP_all_CMPARAFACresults"
-directoryCMresults <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_preandpost/DBP_prepost_CMresults"
-
+#directoryCMresults <- "/Users/user/Dropbox/PhD Work/PhD Data/DBP_data/DBP_fluorescence/DBP_preandpost/DBP_prepost_CMresults"
 # WL
 #directoryCMresults <-"/Users/user/Dropbox/PhD Work/PhD Data/WL_data/WL_Fluorescence/WL_CMParafac_Results"
+# CR Results
+#directoryCMresults <- "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR EEMS/CR_CMPARAFACResults"
+# CR soil results
+directoryCMresults <- "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_soilextracts/CR_soilextracts_fluorescence/CR_PARAFACCMresults"
+# CR Soil Lysimeters
+#directoryCMresults <- "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Lysimeter/CRLys_Fluorescence/CRLys_CMPARAFACResults"
 
 setwd(directoryCMresults) 
 #sample type
@@ -40,7 +45,10 @@ setwd(directoryCMresults)
 #sample.type <- "DBPpost"
 #sample.type <- "DBPdelta"
 #sample.type <- "DBPall"
-sample.type <- "DBPprepost"
+#sample.type <- "DBPprepost"
+#sample.type <- "CR"
+sample.type <- "SoilExtracts"
+#sample.type <- "CRLys"
 
 # Read in the A file
 #afile = "A_DBPpostandpre.txt"
@@ -48,7 +56,6 @@ Apath <- file.path(directoryCMresults, paste("A_", sample.type, ".txt", sep = ""
 A = as.data.frame(read.table(Apath, header= FALSE, sep = ""))
 
 #Read in the B file
-#bfile = "B_DBPpostandpre.txt"
 bpath <- file.path(directoryCMresults, paste("B_", sample.type, ".txt", sep = ""))
 B = read.table(bpath, header= FALSE, sep = "")
 # add in wavelengths for B (emission wavelengths for CM)
@@ -56,7 +63,6 @@ wave <- seq(350, 550, by = 2)
 rownames(B) <- wave
 
 #Read in the C file
-#cfile = "C_DBPpostandpre.txt"
 cpath <- file.path(directoryCMresults, paste("C_", sample.type, ".txt", sep = ""))
 C = read.table(cpath, header= FALSE, sep = "")
 # add in wavelengths for the c - excitation for CM
