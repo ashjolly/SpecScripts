@@ -12,7 +12,7 @@ ls()
 library(pacman)
 p_load(lubridate,plyr,ggplot2,reshape2,car,grid,gridBase,gridExtra, taRifx,magrittr, ggpmisc,
        stringi,stringr,plyr,dplyr,tidyr,EcoHydRology,openair,reshape,lmomco, zoo, hydroTSM, rowr, 
-       reshape2, pgirmess, nlme)
+       reshape2, pgirmess, nlme, scales, dunn.test)
 
 ############ functions
 mean.function <- function(filename, interval){
@@ -44,7 +44,7 @@ wetdry.f <- function(filename){
 }
 
 ###### Set paths for data
-fig.dir <- "/Users/user/Dropbox/PhD Work/Thesis chapters/CR Chapter/CRDOCconcP1/Figures" # directory for saving figures
+fig.dir <- "/Users/user/Dropbox/PhD Work/Thesis chapters/CR Chapter/Figures" # directory for saving figures
 spectro.path <- "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Spectrodata/parfp_all"
 discharge.path <- "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Stream/CR_discharge"
 climate.path <- "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Climate"
@@ -59,6 +59,7 @@ spectro.all<- read.csv(file = "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_
 attach(spectro.all)
 names(spectro.all)
 spectro.all$date <- as.POSIXct(strptime(spectro.all$date, format = "%y-%m-%d %H:%M", tz = "America/Los_Angeles"))
+spectro.all <- logstatus.f(spectro.all)
 
 ##CHECK AS THE DATA FROM THE COMPILATION IS IN GMT!!!
 spectro.all <- data.frame(spectro.all)
@@ -66,13 +67,27 @@ spectro.all <- data.frame(spectro.all)
 #### Discharge from stream
 # Function for compiling discharge from all
 # Note - took out the open air function to convert to 30 min. Not working?
-source("/Users/user/SpecScripts/CRDischargeCompilation_function.R")
-discharge <- discharge.comp(discharge.dir = discharge.path)
+#source("/Users/user/SpecScripts/CRDischargeCompilation_function.R")
+#discharge <- discharge.comp(discharge.dir = discharge.path)
+
+# add column for pre/post harvest
+#discharge <- logstatus.f(discharge)
+# add column for wet/dry  period
+#discharge <- wetdry.f(discharge)
+
+#mark.discharge <- source_data("https://github.com/UBCecohydro/ecohydro.datasets/blob/master/Campbell.River/Q.WQ.July2016.RDS?raw=true")
+mark.discharge <- readRDS("/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Stream/CR_discharge/Q.WQ.July2016.RDS")
+mark.discharge$date <- as.POSIXct(strptime(mark.discharge$date, format = "%Y-%m-%d %H:%M"), tz = "America/Los_Angeles")
+#discharge.ave <- timeAverage(discharge, avg.time = "30 min", start.date = "2007-11-15", fill = TRUE)
+attr(mark.discharge$date, "tzone") <- "America/Los_Angeles"
+discharge <- mark.discharge
 
 # add column for pre/post harvest
 discharge <- logstatus.f(discharge)
 # add column for wet/dry  period
 discharge <- wetdry.f(discharge)
+# cut off the discharge so that it ends at Dec 2014
+discharge <- subset(discharge, discharge$date <= "2014-12-31")
 
 #### Climate variables from Biomet
 # Function for compiling climate from biomet
@@ -91,7 +106,7 @@ attr(groundwater.ave$date, "tzone") <- "America/Los_Angeles"
 
 #####
 # add pH/EC/DO
-
+# in mark discharge
 
 ## Seven Anion Data from IC 
 ########################################################################################################################
@@ -112,6 +127,62 @@ theme = theme_set(theme_bw() +
 # Constants etc
 area.hect <- 91 #watershed area in hectares
 
+####################################################################################
+# Precipitation sum per month - when does precipitation come?
+# figure 1 - weather over the year
+# calculate the sum of precip over each month
+#climate$date1<- as.POSIXct(strptime(climate$date, format = "%Y-%m-%d HH:MM:SS", tz = ""))
+climate$month <- format(climate$date, format = "%m")
+meanmonth.precip <- ddply(climate,.(format(climate$date, format = "%Y-%m")),
+                          summarise, sum.P = sum(as.numeric(Precip), na.rm = TRUE))
+
+colnames(meanmonth.precip)[1] <- "date"
+meanmonth.precip$date <- as.Date(paste(meanmonth.precip$date, "-01", sep = ""), format = "%Y-%m-%d")
+meanmonth.precip$month <- format(meanmonth.precip$date, format = "%m")
+
+meanmonth.precip <- wetdry.f(meanmonth.precip)
+# average precip by month
+mean.P <- ddply(meanmonth.precip,.(format(meanmonth.precip$date, format='%m')),
+                summarise, ave.P = mean(sum.P, na.rm = TRUE), sd.p = sd(sum.P, na.rm = TRUE))
+mean.P <- as.data.frame(mean.P)
+colnames(mean.P) <- c("month", "meanP", "sdP")
+
+# make boxplot of average monthly P and daily temp - not working! Boxplot instead
+meanP.month <- ggplot(meanmonth.precip,
+                      aes(y = sum.P, x = month, fill = hydro)) +
+  geom_boxplot() +  
+  ggtitle("Mean Monthly  Precipitation") + 
+  xlab("Month") +
+  ylab(expression("Mean Monthly Precipitation (mm/month)")) + 
+  scale_fill_manual(name = "", 
+                    values = cbPalette[5:6]) +
+  theme(legend.position="top")
+
+## get average temperature by month
+mean.Tdaily <- ddply(climate,.(format(climate$date, format='%Y-%m-%d')),
+                     summarise, ave.T = mean(Tair, na.rm = TRUE), sd.T = sd(Tair, na.rm = TRUE))
+colnames(mean.Tdaily)[1] <- "date"
+mean.Tdaily$date <- as.Date(mean.Tdaily$date, format = "%Y-%m-%d")
+mean.Tdaily$month <- format(mean.Tdaily$date, format = "%m")
+mean.Tdaily <- wetdry.f(mean.Tdaily)
+
+# daily mean temp by month
+meanT.plot <- ggplot(mean.Tdaily,
+                     aes(y = ave.T, x = month, fill = hydro)) +
+  geom_boxplot() + 
+  ggtitle("Monthly Average Temperature") + 
+  xlab("Month") +
+  ylab(expression("Mean Temperature ("~degree~"C)")) +
+  scale_fill_manual(name = "", 
+                    values = cbPalette[5:6]) +
+  theme(legend.position="none")
+
+# save the precip and averahe daily temp boxplots as one plot
+pdf(file=paste0(fig.dir,"/CRFigures_climate.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(meanP.month, meanT.plot, ncol=1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc"), y=unit(0.5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
 
 ########################################################################################################################
 #### figure 2 - precip, discharge changes
@@ -120,16 +191,24 @@ area.hect <- 91 #watershed area in hectares
 # As per figure 1 in Strohmeier, S, K H Knorr, M Reichert, and S Frei. 2013. 
 # “Concentrations and Fluxes of Dissolved Organic Carbon in Runoff From a Forested Catchment: Insights From High Frequency Measurements.” …. doi:10.5194/bg-10-905-2013.
 
-time.disc <- ggplot(discharge, aes(date, Q.L.s)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("Q (L/s)") + theme()
+time.disc <- ggplot(discharge, aes(date, Q.L.s, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + 
+  scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top")
 
 # do daily sum of precip for bar graph. Too complicated otherwise
 dailysum.precip<- ddply(climate,.(format(climate$date, format = "%Y-%m-%d")),
                           summarise, sum.P = sum(as.numeric(Precip), na.rm = TRUE))
 colnames(dailysum.precip) <- c("date", "dailyP.mm")
 dailysum.precip$date <- as.POSIXct(strptime(dailysum.precip$date, format = "%Y-%m-%d"))
-time.precip <- ggplot(dailysum.precip, aes(as.Date(date), dailyP.mm)) + geom_bar(stat="identity") +
-  xlab("Date") + ylab("Precipitation (mm)") + theme() +
+dailysum.precip <- wetdry.f(dailysum.precip)
+
+# do plots - timeseries
+time.precip <- ggplot(dailysum.precip, aes(as.Date(date), dailyP.mm, fill = factor(hydro))) + 
+  geom_bar(stat="identity") +
+  xlab("Date") + ylab("Precipitation (mm)") + 
+  theme(legend.position="top") +
   scale_x_date(date_breaks = "year", 
                labels=date_format("%Y"))
 
@@ -142,8 +221,11 @@ time.airT <- ggplot(climate, aes(date, Tair)) + geom_point(size = 0.4) +
 time.groundwater <- ggplot(groundwater, aes(date, water.height.average..mm.0904203)) + geom_point(size = 0.4) +
   xlab("Date") + ylab("Groundwater Height (mm)") + theme()
 
-time.DOC <- ggplot(spectro.all, aes(date, DOCcorr)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("[DOC] (mg/L)") + theme()
+time.DOC <- ggplot(subset(spectro.all, spectro.all$DOCcorr >=1), aes(date, DOCcorr, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("[DOC] (mg/L)") + 
+  scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top")
 
 # Save as stacked figure
 pdf(file=paste0(fig.dir,"/CRFigures_timeseries.pdf"), width = 8.5, height = 11) #save figure
@@ -152,113 +234,7 @@ grid.arrange(time.disc, time.precip, time.DOC, ncol=1)
 #grid.text("B", x=unit(0.5, "npc"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
 
-##############
-# Precipitation sum per month - when does precipitation come?
-# Supplemental figure 1 - weather over the year
-# calculate the sum of precip over each month
-#climate$date1<- as.POSIXct(strptime(climate$date, format = "%Y-%m-%d HH:MM:SS", tz = ""))
-climate$month <- format(climate$date, format = "%m")
-meanmonth.precip <- ddply(climate,.(format(climate$date, format = "%Y-%m")),
-                     summarise, sum.P = sum(as.numeric(Precip), na.rm = TRUE))
-
-colnames(meanmonth.precip)[1] <- "date"
-meanmonth.precip$date <- as.Date(paste(meanmonth.precip$date, "-01", sep = ""), format = "%Y-%m-%d")
-meanmonth.precip$month <- format(meanmonth.precip$date, format = "%m")
-
-# average precip by month
-mean.P <- ddply(meanmonth.precip,.(format(meanmonth.precip$date, format='%m')),
-                          summarise, ave.P = mean(sum.P, na.rm = TRUE), sd.p = sd(sum.P, na.rm = TRUE))
-mean.P <- as.data.frame(mean.P)
-colnames(mean.P) <- c("month", "meanP", "sdP")
-
-# make boxplot of average monthly P and daily temp - not working! Boxplot instead
-meanP.month <- ggplot(meanmonth.precip,
-       aes(y = sum.P, x = month)) +
-  geom_boxplot() +  
-  ggtitle("Mean Monthly  Precipitation") + 
-  xlab("Month") +
-  ylab(expression("Mean Monthly Precipitation (mm/month)"))
-
-## get average temperature by month
-mean.Tdaily <- ddply(climate,.(format(climate$date, format='%Y-%m-%d')),
-                summarise, ave.T = mean(Tair, na.rm = TRUE), sd.T = sd(Tair, na.rm = TRUE))
-colnames(mean.Tdaily)[1] <- "date"
-mean.Tdaily$date <- as.Date(mean.Tdaily$date, format = "%Y-%m-%d")
-mean.Tdaily$month <- format(mean.Tdaily$date, format = "%m")
-
-# daily mean temp by month
-meanT.plot <- ggplot(mean.Tdaily,
-       aes(y = ave.T, x = month)) +
-  geom_boxplot() + 
-  ggtitle("Monthly Average Temperature") + 
-  xlab("Month") +
-  ylab(expression("Mean Temperature ("~degree~"C)"))
-
-# save the precip and averahe daily temp boxplots as one plot
-pdf(file=paste0(fig.dir,"/CRFigures_climate.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(meanP.month, meanT.plot, ncol=1)
-grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-grid.text("B", x=unit(0, "npc"), y=unit(0.5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-dev.off()
-
-#################
-## Effect of harvest on discharge
-# Calculate specific discharge - Q/watershed area 
-# 8.64 is the conversion factor from L s 1 ha 1 to mm d 1.From: Sørensen, Rasmus, Eva Ring, Markus Meili, Lars Högbom, Jan Seibert, Thomas Grabs, Hjalmar Laudon, and Kevin Bishop. 2009. “Forest Harvest Increases Runoff Most During Low Flows in Two Boreal Streams.” AMBIO: a Journal of the Human Environment 38 (7): 357–63. doi:10.1579/0044-7447-38.7.357.
-#discharge$Q.mm.day <- discharge$Q.L.s/area.hect * 8.64
-
-## Cumulative distribution function of discharge - by year
-CDF.runoff.year <- ggplot(discharge, aes(x = Q.L.s)) + 
-  stat_ecdf(aes(group = format(discharge$date, format='%Y'), colour = format(discharge$date, format='%Y'))) +
-  scale_fill_manual(values=c(cbPalette[1:8]),
-                    name="Year") +
-  #theme(legend.title=element_text("Year")) +
-  scale_color_manual(breaks=c("2007","2008", "2009", "2010", "2011", "2012", "2013", "2014"),
-                     values=c(cbPalette[1:8])) +
-  theme(legend.position=c(.8, .3)) +
-  ggtitle("Discharge by Year") +
-  scale_y_continuous(name="Cumulative Distribution") +
-  scale_x_continuous(name="Q (L/s)", limits = c(0, 600))
-
-## Cumulative distribution function of discharge - by year
-CDF.runoff.log <- ggplot(discharge, aes(x = Q.L.s, color = logstatus)) + 
-  stat_ecdf(aes(group = logstatus)) +
-  scale_fill_manual(values=c(cbPalette[1:2]),
-                    name="Logging\nStatus",
-                    labels=c("Pre-Harvest", "Post-Harvest")) +
-  #theme(legend.title=element_text("Year")) +
-  scale_color_manual(breaks=c("post","pre"),
-                     values=c(cbPalette[1],cbPalette[2])) +
-  theme(legend.position=c(.8, .3)) +
-  ggtitle("Discharge by Logging Status") +
-  scale_y_continuous(name="Cumulative Distribution") +
-  scale_x_continuous(name="Q (L/s)", limits = c(0, 600))
-
-## Frequency Distribution - by year
-frequ.year <- ggplot(discharge, aes(Q.L.s, fill = format(discharge$date, format='%Y'))) + geom_density(alpha = 0.2) +
-  scale_fill_manual(values=c(cbPalette[1:8]),
-                    name="Year") + 
-  theme(legend.position=c(.8, .6)) +
-  ggtitle("Discharge by Year") +
-  scale_y_continuous(name="Density") +
-  scale_x_continuous(name="Q (L/s)", limits = c(0, 600))
-
-# Frequency distribution - preharvest verusus post
-frequ.log <- ggplot(discharge, aes(Q.L.s, fill = logstatus)) + geom_density(alpha = 0.2) +
-  scale_fill_manual(values=c(cbPalette[1:2]),
-                    name="Logging\nStatus",
-                    labels=c("Post-Harvest", "Pre-Harvest")) + 
-  theme(legend.position=c(.8, .8)) +
-  ggtitle("Discharge by Pre-Post Status") +
-  scale_y_continuous(name="Density") +
-  scale_x_continuous(name="Q (L/s)", limits = c(0, 600)) + 
-  theme()
-
-# save distribution functions - all four in one document
-pdf(file=paste0(fig.dir,"/CRFigures_distributionrunoff.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(CDF.runoff.year, CDF.runoff.log, frequ.year, frequ.log, ncol=2)
-dev.off()  
-            
+########################            
 ## Boxplot of mean daily Q (L/s) - presented per month
 # calculate the mean daily Q
 meandaily.Q <- ddply(discharge,.(format(discharge$date, format='%Y-%m-%d')),
@@ -308,6 +284,248 @@ pdf(file=paste0(fig.dir,"/CRFigures_monthlymeanQ.pdf"), width = 8.5, height = 11
 grid.arrange(meanmonth.Q, ncol=1)
 dev.off()
 
+################################################
+## Percent change in discharge table  - how does harvest affect runoff generation?
+# Ref: Sørensen, Rasmus, Eva Ring, Markus Meili, Lars Högbom, Jan Seibert, Thomas Grabs, Hjalmar Laudon, and Kevin Bishop. 2009. “Forest Harvest Increases Runoff Most During Low Flows in Two Boreal Streams.” AMBIO: a Journal of the Human Environment 38 (7): 357–63. doi:10.1579/0044-7447-38.7.357.
+# Laudon, Hjalmar, Johannes Hedtjärn, Jakob Schelker, Kevin Bishop, Rasmus Sørensen, and Anneli Ågren. 2009. “Response of Dissolved Organic Carbon Following Forest Harvesting in a Boreal Forest.” AMBIO: a Journal of the Human Environment 38 (7): 381–86. doi:10.1579/0044-7447-38.7.381.
+# calculate mean and sd Q preharvest - by month
+pre.monthlyQ <- ddply(subset(discharge, discharge$logstatus =="pre" ),.(format(discharge$date, format='%m')),
+                      summarise, mean.Q = mean(Q.L.s, na.rm = TRUE), sd.Q = sd(Q.L.s, na.rm = TRUE))
+# caclulate mean and sd Q postharvest - by month
+post.monthlyQ <- ddply(subset(discharge, discharge$logstatus =="post" ),.(format(discharge$date, format='%m')),
+                       summarise, mean.Q = mean(Q.L.s, na.rm = TRUE), sd.Q = sd(Q.L.s, na.rm = TRUE))
+# calculate percent difference and absolute difference - by month
+per.Q <- (pre.monthlyQ[,2] - post.monthlyQ[,2])/pre.monthlyQ[,2] *100
+abs.Q <- pre.monthlyQ[,2] - post.monthlyQ[,2]
+
+## Calculate the runoff from discharge - how much water exported by month and year (mm/month, mm/year)
+# Calculate specific discharge-mm/s. 1 hec = 10000 m2
+discharge$Q.m3.s <- discharge$Q.L.s/1000 # convert from L/s to m3/s
+discharge$Q.m.min <- discharge$Q.m3.s/area.hect * 1/10000 * 60
+
+# calculate the mm/day - calculate time interval in min between measurements 30 min measurements
+# do by day - get daily mean discharge
+daily.Q <- ddply(discharge,.(format(discharge$date, format='%Y-%m-%d')),
+                 summarise, meandaily.Q = mean(Q.m.min, na.rm = TRUE))
+daily.Q$Q.mm.day <- daily.Q$meandaily.Q * (60*24) *1000
+colnames(daily.Q)[1:2] <- c("date", "meandailyQm.min")
+daily.Q$date <- as.POSIXct(strptime(daily.Q$date, format = "%Y-%m-%d"))
+
+#  interpolate disharge for missing data - 1 day intervals. Make daily timeseries, and merge
+#daily.Q.zoo <- zoo(as.POSIXct(unique(daily.Q$date)), unique(daily.Q$Q.m.day))
+date <- as.data.frame(as.POSIXct(strptime(seq(min(as.Date(daily.Q$date)), max(as.Date(daily.Q$date)), by = "day"), 
+                                          format = "%Y-%m-%d")))
+colnames(date)[1] <- "date"
+daily.Q.all <- merge(daily.Q, date, by = "date", all = TRUE) # merge together
+
+#  interpolate disharge for missing data - 1 day intervals
+daily.Q.all$splineQ.mm.day <- na.spline((daily.Q.all$Q.mm.day)) #interpolation by spline (polynmial)
+daily.Q.all$approxQ.mm.day <- na.approx((daily.Q.all$Q.mm.day)) #interpolation by linear approximation
+
+plot(daily.Q.all$splineQ.mm.day) # check both interpolations
+plot(daily.Q.all$approxQ.mm.day) # check both interpolations
+
+# calculate mm/month by summing the Q (mm/day) by month
+monthly.Q <- ddply(daily.Q.all,.(format(daily.Q.all$date, format='%Y-%m')),
+                   summarise, summonthly.Q.mmmonth = sum(approxQ.mm.day, na.rm = TRUE))
+monthly.Q$date <- as.POSIXct(strptime(paste(monthly.Q[,1], "-01", sep = ""), format = "%Y-%m-%d"))
+# Take the mean Q (m/month) in the pre and post period
+# add column for pre/post condition
+monthly.Q <- logstatus.f(monthly.Q)
+
+# do monthly mean by pre and most
+# calculate mean and sd Q preharvest - by month
+pre.monthlyQ.mmmonth <- ddply(subset(monthly.Q, monthly.Q$logstatus =="pre" ),.(format(monthly.Q$date, format='%m')),
+                              summarise, mean.Q.pre = mean(summonthly.Q.mmmonth, na.rm = TRUE), 
+                              sd.Q.pre = sd(summonthly.Q.mmmonth, na.rm = TRUE))
+
+# caclulate mean and sd Q postharvest - by month
+post.monthlyQ.mmmonth <- ddply(subset(monthly.Q, monthly.Q$logstatus =="post" ),.(format(monthly.Q$date, format='%m')),
+                               summarise, mean.Q.post = mean(summonthly.Q.mmmonth, na.rm = TRUE), 
+                               sd.Q.post = sd(summonthly.Q.mmmonth, na.rm = TRUE))
+# calculate percent difference and absolute difference - by month
+per.Q.mmday <- (pre.monthlyQ.mmmonth[,2] - post.monthlyQ.mmmonth[,2])/pre.monthlyQ.mmmonth[,2] *100
+abs.Q.mmday <- pre.monthlyQ.mmmonth[,2] - post.monthlyQ.mmmonth[,2]
+Qmday <- cbind(pre.monthlyQ.mmmonth, post.monthlyQ.mmmonth,per.Q.mmday, abs.Q.mmday)
+write.csv(Qmday, file = paste0(fig.dir, "/Qmdayper.csv")) # write file
+
+# calculate the percentage missing values
+
+# calculate the yearly runoff - 2008-2013
+yearly.runoff <- ddply(monthly.Q,.(format(monthly.Q$date, format='%Y')),
+                       summarise, sum.Q.yearly = sum(summonthly.Q.mmmonth, na.rm = TRUE))
+yearly.precip <- ddply(climate,.(format(climate$date, format='%Y')),
+                       summarise, sum.P.yearly = sum(as.numeric(Precip), na.rm = TRUE))
+
+# calculate the mean percent that each month contributes to the yearly precip
+all.monthly.Q<- ddply(monthly.Q,.(format(monthly.Q$date, format='%m')),
+                      summarise, mean.Q.all = mean(summonthly.Q.mmmonth, na.rm = TRUE), 
+                      sd.Q.all = sd(summonthly.Q.mmmonth, na.rm = TRUE))
+all.yearly.Q <- mean(yearly.runoff[2:6,2])
+all.monthly.Q$percenttotal <- all.monthly.Q[,2]/all.yearly.Q*100
+
+# calcule the mean monthly precipitation (mm/month)
+
+# culate the mean daily T (by month)
+
+##
+# Wetting ratio Precip/Q - changes over time
+# calculate the mm/day of precipitation
+# 
+date.seq <- as.data.frame(seq(as.POSIXct("2009-01-01 00:00:00"), as.POSIXct("2014-12-31 16:00:00"), by = "hour"), 
+                          format = "%Y-%m-%d %H:%M:%S")
+colnames(date.seq) <- "date"
+# calculate the hourly precipitation
+hour.precip <- ddply(climate,.(format(climate$date, format='%Y-%m-%d %H')),
+                     summarise, Precip.hourly = mean(as.numeric(Precip), na.rm = TRUE))
+hour.precip$date <- as.POSIXct(strptime(paste(hour.precip[,1], ":00", sep = ""), format = "%Y-%m-%d %H:%M"))
+# Merge the mean hourly with the date 
+all.precip <- merge(hour.precip, date.seq, by = 'date', all = TRUE)
+# interpolate
+#  interpolate disharge for missing data - 1 day intervals
+all.precip$splineP.mm <- na.spline(all.precip$Precip.hourly) #interpolation by spline (polynmial)
+all.precip$approxP.mm <- na.approx(all.precip$Precip.hourly) #interpolation by linear approximation
+
+# sum per month
+daily.P <- ddply(all.precip,.(format(all.precip$date, format='%Y-%m-%d')),
+                 summarise, sumdaily.P = sum(Precip.hourly, na.rm = TRUE))
+monthly.P <- ddply(all.precip,.(format(all.precip$date, format='%Y-%m')),
+                   summarise, summonthly.P = sum(Precip.hourly, na.rm = TRUE))
+colnames(monthly.P) <- c('date', "monthlyP.mm")
+monthly.P$date <- as.POSIXct(strptime(paste(monthly.P$date, "-01", sep = ""), format = "%Y-%m-%d"))
+
+# merge to monthly Q (mm/month)
+monthly.wetting <- merge(monthly.P, monthly.Q, by = 'date', all = FALSE)
+monthly.wetting$wetratio <- monthly.wetting[,4]/monthly.wetting[,2] #calculate Q/P (mm/month)
+monthly.wetting$date <- as.POSIXct(strptime(paste(monthly.wetting$date, "-01", sep = ""), format = "%Y-%m-%d"))
+
+# calculate mean and sd Q preharvest - by month
+pre.wetratio <- ddply(subset(monthly.wetting, monthly.wetting$logstatus =="pre" ),.(format(as.Date(monthly.wetting$date), format='%m')),
+                      summarise, mean.ratio.pre = mean(wetratio, na.rm = TRUE), sd.ratio.pre = sd(wetratio, na.rm = TRUE))
+
+# caclulate mean and sd Q postharvest - by month
+post.wetratio <- ddply(subset(monthly.wetting, monthly.wetting$logstatus =="post" ),.(format(as.Date(monthly.wetting$date), format='%m')),
+                       summarise, meam.monwet = mean(wetratio, na.rm = TRUE), sd.monwet = sd(wetratio, na.rm = TRUE))
+
+# calculate percent difference and absolute difference - by month
+per.p.mmday <- (pre.wetratio[,2] - post.wetratio[,2])/pre.wetratio[,2] *100
+abs.p.mmday <- pre.wetratio[,2] - post.wetratio[,2]
+pmday <- cbind(pre.wetratio, post.wetratio,per.p.mmday, abs.p.mmday)
+write.csv(pmday, file = paste0(fig.dir, "/wetratio.csv")) # write file
+
+# Figure - mean monthly discharge (mm/month) timeseries with precipitation
+Q.P.merged <- merge(monthly.P, monthly.Q, by = 'date', all = TRUE)
+
+mmrunoff.plot <- ggplot(data=Q.P.merged, aes(x=date, y=summonthly.Q.mmmonth, group=1)) +
+  geom_line() +
+  geom_point() +
+  #scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
+  expand_limits(y=0) +
+  xlab("Date") + ylab("Monthly Runoff (mm/month)") +
+  ggtitle("Monthly Mean Runoff") + 
+  theme() 
+
+mmp.month.plot <- ggplot(data=Q.P.merged, aes(x=date, y=monthlyP.mm)) +
+  geom_bar(stat="identity") + 
+  xlab("Date") + ylab("Monthly Precipitation (mm/month)") +
+  ggtitle("Monthly  Precipitation") 
+# save all figures - precip, daily mean discharge, and runoff
+pdf(file=paste0(fig.dir,"/CRFigures_runoff.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(mmp.month.plot, boxplot.discharge, mmrunoff.plot, ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+
+########## Do figure specifically for the section about change in discharge upon logging
+# precip, Q (L/s), mean daily Q(L/s), runoff (mm/month)
+# Do all by day? Better to compare?
+mmp.month.plot <- ggplot(data=Q.P.merged, aes(x=date, y=monthlyP.mm, fill = factor(logstatus))) +
+  geom_bar(stat="identity", colour = "black") + 
+  xlab("Date") + ylab("Monthly Precipitation (mm/month)") +
+  ggtitle("Monthly  Precipitation") +
+  theme(legend.position="none")
+
+time.disc
+boxplot.discharge <- boxplot.discharge + theme(legend.position="none")
+
+# Monthly runoff barplot
+mmrunoff.plot <- ggplot(data=Q.P.merged, aes(x=date, y=summonthly.Q.mmmonth, fill = factor(logstatus))) +
+  geom_bar(stat="identity", colour = "black") + #, fill = c(cbPalette[1], cbPalette[2])) + colour doesn't work!!
+  #scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
+  expand_limits(y=0) +
+  xlab("Date") + ylab("Monthly Runoff (mm/month)") +
+  ggtitle("Monthly Mean Runoff") + 
+  theme(legend.position="none")
+
+# save figures - precip, daily mean discharge, and runoff - FIGURE 2*******
+pdf(file=paste0(fig.dir,"/CRFigures_Fig2ChangQ.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(mmp.month.plot, time.disc, boxplot.discharge, mmrunoff.plot, ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(3/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/2, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("D", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+
+#####################################################################################
+## Effect of harvest on discharge - cumulative distribution; and flood frequency analysis
+# Calculate specific discharge - Q/watershed area 
+# 8.64 is the conversion factor from L s 1 ha 1 to mm d 1.From: Sørensen, Rasmus, Eva Ring, Markus Meili, Lars Högbom, Jan Seibert, Thomas Grabs, Hjalmar Laudon, and Kevin Bishop. 2009. “Forest Harvest Increases Runoff Most During Low Flows in Two Boreal Streams.” AMBIO: a Journal of the Human Environment 38 (7): 357–63. doi:10.1579/0044-7447-38.7.357.
+#discharge$Q.mm.day <- discharge$Q.L.s/area.hect * 8.64
+
+## Cumulative distribution function of discharge - by year
+CDF.runoff.year <- ggplot(discharge, aes(x = Q.mm.d)) + 
+  stat_ecdf(aes(group = format(discharge$date, format='%Y'), colour = format(discharge$date, format='%Y'))) +
+  scale_fill_manual(values=c(cbPalette[1:9]),
+                    name="Year") +
+  #theme(legend.title=element_text("Year")) +
+  scale_color_manual(breaks=c("2007","2008", "2009", "2010", "2011", "2012", "2013", "2014", "2015"),
+                     values=c(cbPalette[1:9])) +
+  theme(legend.position=c(.8, .3)) +
+  ggtitle("Discharge by Year") +
+  scale_y_continuous(name="Cumulative Distribution") +
+  scale_x_continuous(name="Q (mm/day)", limits = c(0, 40))
+
+## Cumulative distribution function of discharge - by year
+CDF.runoff.log <- ggplot(discharge, aes(x = Q.mm.d, color = logstatus)) + 
+  stat_ecdf(aes(group = logstatus)) +
+  scale_fill_manual(values=c(cbPalette[1:2]),
+                    name="Logging\nStatus",
+                    labels=c("Pre-Harvest", "Post-Harvest")) +
+  #theme(legend.title=element_text("Year")) +
+  scale_color_manual(breaks=c("post","pre"),
+                     values=c(cbPalette[1],cbPalette[2])) +
+  theme(legend.position=c(.8, .3)) +
+  ggtitle("Discharge by Logging Status") +
+  scale_y_continuous(name="Cumulative Distribution") +
+  scale_x_continuous(name="Q (mm/day)", limits = c(0, 40))
+
+## Frequency Distribution - by year
+frequ.year <- ggplot(discharge, aes(Q.mm.d, fill = format(discharge$date, format='%Y'))) + 
+  geom_density(alpha = 0.2) +
+  scale_fill_manual(values=c(cbPalette[1:9]),
+                    name="Year") + 
+  theme(legend.position=c(.8, .6)) +
+  ggtitle("Discharge by Year") +
+  scale_y_continuous(name="Density") +
+  scale_x_continuous(name="Q (mm/day)", limits = c(0, 40))
+
+# Frequency distribution - preharvest verusus post
+frequ.log <- ggplot(discharge, aes(Q.mm.d, fill = logstatus)) + geom_density(alpha = 0.2) +
+  scale_fill_manual(values=c(cbPalette[1:2]),
+                    name="Logging\nStatus",
+                    labels=c("Post-Harvest", "Pre-Harvest")) + 
+  theme(legend.position=c(.8, .8)) +
+  ggtitle("Discharge by Pre-Post Status") +
+  scale_y_continuous(name="Density") +
+  scale_x_continuous(name="Q (mm/day)", limits = c(0, 40)) + 
+  theme()
+
+# save distribution functions - all four in one document
+pdf(file=paste0(fig.dir,"/CRFigures_distributionrunoff.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(CDF.runoff.year, CDF.runoff.log, frequ.year, frequ.log, ncol=2)
+dev.off()  
+##########
 ## Flood frequency Analysis
 # http://www.headwateranalytics.com/blog/flood-frequency-analysis-in-r
 # https://github.com/eheisman/hydroutils
@@ -367,151 +585,6 @@ dev.off()
 #grid.text("Pre-Harvest", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 #grid.text("Post-Harvest", x=unit(00.5, "npc"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 #dev.off()
-
-## Percent change in discharge table 
-# Sørensen, Rasmus, Eva Ring, Markus Meili, Lars Högbom, Jan Seibert, Thomas Grabs, Hjalmar Laudon, and Kevin Bishop. 2009. “Forest Harvest Increases Runoff Most During Low Flows in Two Boreal Streams.” AMBIO: a Journal of the Human Environment 38 (7): 357–63. doi:10.1579/0044-7447-38.7.357.
-# Laudon, Hjalmar, Johannes Hedtjärn, Jakob Schelker, Kevin Bishop, Rasmus Sørensen, and Anneli Ågren. 2009. “Response of Dissolved Organic Carbon Following Forest Harvesting in a Boreal Forest.” AMBIO: a Journal of the Human Environment 38 (7): 381–86. doi:10.1579/0044-7447-38.7.381.
-# calculate mean and sd Q preharvest - by month
-pre.monthlyQ <- ddply(subset(discharge, discharge$logstatus =="pre" ),.(format(discharge$date, format='%m')),
-                       summarise, mean.Q = mean(Q.L.s, na.rm = TRUE), sd.Q = sd(Q.L.s, na.rm = TRUE))
-# caclulate mean and sd Q postharvest - by month
-post.monthlyQ <- ddply(subset(discharge, discharge$logstatus =="post" ),.(format(discharge$date, format='%m')),
-                      summarise, mean.Q = mean(Q.L.s, na.rm = TRUE), sd.Q = sd(Q.L.s, na.rm = TRUE))
-# calculate percent difference and absolute difference - by month
-per.Q <- (pre.monthlyQ[,2] - post.monthlyQ[,2])/pre.monthlyQ[,2] *100
-abs.Q <- pre.monthlyQ[,2] - post.monthlyQ[,2]
-
-## Calculate the runoff from discharge - how much water exported by month and year (mm/month, mm/year)
-# Calculate specific discharge-mm/s. 1 hec = 10000 m2
-discharge$Q.m.min <- discharge$Q.m3.s/area.hect * 1/10000 * 60
-
-# calculate the mm/day - calculate time interval in min between measurements 30 min measurements
-# do by day - get daily mean discharge
-daily.Q <- ddply(discharge,.(format(discharge$date, format='%Y-%m-%d')),
-                       summarise, meandaily.Q = mean(Q.m.min, na.rm = TRUE))
-daily.Q$Q.mm.day <- daily.Q$meandaily.Q * (60*24) *1000
-colnames(daily.Q)[1:2] <- c("date", "meandailyQm.min")
-daily.Q$date <- as.POSIXct(strptime(daily.Q$date, format = "%Y-%m-%d"))
-
-#  interpolate disharge for missing data - 1 day intervals. Make daily timeseries, and merge
-#daily.Q.zoo <- zoo(as.POSIXct(unique(daily.Q$date)), unique(daily.Q$Q.m.day))
-date <- as.data.frame(as.POSIXct(strptime(seq(min(daily.Q$date), max(daily.Q$date), by = "day"), 
-                                                 format = "%Y-%m-%d")))
-colnames(date)[1] <- "date"
-daily.Q.all <- merge(daily.Q, date, by = "date", all = TRUE) # merge together
-
-#  interpolate disharge for missing data - 1 day intervals
-daily.Q.all$splineQ.mm.day <- na.spline((daily.Q.all$Q.mm.day)) #interpolation by spline (polynmial)
-daily.Q.all$approxQ.mm.day <- na.approx((daily.Q.all$Q.mm.day)) #interpolation by linear approximation
-
-plot(daily.Q.all$splineQ.mm.day) # check both interpolations
-plot(daily.Q.all$approxQ.mm.day) # check both interpolations
-
-# calculate mm/month by summing the Q (m/day) by month
-monthly.Q <- ddply(daily.Q.all,.(format(daily.Q.all$date, format='%Y-%m')),
-                 summarise, summonthly.Q = sum(approxQ.mm.day, na.rm = TRUE))
-monthly.Q$date <- as.POSIXct(strptime(paste(monthly.Q[,1], "-01", sep = ""), format = "%Y-%m-%d"))
-# Take the mean Q (m/month) in the pre and post period
-# add column for pre/post condition
-monthly.Q <- logstatus.f(monthly.Q)
-
-# do monthly mean by pre and most
-# calculate mean and sd Q preharvest - by month
-pre.monthlyQ.mmmonth <- ddply(subset(monthly.Q, monthly.Q$logstatus =="pre" ),.(format(monthly.Q$date, format='%m')),
-                      summarise, mean.Q.pre = mean(summonthly.Q, na.rm = TRUE), sd.Q.pre = sd(summonthly.Q, na.rm = TRUE))
-
-# caclulate mean and sd Q postharvest - by month
-post.monthlyQ.mmmonth <- ddply(subset(monthly.Q, monthly.Q$logstatus =="post" ),.(format(monthly.Q$date, format='%m')),
-                       summarise, mean.Q.post = mean(summonthly.Q, na.rm = TRUE), sd.Q.post = sd(summonthly.Q, na.rm = TRUE))
-# calculate percent difference and absolute difference - by month
-per.Q.mmday <- (pre.monthlyQ.mmmonth[,2] - post.monthlyQ.mmmonth[,2])/pre.monthlyQ.mmmonth[,2] *100
-abs.Q.mmday <- pre.monthlyQ.mmmonth[,2] - post.monthlyQ.mmmonth[,2]
-Qmday <- cbind(pre.monthlyQ.mmmonth, post.monthlyQ.mmmonth,per.Q.mmday, abs.Q.mmday)
-write.csv(Qmday, file = paste0(fig.dir, "/Qmdayper.csv")) # write file
-
-# calculate the percentage missing values
-
-# calculate the yearly runoff - 2008-2013
-yearly.runoff <- ddply(monthly.Q,.(format(monthly.Q$date, format='%Y')),
-                       summarise, sum.Q.yearly = sum(summonthly.Q, na.rm = TRUE))
-yearly.precip <- ddply(climate,.(format(climate$date, format='%Y')),
-                       summarise, sum.P.yearly = sum(as.numeric(Precip), na.rm = TRUE))
-
-# calculate the mean percent that each month contributes to the yearly precip
-all.monthly.Q<- ddply(monthly.Q,.(format(monthly.Q$date, format='%m')),
-                                                summarise, mean.Q.all = mean(summonthly.Q, na.rm = TRUE), 
-                      sd.Q.all = sd(summonthly.Q, na.rm = TRUE))
-all.yearly.Q <- mean(yearly.runoff[2:6,2])
-all.monthly.Q$percenttotal <- all.monthly.Q[,2]/all.yearly.Q*100
-
-##
-# Wetting ratio Precip/Q - changes over time
-# calculate the mm/day of precipitation
-# 
-date.seq <- as.data.frame(seq(as.POSIXct("2009-01-01 00:00:00"), as.POSIXct("2014-12-31 16:00:00"), by = "hour"), 
-                                          format = "%Y-%m-%d %H:%M:%S")
-colnames(date.seq) <- "date"
-# calculate the hourly precipitation
-hour.precip <- ddply(climate,.(format(climate$date, format='%Y-%m-%d %H')),
-                               summarise, Precip.hourly = mean(as.numeric(Precip), na.rm = TRUE))
-hour.precip$date <- as.POSIXct(strptime(paste(hour.precip[,1], ":00", sep = ""), format = "%Y-%m-%d %H:%M"))
-# Merge the mean hourly with the date 
-all.precip <- merge(hour.precip, date.seq, by = 'date', all = TRUE)
-# interpolate
-#  interpolate disharge for missing data - 1 day intervals
-all.precip$splineP.mm <- na.spline(all.precip$Precip.hourly) #interpolation by spline (polynmial)
-all.precip$approxP.mm <- na.approx(all.precip$Precip.hourly) #interpolation by linear approximation
-
-# sum per month
-daily.P <- ddply(all.precip,.(format(all.precip$date, format='%Y-%m-%d')),
-                   summarise, sumdaily.P = sum(Precip.hourly, na.rm = TRUE))
-monthly.P <- ddply(all.precip,.(format(all.precip$date, format='%Y-%m')),
-                 summarise, summonthly.P = sum(Precip.hourly, na.rm = TRUE))
-colnames(monthly.P) <- c('date', "monthlyP.mm")
-monthly.P$date <- as.POSIXct(strptime(paste(monthly.P$date, "-01", sep = ""), format = "%Y-%m-%d"))
-
-# merge to monthly Q (mm/month)
-monthly.wetting <- merge(monthly.P, monthly.Q, by = 'date', all = FALSE)
-monthly.wetting$wetratio <- monthly.wetting[,4]/monthly.wetting[,2] #calculate Q/P (mm/month)
-monthly.wetting$date <- as.POSIXct(strptime(paste(monthly.wetting$date, "-01", sep = ""), format = "%Y-%m-%d"))
-                                
-# calculate mean and sd Q preharvest - by month
-pre.wetratio <- ddply(subset(monthly.wetting, monthly.wetting$logstatus =="pre" ),.(format(as.Date(monthly.wetting$date), format='%m')),
-                              summarise, mean.ratio.pre = mean(wetratio, na.rm = TRUE), sd.ratio.pre = sd(wetratio, na.rm = TRUE))
-
-# caclulate mean and sd Q postharvest - by month
-post.wetratio <- ddply(subset(monthly.wetting, monthly.wetting$logstatus =="post" ),.(format(as.Date(monthly.wetting$date), format='%m')),
-                               summarise, meam.monwet = mean(wetratio, na.rm = TRUE), sd.monwet = sd(wetratio, na.rm = TRUE))
-
-# calculate percent difference and absolute difference - by month
-per.p.mmday <- (pre.wetratio[,2] - post.wetratio[,2])/pre.wetratio[,2] *100
-abs.p.mmday <- pre.wetratio[,2] - post.wetratio[,2]
-pmday <- cbind(pre.wetratio, post.wetratio,per.p.mmday, abs.p.mmday)
-write.csv(pmday, file = paste0(fig.dir, "/wetratio.csv")) # write file
-
-# Figure - mean monthly discharge (mm/month) timeseries with precipitation
-Q.P.merged <- merge(monthly.P, monthly.Q, by = 'date', all = TRUE)
-
-mmrunoff.plot <- ggplot(data=Q.P.merged, aes(x=date, y=summonthly.Q, group=1)) +
-  geom_line() +
-  geom_point() +
-  #scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
-  expand_limits(y=0) +
-  xlab("Date") + ylab("Monthly Runoff (mm/month)") +
-  ggtitle("Monthly Mean Runoff") + 
-  theme() 
-           
-mmp.month.plot <- ggplot(data=Q.P.merged, aes(x=date, y=monthlyP.mm)) +
-  geom_bar(stat="identity") + 
-  xlab("Date") + ylab("Monthly Precipitation (mm/month)") +
-  ggtitle("Monthly  Precipitation") 
-# save all figures - precip, daily mean discharge, and runoff
-pdf(file=paste0(fig.dir,"/CRFigures_runoff.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(mmp.month.plot, boxplot.discharge, mmrunoff.plot, ncol = 1)
-grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-dev.off()
 
 #### Flow duration curves
 # On daily mean Q(m3/s)
@@ -577,16 +650,46 @@ grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"),
 grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
+#############################################################################
 
 #############################################################################
-# How does harvest alter DOC concentration?
+## How does harvest alter DOC concentration?
+## Figure *** -P, Q, DOC, DOC box plot
+
+time.disc <- ggplot(discharge, aes(date, Q.m3.s, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (m3/s)") + 
+  scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top")
+
+# do daily sum of precip for bar graph. Too complicated otherwise
+dailysum.precip<- ddply(climate,.(format(climate$date, format = "%Y-%m-%d")),
+                        summarise, sum.P = sum(as.numeric(Precip), na.rm = TRUE))
+colnames(dailysum.precip) <- c("date", "dailyP.mm")
+dailysum.precip$date <- as.POSIXct(strptime(dailysum.precip$date, format = "%Y-%m-%d"))
+dailysum.precip <- wetdry.f(dailysum.precip)
+
+# do plots - timeseries
+time.precip <- ggplot(dailysum.precip, aes(as.Date(date), dailyP.mm, fill = factor(hydro))) + 
+  geom_bar(stat="identity") +
+  xlab("Date") + ylab("Daily Precipitation (mm)") + 
+  theme(legend.position="top") +
+  scale_x_date(date_breaks = "year", 
+               labels=date_format("%Y"))
+
+time.DOC <- ggplot(subset(spectro.all, spectro.all$DOCcorr >=1), aes(date, DOCcorr, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("[DOC] (mg/L)") + 
+  scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top")
+
 # boxplot of 30 minute DOC measurements, compiled by month. Deliniate the pre and post harvest period
-spectro.all <- logstatus.f(spectro.all)
-boxplot.DOC30 <- ggplot(spectro.all, aes(x=date, y=DOCcorr, group = format(spectro.all$date, format="%Y-%m"), fill=logstatus)) + 
+DOC.box <- subset(spectro.all, spectro.all$DOCcorr >=1)
+boxplot.DOC30 <- ggplot(DOC.box, aes(x=date, y=DOCcorr, group = format(DOC.box$date, format="%Y-%m"), fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA) + # don't show outliers
   scale_fill_manual(breaks = c('pre', 'post'),
-    values = c(cbPalette[1], cbPalette[2]),
-    name="Logging\nStatus") +
+                    values = c(cbPalette[1], cbPalette[2]),
+                    name="Logging\nStatus") +
   xlab("Date") + 
   ylab("30 Minute DOC (mg/L)") + 
   #geom_line() + # line to show where logging occureed
@@ -594,6 +697,17 @@ boxplot.DOC30 <- ggplot(spectro.all, aes(x=date, y=DOCcorr, group = format(spect
   theme() +
   theme(legend.position=c(0.93, 0.87))
 
+### Save figure
+pdf(file=paste0(fig.dir,"/CRFigures_DOCtimeseries.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(time.disc,(time.DOC+theme(legend.position= "NONE")), (boxplot.DOC30+theme(legend.position= "NONE")),  ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+#grid.text("D", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+#excude precip for now
+dev.off()
+
+#########
 # Cumulative distribution function - DOC concentrations in the pre/post wet dry period (as per discharge)
 ## Cumulative distribution function of DOC - partitioned according to pre/post, wet/dry (30 minute measurements)
 # create partitions in 30 minute data
@@ -622,7 +736,7 @@ grid.arrange(boxplot.DOC30, CDF.DOC.part,  ncol = 1)
 grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/2, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
-
+############################
 # Test whether mean DOC is different in the pre/post period by month
 #"nonparametric Kruskal-Wallis one way analysis of variance on ranks (ANOVA-R), which was combined with Dunn’s test to investigate significant differences in median values."
 # From Schelker, J, K Eklöf, and K Bishop. 2012. “Effects of Forestry Operations on Dissolved Organic Carbon Concentrations and Export in Boreal First‐Order Streams.” Journal of Geophysical …. doi:10.1029/2011JG001827.
@@ -706,7 +820,7 @@ kruskalmc(jan.DOC.sub$date, jan.DOC.sub[,c(4,6,8,10,12)])
 
 # really slow! Try on daily means rather than 30 minute data
 #First, aggregate to the daily mean, then look at whether daily means are different
-DOC.daily <- ddply(spectro.all,.(format(spectro.all$date, format='%Y-%m-%d')),
+DOC.daily <- ddply(subset(spectro.all, spectro.all$DOCcorr >=1),.(format(spectro.all$date, format='%Y-%m-%d')),
                      summarise, meandaily.DOC = mean(DOCcorr, na.rm = TRUE)) 
 colnames(DOC.daily)[1] <- "date"
 DOC.daily$date <- as.POSIXct(strptime(DOC.daily$date, format = "%Y-%m-%d"))
@@ -736,6 +850,7 @@ Dunns.test <- function(data, method){
   return(Dunn)
 }
 
+
 jan.DOC.test <- Dunns.test(jan.DOC, "by")
 feb.DOC.test <- Dunns.test(feb.DOC, "by")
 march.DOC.test <- Dunns.test(march.DOC, "by")
@@ -755,7 +870,37 @@ DOC.monthly <- ddply(spectro.all,.(format(spectro.all$date, format='%Y-%m')),
                    sdmonthly.DOC = sd(DOCcorr, na.rm = TRUE)) 
 write.csv(DOC.monthly, file=paste0(fig.dir,"/CRmonthlymeanDOCconc.csv")) # write mean DOC
 
-#######################
+# plot the mean daily DOC as a boxplot
+DOC.daily <- logstatus.f(DOC.daily)
+
+boxplot.DOCdaily <- ggplot(DOC.daily, aes(x=date, y=meandaily.DOC, group = format(DOC.daily$date, format="%Y-%m"), fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA) + # don't show outliers
+  scale_fill_manual(breaks = c('pre', 'post'),
+                    values = c(cbPalette[1], cbPalette[2]),
+                    name="Logging\nStatus") +
+  xlab("Date") + 
+  ylab("Daily Mean DOC (mg/L)") + 
+  #geom_line() + # line to show where logging occureed
+  ggtitle("DOC Measurements") +
+  theme() +
+  theme(legend.position=c(0.93, 0.87))
+
+### Save figure
+pdf(file=paste0(fig.dir,"/CRFigures_DOCtimeseries_daily.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(time.disc,time.DOC+theme(legend.position= "NONE"), boxplot.DOCdaily+theme(legend.position= "NONE"),  ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+#grid.text("D", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+#excude precip for now
+dev.off()
+
+######## REDO THIS!!! Use this instead to look at significance of changes in mean monthly DOC.
+#https://cran.r-project.org/web/packages/PMCMR/vignettes/PMCMR.pdf
+
+###################################################################################################################
+
+###################################################################################################################
 # How does harvest affect DOC flux?
 ## Calculation of DOC Flux
 # Method 1: daily average C = daily average DOC x average Q x 24 hours
@@ -764,38 +909,32 @@ write.csv(DOC.monthly, file=paste0(fig.dir,"/CRmonthlymeanDOCconc.csv")) # write
 ## calculate carbon flux - every 30 minutes
 # merge Q (L/s) into the spectro.all to get a discharge column in this dataframe
 # First, make sure discharge is in same timestamp as DOC using openair
-# convert to GMT 
-discharge.ave <- discharge
-discharge.ave$date <- as.POSIXct(strptime(discharge.ave$date, format = "%Y-%m-%d %H:%M", tz = "GMT"))
-discharge.ave <- timeAverage(discharge.ave, avg.time = "30 min", start.date = "2007-11-15", fill = TRUE)
-# convert back to Pacific timezone
-discharge.ave$date1 <- as.POSIXct(strptime(discharge.ave$date, format = "%Y-%m-%d %H:%M", tz = "America/Los_Angeles"))
 
-DOC.Q <- merge(spectro.all, discharge.ave[,c(1,2)], by = 'date', all = FALSE)
+DOC.Q <- merge(spectro.all, discharge, by = 'date', all = FALSE)
 DOC.Q$cflux.mgs = (DOC.Q$DOCcorr * DOC.Q$Q.L.s )
 DOC.Q$cflux.mgshec <- DOC.Q$cflux.mgs / area.hect # get the cflux normalized for watershed area (in hectares)
 DOC.Q$cflux.gshec <- DOC.Q$cflux.mgshec/1000
 c.flux= DOC.Q[complete.cases(DOC.Q[,as.numeric(match("DOCcorr",names(DOC.Q)))]),] # get the dataframe with complete cases of DOCcorr
 
 # calculating cflux by first calculating the time intervals.. no interpolation
-n <- dim(c.flux)[1]
-for (i in 2:n) {
-  timeinterval <- c.flux$date[i]-c.flux$date[(i-1)]
-  c.flux$timeinterval <- timeinterval
-}
+#n <- dim(c.flux)[1]
+#for (i in 2:n) {
+#  timeinterval <- c.flux$date[i]-c.flux$date[(i-1)]
+#  c.flux$timeinterval <- timeinterval
+#}
 
-for (i in 1:n){
-  cflux.mg = (c.flux$DOCcorr[i] * c.flux$Q.L.s[i] * c.flux$timeinterval[i]*60)
-  c.flux$cflux.mg[i] <- cflux.mg
-}
+#for (i in 1:n){
+##  cflux.mg = (c.flux$DOCcorr[i] * c.flux$Q.L.s[i] * c.flux$timeinterval[i]*60)
+#  c.flux$cflux.mg[i] <- cflux.mg
+#}
 
 ## Cflux - by 30 minute intervals interpolation
 # interpolate for missing measurements 
-date <- as.data.frame(as.POSIXct(strptime(seq(min(test$date), max(test$date), by = "30 mins"), 
+date <- as.data.frame(as.POSIXct(strptime(seq(min(c.flux$date), max(c.flux$date), by = "30 mins"), 
                                           format = "%Y-%m-%d %H:%M")))
 colnames(date)[1] <- "date"
 
-cflux.all <- merge(test, date, by = "date", all = TRUE) # merge together, creating NAs for missing data
+cflux.all <- merge(c.flux, date, by = "date", all = TRUE) # merge together, creating NAs for missing data
 
 #  interpolate disharge for missing data - 1 day intervals
 cflux.all$splinecflux.mgs <- na.spline(cflux.all$cflux.mgs) #interpolation by spline (polynmial)
@@ -925,6 +1064,15 @@ yearly.DOCflux$yearlygyear <- yearly.DOCflux$yearlymgyear/1000
 yearly.DOCflux$yearlykgyear <- yearly.DOCflux$yearlygyear/1000
 yearly.DOCflux$yearlykgyearhect <- yearly.DOCflux$yearlykgyear / area.hect
 
+# what percentage of flux is explained by DOC conc versus discharge?
+
+fit <- lm(DOC.Q$cflux.gshec ~ DOC.Q$Q.L.s +DOC.Q$DOCcorr)
+
+af <- anova(fit)
+afss <- af$"Sum Sq"
+print(cbind(af,PctExp=afss/sum(afss)*100))
+
+############# testing for significance
 ## test 30 minute data for significant differences
 plot(density(DOC.Q$cflux.gshec, na.rm = TRUE))
 
@@ -1073,8 +1221,11 @@ coef(pelt.disch2014)
 # compile dataframe for analysis - DOC, precip, groundwater, Q, Q(stormflow), Q(baseflow), wet/dry, pre/post,  soilT, solarR
 DOCmerged <- Reduce(function(x, y) merge(x, y, by = 'date', all=TRUE), 
                     list(spectro.all[,c(as.numeric(match("date", names(spectro.all))), as.numeric(match("DOCcorr", names(spectro.all))))], 
-                         discharge.ave[,c(as.numeric(match("date", names(discharge.ave))), as.numeric(match("Q.L.s", names(discharge.ave))), 
-                                      as.numeric(match("bt", names(discharge.ave)), 4))], 
+                         discharge[,c(as.numeric(match("date", names(discharge))), as.numeric(match("Q.L.s", names(discharge))), 
+                                      as.numeric(match("baseflow", names(discharge))), as.numeric(match("quickflow", names(discharge))), 
+                                      as.numeric(match("EC", names(discharge))),as.numeric(match("pH", names(discharge))),
+                                      as.numeric(match("DO", names(discharge))),as.numeric(match("ORP", names(discharge))),
+                                      as.numeric(match("Tw", names(discharge))))], 
                          climate[,c(1:7)],
                          groundwater.ave[,c(as.numeric(match("date", names(groundwater.ave))), 6)]))
 
@@ -1089,7 +1240,7 @@ DOCmerged <- DOCmerged[complete.cases(DOCmerged[,as.numeric(match("DOCcorr",name
 DOCmerged$Precip <- as.numeric(DOCmerged$Precip)
 DOCmerged$Tair<- as.numeric(DOCmerged$Tair)
 # add in column for wet/dry. pre/post, month, time of day
-mod1 <- gls(DOCcorr ~ Q.L.s * bt * Precip + SoilT * Tair * Solar , na.action = na.omit, data = DOCmerged) 
+mod1 <- gls(DOCcorr ~ Q.L.s * baseflow * Precip + SoilT * Tair * Solar , na.action = na.omit, data = DOCmerged) 
 mod2 <- update(mod1, correlation=corARMA(q = 1)) # not working!! hmm...
    
 lmmod1 <- lm(DOCcorr ~ Q.L.s + Precip, data = DOCmerged)
@@ -1108,8 +1259,33 @@ summary(mod1)
 ## logistic regression for pre/post; wet/dry. Can use data to predict pre/post; wet'dry?
 #http://www.r-bloggers.com/how-to-perform-a-logistic-regression-in-r/
 
-#####################################################################
+fit <- lm(DOCmerged$DOCcorr ~ DOCmerged$Q.L.s + DOCmerged$baseflow + DOCmerged$quickflow + DOCmerged$quickflow +
+          DOCmerged$Tair + DOCmerged$Precip + DOCmerged$SoilT + 
+          DOCmerged$waterheightpoint.mm0904203 + DOCmerged$pH + DOCmerged$EC + DOCmerged$ORP+ DOCmerged$DO
+          + DOCmerged$Tw)
+af <- anova(fit)
+afss <- af$"Sum Sq"
+print(cbind(af,PctExp=afss/sum(afss)*100))
+# write table
+write.csv(cbind(af,PctExp=afss/sum(afss)*100), file = paste0(fig.dir, "/CRDOCconc_pertable.csv"))
 
+###### DO ALSO FOR THE DOC FLUX BY DAY!!
+# Useful, since it is a product of discharge and 
+
+
+########### Correlation table - between DOC concentration and environmental variables
+# COde below from _P2 code. Will need to adapt to data
+#CR.spec.abs <- na.omit(abs.Q[,c(3:6,11:16,20:26,29:30,31:32,35:36)])
+#corr.matrix <- cor(as.data.frame(CR.spec.abs[,c(1:6, 8:17, 20:23)]), use="pairwise.complete.obs") # correlation matric between variables
+# plot the correlation matrix of the spectral parameters
+#pdf(file=paste0(fig.dir,"/CR_absindicies_correlations.pdf"), width = 11, height = 8.5)
+#corrplot(na.omit(corr.matrix), method = "circle") #plot matrix
+#dev.off()
+#write.csv(corr.matrix, paste0(fig.dir, "/CRabsind_corr.csv"))
+
+
+#####################################################################
+# Supplemental
 ########## timeseries analysis of discharge/DOC concentration
 # https://a-little-book-of-r-for-time-series.readthedocs.io/en/latest/src/timeseries.html
 ts.DOC.30min <- ts(spectro.all$DOCcorr, frequency=17520, start=c(2009,11,18,06,00,00))

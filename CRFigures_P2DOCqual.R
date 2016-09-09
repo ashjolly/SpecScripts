@@ -105,20 +105,24 @@ spectro.all <- data.frame(spectro.all)
 # Function for compiling discharge from all
 # Note - took out the open air function to convert to 30 min. Not working?
 source("/Users/user/SpecScripts/CRDischargeCompilation_function.R")
-discharge <- discharge.comp(discharge.dir = discharge.path)
-discharge$date <- as.POSIXct(strptime(discharge$date2, format = "%Y-%m-%d %H:%M"), tz = "America/Los_Angeles")
+discharge1 <- discharge.comp(discharge.dir = discharge.path)
+discharge1$date <- as.POSIXct(strptime(discharge$date2, format = "%Y-%m-%d %H:%M"), tz = "America/Los_Angeles")
 discharge.ave <- timeAverage(discharge, avg.time = "30 min", start.date = "2007-11-15", fill = TRUE)
 attr(discharge.ave$date, "tzone") <- "America/Los_Angeles"
-attr(discharge$date, "tzone") <- "America/Los_Angeles"
+attr(discharge1$date, "tzone") <- "America/Los_Angeles"
 
 # read in discharge file from Mark
 #mark.discharge <- source_data("https://github.com/UBCecohydro/ecohydro.datasets/blob/master/Campbell.River/Q.WQ.July2016.RDS?raw=true")
 mark.discharge <- readRDS("/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Stream/CR_discharge/Q.WQ.July2016.RDS")
+mark.discharge$date <- as.POSIXct(strptime(mark.discharge$date, format = "%Y-%m-%d %H:%M"), tz = "America/Los_Angeles")
+#discharge.ave <- timeAverage(discharge, avg.time = "30 min", start.date = "2007-11-15", fill = TRUE)
+attr(mark.discharge$date, "tzone") <- "America/Los_Angeles"
+discharge <- mark.discharge #rename the discharge from Mark
 
 # add column for pre/post harvest
-mark.discharge <- logstatus.f(mark.discharge)
+discharge <- logstatus.f(discharge)
 # add column for wet/dry  period
-mark.discharge <- wetdry.f(mark.discharge)
+discharge <- wetdry.f(discharge)
 
 #### Climate variables from Biomet
 # Function for compiling climate from biomet
