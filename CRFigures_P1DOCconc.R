@@ -12,7 +12,7 @@ ls()
 library(pacman)
 p_load(lubridate,plyr,ggplot2,reshape2,car,grid,gridBase,gridExtra, taRifx,magrittr, ggpmisc,
        stringi,stringr,plyr,dplyr,tidyr,EcoHydRology,openair,reshape,lmomco, zoo, hydroTSM, rowr, 
-       reshape2, pgirmess, nlme, scales, dunn.test)
+       reshape2, pgirmess, nlme, scales, dunn.test, 'corrplot', lubridate) 
 
 ############ functions
 mean.function <- function(filename, interval){
@@ -850,7 +850,6 @@ Dunns.test <- function(data, method){
   return(Dunn)
 }
 
-
 jan.DOC.test <- Dunns.test(jan.DOC, "by")
 feb.DOC.test <- Dunns.test(feb.DOC, "by")
 march.DOC.test <- Dunns.test(march.DOC, "by")
@@ -1228,6 +1227,8 @@ DOCmerged <- Reduce(function(x, y) merge(x, y, by = 'date', all=TRUE),
                                       as.numeric(match("Tw", names(discharge))))], 
                          climate[,c(1:7)],
                          groundwater.ave[,c(as.numeric(match("date", names(groundwater.ave))), 6)]))
+DOCmerged <- logstatus.f(DOCmerged)
+DOCmerged <- wetdry.f(DOCmerged)
 
 # check normality of DOC
 qqnorm(DOCmerged$DOCcorr);qqline(DOCmerged$DOCcorr, col = 2)
@@ -1259,30 +1260,173 @@ summary(mod1)
 ## logistic regression for pre/post; wet/dry. Can use data to predict pre/post; wet'dry?
 #http://www.r-bloggers.com/how-to-perform-a-logistic-regression-in-r/
 
-fit <- lm(DOCmerged$DOCcorr ~ DOCmerged$Q.L.s + DOCmerged$baseflow + DOCmerged$quickflow + DOCmerged$quickflow +
+fit <- lm(DOCmerged$DOCcorr ~ DOCmerged$Q.L.s + DOCmerged$baseflow + DOCmerged$quickflow +
           DOCmerged$Tair + DOCmerged$Precip + DOCmerged$SoilT + 
-          DOCmerged$waterheightpoint.mm0904203 + DOCmerged$pH + DOCmerged$EC + DOCmerged$ORP+ DOCmerged$DO
-          + DOCmerged$Tw)
+          DOCmerged$Tw)
 af <- anova(fit)
 afss <- af$"Sum Sq"
-print(cbind(af,PctExp=afss/sum(afss)*100))
+all.fit <- cbind(af,PctExp=afss/sum(afss)*100)
+
+## Do for pre/post
+DOCpre <- subset(DOCmerged, DOCmerged$logstatus == "pre")
+fit.pre <- lm(DOCpre$DOCcorr ~ DOCpre$Q.L.s + DOCpre$baseflow + DOCpre$quickflow +
+            DOCpre$Tair + DOCpre$Precip + DOCpre$SoilT 
+          + DOCpre$Tw)
+af.pre <- anova(fit.pre)
+afss.pre <- af.pre$"Sum Sq"
+pre.fit <- cbind(af.pre,PctExp=afss.pre/sum(afss.pre)*100)
+
+# post
+DOCpost <- subset(DOCmerged, DOCmerged$logstatus == "post")
+fit.post <- lm(DOCpost$DOCcorr ~ DOCpost$Q.L.s + DOCpost$baseflow + DOCpost$quickflow +
+                 DOCpost$Tair + DOCpost$Precip + DOCpost$SoilT + DOCpost$Tw)
+af.post <- anova(fit.post)
+afss.post <- af.post$"Sum Sq"
+post.fit <- cbind(af.post,PctExp=afss.post/sum(afss.post)*100)
+
+## do for wet/pre
+DOCwet <- subset(DOCmerged, DOCmerged$hydro == "wet")
+fit.wet <- lm(DOCwet$DOCcorr ~ DOCwet$Q.L.s + DOCwet$baseflow + DOCwet$quickflow +
+                DOCwet$Tair + DOCwet$Precip + DOCwet$SoilT 
+                + DOCwet$Tw)
+af.wet <- anova(fit.wet)
+afss.wet <- af.wet$"Sum Sq"
+wet.fit <- cbind(af.wet,PctExp=afss.wet/sum(afss.wet)*100)
+
+DOCdry <- subset(DOCmerged, DOCmerged$hydro == "dry")
+fit.dry <- lm(DOCdry$DOCcorr ~ DOCdry$Q.L.s + DOCdry$baseflow + DOCdry$quickflow +
+                DOCdry$Tair + DOCdry$Precip + DOCdry$SoilT 
+              + DOCdry$Tw)
+af.dry <- anova(fit.dry)
+afss.dry <- af.dry$"Sum Sq"
+dry.fit <- cbind(af.dry,PctExp=afss.dry/sum(afss.dry)*100)
+
+# do for wet/pre/post, dry/pre/post
+DOCdrypre <- subset(DOCmerged, DOCmerged$hydro == "dry" & DOCmerged$logstatus == "pre")
+fit.drypre <- lm(DOCdrypre$DOCcorr ~ DOCdrypre$Q.L.s + DOCdrypre$baseflow + DOCdrypre$quickflow +
+                DOCdrypre$Tair + DOCdrypre$Precip + DOCdrypre$SoilT)
+af.drypre <- anova(fit.drypre)
+afss.drypre <- af.drypre$"Sum Sq"
+drypre.fit <- cbind(af.drypre,PctExp=afss.drypre/sum(afss.drypre)*100)
+
+##drypost
+DOCdrypost <- subset(DOCmerged, DOCmerged$hydro == "dry" & DOCmerged$logstatus == "post")
+fit.drypost <- lm(DOCdrypost$DOCcorr ~ DOCdrypost$Q.L.s + DOCdrypost$baseflow + DOCdrypost$quickflow +
+                   DOCdrypost$Tair + DOCdrypost$Precip + DOCdrypost$SoilT)
+af.drypost <- anova(fit.drypost)
+afss.drypost <- af.drypost$"Sum Sq"
+drypost.fit <- cbind(af.drypost,PctExp=afss.drypost/sum(afss.drypost)*100)
+#wetpre
+DOCwetpre <- subset(DOCmerged, DOCmerged$hydro == "wet" & DOCmerged$logstatus == "pre")
+fit.wetpre <- lm(DOCwetpre$DOCcorr ~ DOCwetpre$Q.L.s + DOCwetpre$baseflow + DOCwetpre$quickflow +
+                   DOCwetpre$Tair + DOCwetpre$Precip + DOCwetpre$SoilT)
+af.wetpre <- anova(fit.wetpre)
+afss.wetpre <- af.wetpre$"Sum Sq"
+wetpre.fit <- cbind(af.wetpre,PctExp=afss.wetpre/sum(afss.wetpre)*100)
+# wetpost
+DOCwetpost <- subset(DOCmerged, DOCmerged$hydro == "wet" & DOCmerged$logstatus == "post")
+fit.wetpost <- lm(DOCwetpost$DOCcorr ~ DOCwetpost$Q.L.s + DOCwetpost$baseflow + DOCwetpost$quickflow +
+                    DOCwetpost$Tair + DOCwetpost$Precip + DOCwetpost$SoilT)
+af.wetpost <- anova(fit.wetpost)
+afss.wetpost <- af.wetpost$"Sum Sq"
+wetpost.fit <- cbind(af.wetpost,PctExp=afss.wetpost/sum(afss.wetpost)*100)
+
 # write table
-write.csv(cbind(af,PctExp=afss/sum(afss)*100), file = paste0(fig.dir, "/CRDOCconc_pertable.csv"))
 
-###### DO ALSO FOR THE DOC FLUX BY DAY!!
-# Useful, since it is a product of discharge and 
-
+write.csv(rbind(all.fit, pre.fit, post.fit, wet.fit, dry.fit, drypre.fit, drypost.fit, wetpre.fit, wetpost.fit),
+  file = paste0(fig.dir, "/CRDOCconc_pertable.csv"))
 
 ########### Correlation table - between DOC concentration and environmental variables
-# COde below from _P2 code. Will need to adapt to data
-#CR.spec.abs <- na.omit(abs.Q[,c(3:6,11:16,20:26,29:30,31:32,35:36)])
-#corr.matrix <- cor(as.data.frame(CR.spec.abs[,c(1:6, 8:17, 20:23)]), use="pairwise.complete.obs") # correlation matric between variables
+# Correlation between
+#cor.DOC <- na.omit(DOCmerged)
+colnames(DOCmerged)[17] <- 'Groundwater'
+corr.matrix <- cor(as.data.frame(DOCmerged[,c(2:12, 14:17)]), use="pairwise.complete.obs") # correlation matric between variables
 # plot the correlation matrix of the spectral parameters
-#pdf(file=paste0(fig.dir,"/CR_absindicies_correlations.pdf"), width = 11, height = 8.5)
-#corrplot(na.omit(corr.matrix), method = "circle") #plot matrix
-#dev.off()
-#write.csv(corr.matrix, paste0(fig.dir, "/CRabsind_corr.csv"))
+pdf(file=paste0(fig.dir,"/CR_DOC_corrplot.pdf"), width = 11, height = 8.5)
+corrplot(corr.matrix, method = "circle") #plot matrix
+dev.off()
+write.csv(corr.matrix, paste0(fig.dir, "/CRDOC_corrplot.csv"))
+library("Hmisc")
+corr.matrix.2 <- rcorr(as.matrix(DOCmerged[,c(2:12, 14:17)]), type = c("pearson","spearman"))
 
+##################
+# Show diurnal cycles
+# plot July and August for the time
+julyaug <- subset(cflux.all, format.Date(cflux.all$date, "%m") == "07" | format.Date(cflux.all$date, "%m")=="08")
+# add in air temp from biomet
+julyaug <- merge(julyaug, climate, by = "date", all = FALSE)
+julyaug$day <-  julyaug$date
+year(julyaug$day) <- 0
+julyaug.DOC.plot <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, DOCcorr)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("[DOC] (mg/L)") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August [DOC] ")
+
+#' Create the multiple plots - DOC, Q and airT
+plot1 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, DOCcorr)) + 
+  geom_point(size = 0.4) +
+  #geom_point(data = subset(julyaug, julyaug$DOCcorr >=1), aes(x = day, y = Q.m3.s, color = "blue"))  + # add in discharge
+  xlab("") + ylab("[DOC] (mg/L)") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August [DOC] ")
+
+plot2 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, Q.m3.s)) + 
+  geom_point(size = 0.4) +
+  xlab("") + ylab("Q (m3/s)")
+
+plot3 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, Tair)) + 
+  geom_line() +
+  xlab("Date") + ylab("Mean Air Temperature (degC)")
+
+#AWESOME diurnal cycles
+# save figures
+pdf(file=paste0(fig.dir,"/CR_DOC_diurnaljulyaug.pdf"), width = 11, height = 8.5)
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), ggplotGrob(plot3), size = "last")) # align the plots by date
+dev.off()
+
+# Show the DOC/Q/airT over one day period - take last week of july
+
+julDOC <- subset(julyaug, format.Date(julyaug$date, "%m") == "07" & format.Date(julyaug$date, "%d") >= "25" & format.Date(julyaug$date, "%d")<="31")
+# take the mean hourly DOC concentration by year (3 different years)
+meanJulydoc <- ddply(julDOC,.(format(julDOC$date, format='%y')),
+      summarise, meanhourDOC= mean(DOCcorr, na.rm = TRUE))
+
+julDOC$hour <-  julDOC$date
+year(julDOC$hour) <- 0
+month(julDOC$hour) <- 0
+day(julDOC$hour) <- 0
+#julDOC$hour <- as.POSIXct(strptime(julDOC$hour, format="%H:%M"))
+julDOC.plot.DOC <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, DOCcorr)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("[DOC] (mg/L)") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July 25 - 31 [DOC] ")
+
+plot1 <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, DOCcorr)) + 
+  geom_point(size = 0.4) +
+  #geom_point(data = subset(julyaug, julyaug$DOCcorr >=1), aes(x = day, y = Q.m3.s, color = "blue"))  + # add in discharge
+  xlab("") + ylab("[DOC] (mg/L)") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August [DOC] ")
+
+plot2 <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, Q.m3.s)) + 
+  geom_point(size = 0.4) +
+  xlab("") + ylab("Q (m3/s)") 
+  
+plot3 <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, Tair)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Air Temperature (degC)")
+
+pdf(file=paste0(fig.dir,"/CR_DOC_diurnaljuly.pdf"), width = 11, height = 8.5)
+grid.newpage()
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), ggplotGrob(plot3), size = "last")) # align the plots by date
+dev.off()
+
+
+#### Q/groundwater/DOC/
+# not enough groundwater??
 
 #####################################################################
 # Supplemental
