@@ -11,43 +11,13 @@ ls()
 library(pacman)
 p_load(lubridate,plyr,ggplot2,reshape2,car,grid,gridBase,gridExtra, taRifx,magrittr, ggpmisc,
        stringi,stringr,plyr,dplyr,tidyr,EcoHydRology,openair,reshape,lmomco, zoo, hydroTSM, rowr, 
-       reshape2, pgirmess, nlme, chron, repmis, ggbiplot, FactoMineR, factoextra, stringr)
+       reshape2, pgirmess, nlme, chron, repmis, ggbiplot, FactoMineR, factoextra, stringr, rms, splines, gtable,
+       'gsubfn', 'abind', 'zoo', 'corrplot', 'gplots', "EEM", eeptools, MASS, Hmisc)
 
 library('devtools')
 install_github("ggbiplot", "vqv")
 library(ggbiplot)
-library('corrplot') #package corrplot
-library(reshape2)
-library(gridExtra)
-library(grid)
-library(gtable)
-library('gsubfn')
-library('abind')
-library('zoo')
-library('devtools')
-install_github("ggbiplot", "vqv")
-library(ggbiplot)
-library('plyr')
-library('stringr')
-library('gplots')
-library('FactoMineR')
-library('nlme')
-library(devtools)
-install_github("ggbiplot", "vqv")
-library(ggbiplot)
-library("factoextra")
-library("EEM")
 devtools::install_github("PMassicotte/eemR")
-library(ggplot2)
-library(plyr)
-library(eeptools)
-library(MASS)
-library(Hmisc)
-library('corrplot') #package corrplot
-library(reshape2)
-library(gridExtra)
-library(grid)
-library(gtable)
 
 ############ functions
 mean.function <- function(filename, interval){
@@ -174,7 +144,6 @@ colnames(abspec.corr)[222] <- "date"
 colnames(abspec.corr)[223] <- "DOCcorr"
 colnames(abspec.corr)[224] <- "NO3"
 
-
 # calculate the abs spectral indicies from the corrected spectra
 #source("/Users/user/SpecScripts/CRSpectralIndAbs_function.R")
 #abs.ind.1 <- as.data.frame(Abs.ind(spec = abspec.corr[1:10000,], pathlength = 35))
@@ -214,36 +183,11 @@ abs.all$abs254 <- spectro.all$SAC254
 # merge the abs with the discharge/precip
 abs.Q <- Reduce(function(x, y) merge(x, y, by = "date", all=TRUE), list(abs.all, mark.discharge, climate))
 # add in column with pre/post, wet/dry
+abs.Q <- logstatus.f(abs.Q)
+abs.Q <- wetdry.f(abs.Q)
 abs.Q$hydrolog <- paste(abs.Q$logstatus, abs.Q$hydro, sep = "/")
 # add in month column
 abs.Q$month <- format(abs.Q$date, "%m")
-
-# Timeseries plots of spectral indicies
-time.SUVA <- ggplot(abs.Q, aes(date, SUVA)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("SUVA") + theme()
-
-time.e2e3 <- ggplot(abs.Q, aes(date, e2e3)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("e2e3") + theme()
-
-time.e4e6 <- ggplot(abs.Q, aes(date, e4e6)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("e4e6") + theme()
-  
-time.SR <-   ggplot(abs.Q, aes(date, SlopeRatio)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("e4e6") + theme() + scale_y_continuous(limits = c(-5, 5))
-
-## PCA on data - which variables change
-## Correlation matrix - abs spectral/DOC conc/Q/bf/qf/pH/EC/Precip/soilT
-CR.spec.abs <- na.omit(abs.Q[,c(3:6,11:16,20:26,29:30,31:32,35:36)])
-corr.matrix <- cor(as.data.frame(CR.spec.abs[,c(1:6, 8:17, 20:23)]), use="pairwise.complete.obs") # correlation matric between variables
-# plot the correlation matrix of the spectral parameters
-pdf(file=paste0(fig.dir,"/CR_absindicies_correlations.pdf"), width = 11, height = 8.5)
-  corrplot(na.omit(corr.matrix), method = "circle") #plot matrix
-dev.off()
-write.csv(corr.matrix, paste0(fig.dir, "/CRabsind_corr.csv"))
-
-# Linear relationships between DOC; e2e3, e4e6, SUVA, Slope Ratio - linear model
-
-## ANOVA/Box plots on pre/post for significant changes
 
 ######################################################################
 ####### Fluorescence data
@@ -343,112 +287,366 @@ CR.grab.DWM.Ls$Br_mgL <- NULL
 CR.grab.DWM.Ls$OFI <- NULL
 CR.grab.DWM.Ls$F_mgL <- NULL
 
-################## PCA Analysis
-# Figure 1 PCA analysis
-# Question: Which varaibles explain the most variance within the dataset (partitioned according to pre/post, wet/dry)?
-# Do PCA on Flow-Weighted Fluorescence Parameters
-CR.grab.fl <- na.omit(CR.grab[,c(2:12,15:29, 44:47, 53,54,56,58,63, 78)])
-CR.grab.fl.FWM <- CR.grab.fl[,c(1:34)]/CR.grab.fl[,35]
-CR.grab.fl.FWM$logstatus <- CR.grab.fl$logstatus
+############################################################
+# Figure 1 - timeseries of in situ parameters - SUVA, slope ratio, doc concentration etc.
+# Plot with Q, [DOC], SUVA, e2e3, e4e5, SR, and PARAFAC components
+############################################################
 
-CR.grab.DWM.PCA <- prcomp(na.omit(CR.grab.fl.FWM[,c(1:31, 33:34)]), center = TRUE, scale. = TRUE, na.action=na.omit)
-summary(CR.grab.DWM.PCA)
+# Timeseries plots of spectral indicies + DOC + Q
+time.Q <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, Q.L.s)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + theme()
 
-# plot PCA results
-pdf(file=paste0(fig.dir,"/CR_PCADWMLs.pdf"), width = 11, height = 8.5)
-ggbiplot(CR.grab.DWM.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl.FWM$logstatus),
-         ellipse = TRUE, circle = FALSE, varname.abbrev = FALSE) +
-  #scale_colour_manual(values=cbPalette[1:6], name="Region") +
-  theme(legend.direction = 'vertical', legend.position = 'right') 
+time.DOC <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, DOCcorr)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("[DOC] (mg/L)") + theme()
+
+time.abs254 <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, abs254)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("abs254") + theme()
+
+time.SUVA <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, SUVA)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("SUVA") + theme()
+
+time.e2e3 <- ggplot(abs.Q, aes(date, e2e3)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("e2e3") + theme()
+
+time.e4e6 <- ggplot(abs.Q, aes(date, e4e6)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("e4e6") + theme()+ scale_y_continuous(limits = c(-5, 1000))
+  
+time.SR <-   ggplot(subset(abs.Q, DOCcorr >=1), aes(date, SlopeRatio)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("Slope Ratio") + theme() + scale_y_continuous(limits = c(0, 5))
+
+# timeseries look really odd?!! Jump in data.
+# show as boxplots?
+
+PARA.perprotein <- melt(CR.grab[,c(64, 28)], id = "date")
+pd <- position_dodge(.65)
+time.perprotein <- ggplot(PARA.perprotein, aes(date, value, colour = variable, shape = variable)) + 
+  geom_point(position = pd, size = 2) +
+  scale_color_manual(values=cbPalette[1]) +
+  xlab("Date") + ylab("% Protein (CM PARAFAC Model)") + theme(legend.position="top")  +
+  ylim(0, 50) 
+
+# redox index
+PARA.redox <- melt(CR.grab[,c(64, 29)], id = "date")
+pd <- position_dodge(.65)
+time.redox <- ggplot(PARA.redox, aes(date, value, colour = variable, shape = variable)) + 
+  geom_point(position = pd, size = 2) +
+  scale_color_manual(values=cbPalette[2]) +
+  xlab("Date") + ylab("Redox Index (CM PARAFAC Model)") + theme(legend.position="top")  +
+  ylim(0, 0.8) 
+
+# PARAFAC - 4 component %
+PARA.per <- melt(CR.grab[,c(64, 49:52)], id = "date")
+pd <- position_dodge(.65)
+time.PARAFACPer <- ggplot(PARA.per, aes(date, value, colour = variable, shape = variable)) + 
+  geom_point(position = pd, size = 2) +
+  scale_color_manual(values=cbPalette[1:4], 
+                     name="PARAFAC Component",
+                     breaks=c("C1_per", "C2_per", "C3_per", "C4_per"),
+                     labels=c("C1", "C2", "C3", "C4")) +
+  xlab("Date") + ylab("PARAFAC Component %") + theme(legend.position="top")  +
+  ylim(0, 70) +
+  scale_shape_manual(values=c(17,18,3,4), 
+                     name="PARAFAC Component",
+                     breaks=c("C1_per", "C2_per", "C3_per", "C4_per"),
+                     labels=c("C1", "C2", "C3", "C4")) 
+# PARAFAC fmax
+PARA.fmax <- melt(CR.grab[,c(64, 44:47)], id = "date")
+time.PARAFACfmax <- ggplot(PARA.fmax, aes(date, value, color = variable, shape = variable)) + 
+  geom_point(position = pd, size = 2) +
+  xlab("Date") + ylab("PARAFAC Component Fmax") + 
+  theme(legend.position="top")  +
+  ylim(0, 1) +
+  scale_color_manual(values=cbPalette[1:4], 
+                     name="PARAFAC Component",
+                     breaks=c("PARAFAC_C1", "PARAFAC_C2", "PARAFAC_C3", "PARAFAC_C4"),
+                     labels=c("C1", "C2", "C3", "C4")) +
+  scale_shape_manual(values=c(17,18,3,4), 
+                     name="PARAFAC Component",
+                     breaks=c("PARAFAC_C1", "PARAFAC_C2", "PARAFAC_C3", "PARAFAC_C4"),
+                     labels=c("C1", "C2", "C3", "C4")) 
+
+# Arrange the timeseries on top of each other
+pdf(file=paste0(fig.dir,"/CRFigures_QualityF1_TimeseriesAbs.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(time.Q, time.DOC, time.abs254, time.SUVA, time.SR, ncol = 1)
 dev.off()
 
-# show relative contribution of each variable to the first 5 components of PCA
-fl.FWM.pca <- PCA(CR.grab.fl.FWM[,c(1:31, 33:34)], graph = TRUE)
-head(fl.FWM.pca$var$contrib)
-PCA.contrib <- data.frame(fl.FWM.pca$var$contrib)
-# sort variables by incresing contribution across the first 5 component
-wq.sortvar <- PCA.contrib[order(-PCA.contrib$Dim.1,-PCA.contrib$Dim.2,-PCA.contrib$Dim.3,-PCA.contrib$Dim.4,-PCA.contrib$Dim.5), ]
-write.csv(wq.sortvar, file = paste(fig.dir, "/PCAcontributions_FWM.csv", sep ="/")) #write contributions to a csv file that are sorted
-# scree plot
-fviz_screeplot(fl.FWM.pca, ncp=6) # first 6 components
-# plot contribution to first 2 PCA components
-fviz_contrib(fl.FWM.pca, choice = "var", axes = 1)
-fviz_contrib(fl.FWM.pca, choice = "var", axes = 2)
+############################################# 
+# Figure 2 - Timeseries of fluorescence data - PARAFAC components over time.
 
-############### Do PCA on non-flowweighted means - only fluorescence parameters
-CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,28:29,48:52,58,63,68:70,83:84,86)])
-CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:19]), center = TRUE, scale. = TRUE, na.action=na.omit)
-summary(CR.grab.PCA)
-
-# plot PCA results
-pdf(file=paste0(fig.dir,"/CR_PCA_grabfl.pdf"), width = 11, height = 8.5)
-ggbiplot(CR.grab.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl$hydrolog),
-         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE) +
-  scale_colour_manual(values=cbPalette[1:6], name="logstatus") +
-  theme(legend.direction = 'vertical', legend.position = 'right') 
+# Arrange timeseries for PARAFAC data
+pdf(file=paste0(fig.dir,"/CRFigures_QualityF1_Timeseriesfluor.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(time.Q, time.DOC, time.perprotein, time.redox, time.PARAFACPer, time.PARAFACfmax, ncol = 1)
 dev.off()
 
-# show relative contribution of each variable to the first 5 components of PCA
-grabfl.pca <- PCA(CR.grab.fl[,1:19], graph = TRUE)
-head(grabfl.pca$var$contrib)
-PCA.contrib <- data.frame(grabfl.pca$var$contrib)
-# sort variables by incresing contribution across the first 5 component
-wq.sortvar <- PCA.contrib[order(-PCA.contrib$Dim.1,-PCA.contrib$Dim.2,-PCA.contrib$Dim.3,-PCA.contrib$Dim.4,-PCA.contrib$Dim.5), ]
-write.csv(wq.sortvar, file = paste(fig.dir, "/PCAcontributions_flgrab.csv", sep ="/")) #write contributions to a csv file that are sorted
-# scree plot
-fviz_screeplot(grabfl.pca, ncp=6) # first 6 components
-# plot contribution to first 2 PCA components
-fviz_contrib(grabfl.pca, choice = "var", axes = 1)
-fviz_contrib(grabfl.pca, choice = "var", axes = 2)
+############################################# 
+# plot example EEMto show OM fluorescence characteristics
+# possible nice EEMs to use: 1017, 1018, 1021, 1027, 1034
+EEMdir <- "/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR EEMS/CR_fluorescence/CREEMS_corrIFE_RM_Ram"
+EEM <- read.csv(file = paste0(EEMdir, "/CR1031_CR_Corrected.csv"), header = TRUE)
+samplename  <- "CR1031"
 
-## PCA Only on fluorescence and absorbance parameters
-CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,28:29,49:52,83:84,86)])
-CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:13]), center = TRUE, scale. = TRUE, na.action=na.omit)
-summary(CR.grab.PCA)
+#variables to change
+zmax = max(EEM,na.rm=TRUE) # put the max intensity of that you want to graph
+#EEMmax[i] <- zmax #to show the maximum fluorescence for all files
+xlimit <- range(300, 500, finite=TRUE)
+ylimit <- range(240, 450, finite = TRUE)
 
-# plot PCA results
-pdf(file=paste0(fig.dir,"/CR_PCA_grabfl.pdf"), width = 11, height = 8.5)
-ggbiplot(CR.grab.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl$hydrolog),
-         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE) +
-  scale_colour_manual(values=cbPalette[1:6], name="logstatus") +
-  theme(legend.direction = 'vertical', legend.position = 'right') 
+numcont = 20 # number of contour levels you want: Change if you want
+
+##### contour plotting function
+# call contour plot function
+setwd("/Users/user/SpecScripts") 
+source("EEM_contour_v1.R")
+
+#Plot contours and save in correction file
+plotpath <- file.path(fig.dir, paste(samplename,"_ContourRaleigh.jpeg", sep = ""))
+
+EEMplot <- EEM # not cutting out the last two columns
+EEMplot[EEMplot<0]=0 # have line so that if fluorescence is less than 0, becomes 0.
+
+explot = colnames(as.matrix(EEMplot))
+explot = as.numeric(gsub("X","",explot))
+emplot = as.numeric(row.names(EEMplot))
+
+jpeg(file=plotpath)
+contour.plots(eems = as.matrix(EEMplot), Title = samplename, ex = explot, em = emplot, 
+              zmax = zmax, zmin = 0, numcont = numcont)  
 dev.off()
 
-# show relative contribution of each variable to the first 5 components of PCA
-grabfl.pca <- PCA(CR.grab.fl[,1:13], graph = TRUE)
-head(grabfl.pca$var$contrib)
-PCA.contrib <- data.frame(grabfl.pca$var$contrib)
-# sort variables by incresing contribution across the first 5 component
-wq.sortvar <- PCA.contrib[order(-PCA.contrib$Dim.1,-PCA.contrib$Dim.2,-PCA.contrib$Dim.3,-PCA.contrib$Dim.4,-PCA.contrib$Dim.5), ]
-write.csv(wq.sortvar, file = paste(fig.dir, "/PCAcontributions_flgrab.csv", sep ="/")) #write contributions to a csv file that are sorted
-# scree plot
-fviz_screeplot(grabfl.pca, ncp=6) # first 6 components
-# plot contribution to first 2 PCA components
-fviz_contrib(grabfl.pca, choice = "var", axes = 1)
-fviz_contrib(grabfl.pca, choice = "var", axes = 2)
+############################################# 
+# Figure 3 - Diurnal and seasonal changes
+# Figure 3A - Possibility of diurnal changes
+# Timeseries of abs within dry summer months
 
-##############################################################################################################
+# plot July and August for the time
+julyaug <- subset(abs.Q, format.Date(abs.Q$date, "%m") == "07" | format.Date(abs.Q$date, "%m")=="08")
+# add in air temp from biomet
+julyaug$day <-  julyaug$date
+year(julyaug$day) <- 0
+julyaug.abs254 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, abs254)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("abs254") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August abs254 ")
+
+# SUVA
+julyaug.SUVA <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, SUVA)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("SUVA") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August SUVA ")
+
+# SR
+julyaug.SR <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, SR)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Slope Ratio") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August Slope Ratio ")
+# abs 350 - need to calculate
+#julyaug.SR <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, SR)) + 
+#  geom_point(size = 0.4) +
+ # xlab("Date") + ylab("Slope Ratio") + 
+#  #scale_color_manual(values=cbPalette[1:2]) + # colours
+#  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August Slope Ratio ")
+
+# Do by hour - last week of july
+# Show the DOC/Q/airT over one day period - take last week of july
+julDOC <- subset(julyaug, format.Date(julyaug$date, "%m") == "07" & format.Date(julyaug$date, "%d") >= "25" & format.Date(julyaug$date, "%d")<="31")
+# take the mean hourly DOC concentration by year (3 different years)
+meanJulydoc <- ddply(julDOC,.(format(julDOC$date, format='%y')),
+                     summarise, meanhourDOC= mean(DOCcorr, na.rm = TRUE))
+julDOC$hour <-  julDOC$date
+year(julDOC$hour) <- 0
+month(julDOC$hour) <- 0
+day(julDOC$hour) <- 0
+#julDOC$hour <- as.POSIXct(strptime(julDOC$hour, format="%H:%M"))
+jul.abs254<- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, abs254)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("abs254") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July 25 - 31 abs254 ")
+
+jul.SUVA<- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, SUVA)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("SUVA") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July 25 - 31 SUVA ") +
+  scale_y_continuous(limits = c(3.5, 4))
+
+jul.SR<- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, SR)) + 
+  geom_point(size = 0.4) +
+  xlab("Date") + ylab("Slope Ratio") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July 25 - 31 Slope Ratio ") +
+  scale_y_continuous(limits = c(1.4, 2.2))
+
+## Save plot - hourly data as a subplot of the whole week
+#A viewport taking up a fraction of the plot area
+vp <- viewport(width = 0.4, height = 0.4, x = 0.8, y = 0.8)
+#Just draw the plot twice
+png(file=paste0(fig.dir,"/CRFigures_diurnal_abs254.png"))
+print(julyaug.abs254)
+print(jul.abs254, vp = vp)
+dev.off()
+# SUVA - plot
+vp <- viewport(width = 0.4, height = 0.4, x = 0.8, y = 0.2)
+png(file=paste0(fig.dir,"/CRFigures_diurnal_SUVA.png"))
+print(julyaug.SUVA)
+print(jul.SUVA, vp = vp)
+dev.off()
+
+# SR - plot
+vp <- viewport(width = 0.4, height = 0.4, x = 0.8, y = 0.8)
+png(file=paste0(fig.dir,"/CRFigures_diurnal_SR.png"))
+print(julyaug.SR)
+print(jul.SR, vp = vp)
+dev.off()
+
+# Try plotting all - DOESN'T WORK _______________
+#pdf(file=paste0(fig.dir,"/CRFigures_Quality_DiurnalAbs.pdf"), width = 8.5, height = 11) #save figure
+#grid.arrange(print(jul.SR, vp = vp),print(jul.SUVA, vp = vp), print(jul.abs254, vp = vp), ncol = 1)
+#dev.off()
+
+########### Boxplots of PARAFAC (4 comp and redox and percent protein) by day/night - diurnal cycles
+# do a column for d/n
+daynight <- function(filename){
+  filename$daynight <- ifelse(hour(filename$date) %in% 6:19, "day", "night") # 6 in the morning to 7 at night
+  return(filename)
+}
+
+abs.Q <- daynight(abs.Q)
+CR.grab <- daynight(CR.grab)
+
+# Add in wet/dry + daynight
+CR.grab$hydrodn <- paste(CR.grab$hydro, CR.grab$daynight, sep = "/")
+
+# melt dataset to do boxplot - absorbance
+box.crgrab <- melt(CR.grab[,c(2,3,7,28,29,49:52,44:47,89)], id = "hydrodn")
+# boxplot - FI
+diurnal.FI.box <- ggplot(subset(box.crgrab, variable  == "FI"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - FI')) +
+  ylab(expression('FI')) +
+  xlab(expression('Day/Night')) 
+
+# boxplot - HIX
+diurnal.HIX.box <- ggplot(subset(box.crgrab, variable  == "HIX_ohno_area"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - HIX')) +
+  ylab(expression('HIX')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0, 1.5))
+
+diurnal.FrI.box <- ggplot(subset(box.crgrab, variable  == "FrI"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - FrI')) +
+  ylab(expression('FrI')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0, 1.5))
+
+diurnal.perprotein.box <- ggplot(subset(box.crgrab, variable  == "perprotein"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - % Protein')) +
+  ylab(expression('% Protein (%)')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0, 15))
+
+diurnal.redox.box <- ggplot(subset(box.crgrab, variable  == "redox"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - Redox Index')) +
+  ylab(expression('Redox Index')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0.2, 0.5))
+# PARAFAC Fmax
+diurnal.C1.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C1"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - C1')) +
+  ylab(expression('C1 Fmax')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0, 1))
+diurnal.C2.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C2"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - C2')) +
+  ylab(expression('C2 Fmax')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0, 1))
+diurnal.C3.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C3"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - C3')) +
+  ylab(expression('C3 Fmax')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0, 1))
+diurnal.C4.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C4"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Diurnal - C4')) +
+  ylab(expression('C4 Fmax')) +
+  xlab(expression('Day/Night')) + 
+  coord_cartesian(ylim = c(0, 1))
+
+# save boxplots - 6 in all
+pdf(file=paste0(fig.dir,"/CRFigures_Quality_DiurnalFluor.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(diurnal.FI.box,diurnal.HIX.box, diurnal.FrI.box, diurnal.perprotein.box, diurnal.redox.box,
+             diurnal.C1.box, diurnal.C2.box, diurnal.C3.box, diurnal.C4.box, ncol = 2)
+dev.off()
+
+#### Figure 3B - Seasonal Changes - boxplot of variables according to month - both in situ and PARAFAC components
+# Need to show? Already show the seasonal boxplots for pre/post harvest? 
+
+#############################################################################
+# Figure 4 Correlation Matrix
+## Correlation matrix - abs spectral/DOC conc/Q/bf/qf/pH/EC/Precip/soilT 
+CR.spec.abs <- na.omit(abs.Q[,c(3:6,11:16,20:26,29:30,31:32,35:36)])
+corr.matrix <- cor(as.data.frame(CR.spec.abs[,c(1:6, 8:17, 20:23)]), use="pairwise.complete.obs") # correlation matric between variables
+# plot the correlation matrix of the spectral parameters
+pdf(file=paste0(fig.dir,"/CR_absindicies_correlations.pdf"), width = 11, height = 8.5)
+  corrplot(na.omit(corr.matrix), method = "circle") #plot matrix
+dev.off()
+write.csv(corr.matrix, paste0(fig.dir, "/CRabsind_corr.csv"))
+
+####
 # Figure Correlation Matrix - Water Quality variables and others (discharge, climate)
-CR.grab.fl <- na.omit(CR.grab[,c(2:12,15:29, 44:47, 63:65,78)])
-corr.matrix <- cor(CR.grab.fl[,1:33]) # correlation matric between variables
+# clustering as per https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html
+# order="hclust", addrect=2) for clustering 
+CR.grab.fl <- as.data.frame(na.omit(CR.grab[,c(2:12,15:29, 44:47, 63:65,68:70,74:78, 81, 58)]))
+corr.matrix <- cor(CR.grab.fl[,c(1:2,6:10,12:31,34:43)]) # correlation matric between variables
 # plot the correlation matrix of the spectral parameters
 pdf(file=paste0(fig.dir,"/CR_flindicies_correlations.pdf"), width = 11, height = 8.5)
-corrplot(na.omit(corr.matrix), method = "circle") #plot matrix
+corrplot(na.omit(corr.matrix), method = "circle", order="hclust", addrect=2) #plot matrix
 dev.off()
+write.csv(corr.matrix, paste0(fig.dir, ("/CRcorrmatrix_abs.csv"))) #write correlation matrix
+
+# show very unclear trends!!
 
 # Correlation matrix with the high frequency data
-CR.abs.cor <- na.omit(abs.Q[,c(3,11,12,13,14:16,20:26,31:32,35:36)])
+CR.abs.cor <- na.omit(abs.Q[,c(3,11,12,13,14:17,21:27,30:31,34:35)])
 corr.matrix <- cor(CR.abs.cor) # correlation matric between variables
 # plot the correlation matrix of the spectral parameters
 pdf(file=paste0(fig.dir,"/CR_abs_correlations.pdf"), width = 11, height = 8.5)
-corrplot(na.omit(corr.matrix), method = "circle") #plot matrix
+corrplot(na.omit(corr.matrix), method = "circle", order="hclust", addrect=2) #plot matrix
 dev.off()
 write.csv(corr.matrix, paste0(fig.dir, ("/CRcorrmatrix_abs.csv"))) #write correlation matrix
+
+# do correlation matrix for the absorbance and fluorescence parameters together along with DOC and Q (baseflow, quickflow)
+# make sure that the absorbance parameters 
+
+# Linear relationships between DOC; e2e3, e4e6, SUVA, Slope Ratio - linear model - future work?
+
+#########################################################################################################
+# Part 2 - What is the effect of forest harvest on DOC characteristics?
 #########################################################################################################
 # Figure - ANOVA analysis to look at significance of changes in pre and post 
 # Boxplot of flow weighted means for the pre/post period per month for different parameters
 # do anova test on each of the pairs?
-
+# ANOVA/Box plots on pre/post for significant changes
 # SUVA
 SUVA.box <- ggplot(abs.Q, aes(x=month, y=SUVA, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
@@ -548,9 +746,53 @@ dev.off()
 pdf(file=paste0(fig.dir,"/CRFigures_Boxfluorescence.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(Redox.box, PerProtein.box, C1.box, C2.box, C3.box, C4.box, ncol = 2)
 dev.off()
+##################################
+## Test for significant differences
+# ANOVA on pre/post by month
+# test for normality
 
-## ANOVA on pre/post by month
+# First, test whether data is normal or not.
+## Have a look at the densities - SUVA
+plot(density(abs.Q$SUVA, na.rm = TRUE))
+## Perform the test - too many observations
+#shapiro.test(abs.Q$SUVA)
 
+## Plot using a qqplot - SUVA
+qqnorm(abs.Q$SUVA);qqline(abs.Q$SUVA, col = 2)
+# abs254 - not in the abs.Q data!! FUUCCCKKKK
+qqnorm(abs.Q$SR);qqline(abs.Q$SR, col = 2)
+# 
+
+#
+
+kruskal.test(jan.DOC.sub[,c(8,10,12)]) 
+library(dunn.test)
+dunn.test(jan.DOC.sub[,c(6,8,10,12)], g=DOCcorr, kw=TRUE)
+kruskal.test(feb.DOC.sub[,c(6,8,10,12)]) 
+kruskal.test(jan.DOC.sub[,c(4,6,8,10,12)]) 
+kruskalmc(jan.DOC.sub$date, jan.DOC.sub[,c(4,6,8,10,12)]) 
+
+#################################################################
+# C12 and C1 (%) from cory mkcknight - by pre/post, wet dry.
+# compare the two components as per 
+# Strohmeier, S, K H Knorr, M Reichert, and S Frei. 2013. “Concentrations and Fluxes of Dissolved Organic Carbon in Runoff From a Forested Catchment: Insights From High Frequency Measurements.” …. doi:10.5194/bg-10-905-2013.
+# http://stackoverflow.com/questions/2397097/how-can-a-data-ellipse-be-superimposed-on-a-ggplot2-scatterplot
+library(ggplot2)
+library(devtools)
+library(digest)
+source_url("https://raw.github.com/low-decarie/FAAV/master/r/stat-ellipse.R")    
+# omit data where log status = NA
+CR.grab.elipse <- CR.grab[!is.na(CR.grab$logstatus),]
+C1C12.13comp <- qplot(data=CR.grab.elipse, x=C1.x, y=C12.x, colour=hydrolog, shape = hydrolog)+stat_ellipse() +
+  xlim(0, 20) + ylim(0,15) + 
+  scale_color_manual(values=cbPalette[1:4]) +
+  labs(x="CM C1 (%)", y="CM C12 (%)", title = "DOC Origin - Pre and Post Logging") +
+  coord_cartesian(xlim = c(5,15), ylim=c(0,15)) 
+
+# save figure
+pdf(file=paste0(fig.dir,"/CRFigures_13compC1vC13.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(C1C12.13comp, ncol = 1)
+dev.off()
 #################################################################
 ## Conc/Q relationships: pre/post; wet/dry. Look for significant relationship
 # DOC
@@ -571,6 +813,7 @@ ggplot(abs.Q, aes(x=Q.mm.d, y=DOCcorr, color = hydrolog)) +
   labs(title="Soil Extracts - [DOC] versus Depth")
 # SUVA
 SUVA.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=SUVA, color = hydrolog)) +
+  geom_point() +
   scale_color_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = hydrolog)) + 
@@ -580,6 +823,7 @@ SUVA.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=SUVA, color = hydrol
   coord_cartesian(xlim = c(0,13), ylim=c(3,4)) 
 # SR 
 SR.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=SlopeRatio, color = hydrolog)) +
+  geom_point() +
   scale_color_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = hydrolog)) + 
@@ -709,7 +953,65 @@ C3.cQ
 C4.cQ
 dev.off()
 
-# DO linear models and save the coefficients (m,b, r2) in a table
+### Conc-Q relationships for select variables: DOC, C1, C4, CM1, CM12 (%)
+CR.grab.omit <- CR.grab[!is.na(CR.grab$logstatus),]
+C1.cQ <- ggplot(subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C1_per, color = hydrolog)) +
+  geom_point() +
+  scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(data = subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C1_per, fill = hydrolog), method = 'lm', 
+              formula = y ~ ns(x, 2), size = 1, se= FALSE)+
+  labs(x="Q (mm/day)", y=expression(paste("C1%"))) +
+  labs(title="cQ plot of Spectral C1% vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) 
+
+C4.cQ <- ggplot(subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C4_per, color = hydrolog)) +
+  geom_point() +
+  scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(data = subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C4_per, fill = hydrolog), method = 'lm', 
+              formula = y ~ ns(x, 2), size = 1, se= FALSE)+
+  labs(x="Q (mm/day)", y=expression(paste("C4%"))) +
+  labs(title="cQ plot of Spectral C4% vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) 
+
+DOC.cQ <- ggplot(subset(abs.Q, Q.mm.d >=0.3), aes(x=Q.mm.d, y=DOCcorr, color = hydrolog)) +
+  geom_point() +
+  scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  # stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  labs(x="Q (mm/day)", y=expression(paste("[DOC] (mg/L)"))) +
+  labs(title="cQ plot of Spectral [DOC] vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) + 
+  coord_cartesian(xlim = c(0,40), ylim=c(0,20))
+
+CMC1.cQ <- ggplot(subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C1.x, color = hydrolog)) +
+  geom_point() +
+  scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(data = subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C1.x, fill = hydrolog), method = 'lm', 
+              formula = y ~ ns(x, 2), size = 1, se= FALSE)+
+  labs(x="Q (mm/day)", y=expression(paste("CM C1%"))) +
+  labs(title="cQ plot of Spectral CM C1% vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) + 
+  coord_cartesian(xlim = c(0,30), ylim=c(0,20)) 
+
+CMC12.cQ <- ggplot(subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C12.x, color = hydrolog)) +
+  geom_point() +
+  scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(data = subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C12.x, fill = hydrolog), method = 'lm', 
+              formula = y ~ ns(x, 2), size = 1, se= FALSE)+
+  labs(x="Q (mm/day)", y=expression(paste("CM C12%"))) +
+  labs(title="cQ plot of Spectral CM C12% vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) #
+
+# save 
+pdf(file=paste0(fig.dir,"/CRFigures_CQrel_select.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(DOC.cQ, C1.cQ, C4.cQ, CMC1.cQ, CMC12.cQ, ncol = 2)
+dev.off()
+############
+#DO linear models and save the coefficients (m,b, r2) in a table
 # DOC- Q
 abs.Q.pre <- subset(abs.Q, abs.Q$logstatus == "pre")
 abs.Q.post <- subset(abs.Q, abs.Q$logstatus == "post")
@@ -725,6 +1027,96 @@ spectrolm.SUVA.post <- c(summary(lm(as.numeric(abs.Q.post$SUVA) ~ log(as.numeric
 
 ## linear model
 # Do linear models (glm) to look at relationships between DOC and various parameters, as well as hour, pre/post, wet/dry, month..
+
+################## ################## ################## ################## ################## 
+# Supplemental Figures
+################## ################## ################## ################## ################## 
+
+# PCA Analysis
+# Figure 1 PCA analysis
+# Question: Which varaibles explain the most variance within the dataset (partitioned according to pre/post, wet/dry)?
+# Do PCA on Flow-Weighted Fluorescence Parameters
+CR.grab.fl <- na.omit(CR.grab[,c(2:12,15:29, 44:47, 53,54,56,58,63, 78)])
+CR.grab.fl.FWM <- CR.grab.fl[,c(1:34)]/CR.grab.fl[,35]
+CR.grab.fl.FWM$logstatus <- CR.grab.fl$logstatus
+
+CR.grab.DWM.PCA <- prcomp(na.omit(CR.grab.fl.FWM[,c(1:31, 33:34)]), center = TRUE, scale. = TRUE, na.action=na.omit)
+summary(CR.grab.DWM.PCA)
+
+# plot PCA results
+pdf(file=paste0(fig.dir,"/CR_PCADWMLs.pdf"), width = 11, height = 8.5)
+ggbiplot(CR.grab.DWM.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl.FWM$logstatus),
+         ellipse = TRUE, circle = FALSE, varname.abbrev = FALSE) +
+  #scale_colour_manual(values=cbPalette[1:6], name="Region") +
+  theme(legend.direction = 'vertical', legend.position = 'right') 
+dev.off()
+
+# show relative contribution of each variable to the first 5 components of PCA
+fl.FWM.pca <- PCA(CR.grab.fl.FWM[,c(1:31, 33:34)], graph = TRUE)
+head(fl.FWM.pca$var$contrib)
+PCA.contrib <- data.frame(fl.FWM.pca$var$contrib)
+# sort variables by incresing contribution across the first 5 component
+wq.sortvar <- PCA.contrib[order(-PCA.contrib$Dim.1,-PCA.contrib$Dim.2,-PCA.contrib$Dim.3,-PCA.contrib$Dim.4,-PCA.contrib$Dim.5), ]
+write.csv(wq.sortvar, file = paste(fig.dir, "/PCAcontributions_FWM.csv", sep ="/")) #write contributions to a csv file that are sorted
+# scree plot
+fviz_screeplot(fl.FWM.pca, ncp=6) # first 6 components
+# plot contribution to first 2 PCA components
+fviz_contrib(fl.FWM.pca, choice = "var", axes = 1)
+fviz_contrib(fl.FWM.pca, choice = "var", axes = 2)
+
+############### Do PCA on non-flowweighted means - only fluorescence parameters
+CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,28:29,48:52,58,63,68:70,83:84,86)])
+CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:19]), center = TRUE, scale. = TRUE, na.action=na.omit)
+summary(CR.grab.PCA)
+
+# plot PCA results
+pdf(file=paste0(fig.dir,"/CR_PCA_grabfl.pdf"), width = 11, height = 8.5)
+ggbiplot(CR.grab.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl$hydrolog),
+         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE) +
+  scale_colour_manual(values=cbPalette[1:6], name="logstatus") +
+  theme(legend.direction = 'vertical', legend.position = 'right') 
+dev.off()
+
+# show relative contribution of each variable to the first 5 components of PCA
+grabfl.pca <- PCA(CR.grab.fl[,1:19], graph = TRUE)
+head(grabfl.pca$var$contrib)
+PCA.contrib <- data.frame(grabfl.pca$var$contrib)
+# sort variables by incresing contribution across the first 5 component
+wq.sortvar <- PCA.contrib[order(-PCA.contrib$Dim.1,-PCA.contrib$Dim.2,-PCA.contrib$Dim.3,-PCA.contrib$Dim.4,-PCA.contrib$Dim.5), ]
+write.csv(wq.sortvar, file = paste(fig.dir, "/PCAcontributions_flgrab.csv", sep ="/")) #write contributions to a csv file that are sorted
+# scree plot
+fviz_screeplot(grabfl.pca, ncp=6) # first 6 components
+# plot contribution to first 2 PCA components
+fviz_contrib(grabfl.pca, choice = "var", axes = 1)
+fviz_contrib(grabfl.pca, choice = "var", axes = 2)
+
+## PCA Only on fluorescence and absorbance parameters
+CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,28:29,49:52,83:84,86)])
+CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:13]), center = TRUE, scale. = TRUE, na.action=na.omit)
+summary(CR.grab.PCA)
+
+# plot PCA results
+pdf(file=paste0(fig.dir,"/CR_PCA_grabfl.pdf"), width = 11, height = 8.5)
+ggbiplot(CR.grab.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl$hydrolog),
+         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE) +
+  scale_colour_manual(values=cbPalette[1:6], name="logstatus") +
+  theme(legend.direction = 'vertical', legend.position = 'right') 
+dev.off()
+
+# show relative contribution of each variable to the first 5 components of PCA
+grabfl.pca <- PCA(CR.grab.fl[,1:13], graph = TRUE)
+head(grabfl.pca$var$contrib)
+PCA.contrib <- data.frame(grabfl.pca$var$contrib)
+# sort variables by incresing contribution across the first 5 component
+wq.sortvar <- PCA.contrib[order(-PCA.contrib$Dim.1,-PCA.contrib$Dim.2,-PCA.contrib$Dim.3,-PCA.contrib$Dim.4,-PCA.contrib$Dim.5), ]
+write.csv(wq.sortvar, file = paste(fig.dir, "/PCAcontributions_flgrab.csv", sep ="/")) #write contributions to a csv file that are sorted
+# scree plot
+fviz_screeplot(grabfl.pca, ncp=6) # first 6 components
+# plot contribution to first 2 PCA components
+fviz_contrib(grabfl.pca, choice = "var", axes = 1)
+fviz_contrib(grabfl.pca, choice = "var", axes = 2)
+
+
 ############################################################################################
 ##### CR Soil Characteristics
 # get 5 component PARAFAC fit - extracts and lysimeters
