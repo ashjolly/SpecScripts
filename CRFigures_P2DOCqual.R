@@ -12,7 +12,7 @@ library(pacman)
 p_load(lubridate,plyr,ggplot2,reshape2,car,grid,gridBase,gridExtra, taRifx,magrittr, ggpmisc,
        stringi,stringr,plyr,dplyr,tidyr,EcoHydRology,openair,reshape,lmomco, zoo, hydroTSM, rowr, 
        reshape2, pgirmess, nlme, chron, repmis, ggbiplot, FactoMineR, factoextra, stringr, rms, splines, gtable,
-       'gsubfn', 'abind', 'zoo', 'corrplot', 'gplots', "EEM", eeptools, MASS, Hmisc)
+       'gsubfn', 'abind', 'zoo', 'corrplot', 'gplots', "EEM", eeptools, MASS, Hmisc, nortest,broom)
 
 library('devtools')
 install_github("ggbiplot", "vqv")
@@ -68,7 +68,7 @@ attach(spectro.all)
 names(spectro.all)
 spectro.all$date <- as.POSIXct(strptime(spectro.all$date, format = "%y-%m-%d %H:%M", tz = "America/Los_Angeles"))
 
-##CHECK AS THE DATA FROM THE COMPILATION IS IN GMT!!!
+##CHECK AS THE DATA FROM THE COMPILATION IS IN GMT!!! Note that the compilation file should change the timezone to Pacific
 spectro.all <- data.frame(spectro.all)
 
 #### Discharge from stream
@@ -84,9 +84,10 @@ attr(discharge1$date, "tzone") <- "America/Los_Angeles"
 # read in discharge file from Mark
 #mark.discharge <- source_data("https://github.com/UBCecohydro/ecohydro.datasets/blob/master/Campbell.River/Q.WQ.July2016.RDS?raw=true")
 mark.discharge <- readRDS("/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Stream/CR_discharge/Q.WQ.July2016.RDS")
-mark.discharge$date <- as.POSIXct(strptime(mark.discharge$date, format = "%Y-%m-%d %H:%M"), tz = "America/Los_Angeles")
+mark.discharge$date <- as.POSIXct(strptime(mark.discharge$date, format = "%Y-%m-%d %H:%M"), tz = "GMT")
+# Date from initial discharge file from Mark in GMT
 #discharge.ave <- timeAverage(discharge, avg.time = "30 min", start.date = "2007-11-15", fill = TRUE)
-attr(mark.discharge$date, "tzone") <- "America/Los_Angeles"
+attr(mark.discharge$date, "tzone") <- "America/Los_Angeles" # change timezone to GMT
 discharge <- mark.discharge #rename the discharge from Mark
 
 # add column for pre/post harvest
@@ -220,7 +221,7 @@ CR.fl <- Reduce(function(x, y) merge(x, y, by = "sample", all=TRUE), list(CR.Fli
 # pad the sample ID to four digits
 CR.fl$sample <- paste0("CR", str_pad(sapply(strsplit(as.character(CR.fl$sample), "R"), "[", 2), 4, pad = "0"))
 
-# merge flruoescenc data with the anion data from the IC
+# merge fluorescence data with the anion data from the IC
 CR.grab <- merge(CR.fl, anions, by = "sample", all = TRUE)
 
 # for grab sample data, compile by sample ID, and ensure sample date/time correctly associated.
@@ -228,14 +229,15 @@ CR.grab <- merge(CR.fl, anions, by = "sample", all = TRUE)
 # get file with the sample ID and date
 sample.date <- read.csv("/Users/user/Dropbox/PhD Work/PhD Data/CR_Data/CR_Stream/CR_sampledate_grabsample/CR_discharge_sampledate.csv", header = TRUE)
 sample.date$sample <- paste0("CR", str_pad(sapply(strsplit(as.character(sample.date$Sample.ID), "R"), "[", 2), 4, pad = "0"))
-sample.date$date <- as.POSIXct(strptime(sample.date$Sample.Date, format = "%Y-%m-%d %H:%M", tz = "GMT"))
+sample.date$dateoriginal <- as.POSIXct(strptime(sample.date$Sample.Date, format = "%Y-%m-%d %H:%M", tz = "GMT"))
+sample.date$date <- sample.date$dateoriginal
 attr(sample.date$date, "tzone") <- "America/Los_Angeles" # change timezeon from GMT to PST
 
 # change the sample.date to 30 min
 #sample.date.ave <-  timeAverage(sample.date, avg.time = "30 min", start.date = "2007-11-14 12:30", fill = TRUE)
 #attr(sample.date.ave$date, "tzone") <- "America/Los_Angeles"
 sample.date$datenew = sample.date$date - 60*10
-sample.date$dateoriginal <- sample.date$date
+#sample.date$dateoriginal <- sample.date$date
 sample.date$date <- sample.date$datenew
 
 # merge with discharge
@@ -250,7 +252,12 @@ sample.date.QaveFALSE <- merge(sample.date, mark.discharge, by = "date", all = F
 discharge.true <- sample.date.QaveFALSE
 # Merge into the anion and fluorescence data
 CR.grab <- merge(CR.grab, discharge.true, by = "sample", all = TRUE)
-CR.grab$date <- as.POSIXct(strptime(CR.grab$Sample.Date.y, format = "%Y-%m-%d %H:%M", tz = "America/Los_Angeles"))
+CR.grab$date <- as.POSIXct(strptime(CR.grab$date, format = "%Y-%m-%d %H:%M", tz = "America/Los_Angeles"))
+
+# add in absorbance parameters from the high frequency data - TOO ADD IN LATER!!
+#abs.grab <- abs.all[,c(2:4, 10:14)]
+#sample.date.abs.grab <- merge(sample.date, abs.grab, by = "date", all = TRUE)
+#CR.grab1 <- merge(CR.grab, , by = "date", all = FALSE)
 
 # Add in the pre/post logging
 CR.grab <- logstatus.f(CR.grab)
@@ -413,7 +420,7 @@ contour.plots(eems = as.matrix(EEMplot), Title = samplename, ex = explot, em = e
               zmax = zmax, zmin = 0, numcont = numcont)  
 dev.off()
 
-############################################# 
+############################################# ############################################# ############################################# 
 # Figure 3 - Diurnal and seasonal changes
 # Figure 3A - Possibility of diurnal changes
 # Timeseries of abs within dry summer months
@@ -616,7 +623,7 @@ write.csv(corr.matrix, paste0(fig.dir, "/CRabsind_corr.csv"))
 # Figure Correlation Matrix - Water Quality variables and others (discharge, climate)
 # clustering as per https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html
 # order="hclust", addrect=2) for clustering 
-CR.grab.fl <- as.data.frame(na.omit(CR.grab[,c(2:12,15:29, 44:47, 63:65,68:70,74:78, 81, 58)]))
+CR.grab.fl <- as.data.frame(na.omit(CR.grab[,c(2:12,15:29, 49:52, 63:65,68:70,74:78, 81, 58)]))
 corr.matrix <- cor(CR.grab.fl[,c(1:2,6:10,12:31,34:43)]) # correlation matric between variables
 # plot the correlation matrix of the spectral parameters
 pdf(file=paste0(fig.dir,"/CR_flindicies_correlations.pdf"), width = 11, height = 8.5)
@@ -636,7 +643,18 @@ dev.off()
 write.csv(corr.matrix, paste0(fig.dir, ("/CRcorrmatrix_abs.csv"))) #write correlation matrix
 
 # do correlation matrix for the absorbance and fluorescence parameters together along with DOC and Q (baseflow, quickflow)
-# make sure that the absorbance parameters 
+# Absorbance parameters missing for < 2009.... do the best you can ;)
+abs.grab <- abs.all[,c(2:4, 10:14)]
+sample.date.abs.grab <- merge(sample.date, abs.grab, by = "date", all = TRUE)
+CR.grab1 <- merge(CR.grab, abs.grab, by = "date", all = FALSE)
+# do correlation on existing data
+CR.absfl.cor <- as.matrix(CR.grab1[,c(3:4, 8:12, 16:30, 45:48, 59, 60, 64, 68:70,74:78, 90:94, 96)])
+corr.matrix <- cor(CR.absfl.cor) # correlation matric between variables
+# plot the correlation matrix of the spectral parameters
+pdf(file=paste0(fig.dir,"/CR_abs_correlations.pdf"), width = 11, height = 8.5)
+corrplot(na.omit(corr.matrix), method = "circle", order="hclust", addrect=2) #plot matrix
+dev.off()
+write.csv(corr.matrix, paste0(fig.dir, ("/CRcorrmatrix_abs.csv"))) #write correlation matrix
 
 # Linear relationships between DOC; e2e3, e4e6, SUVA, Slope Ratio - linear model - future work?
 
@@ -647,6 +665,58 @@ write.csv(corr.matrix, paste0(fig.dir, ("/CRcorrmatrix_abs.csv"))) #write correl
 # Boxplot of flow weighted means for the pre/post period per month for different parameters
 # do anova test on each of the pairs?
 # ANOVA/Box plots on pre/post for significant changes
+# Stream qualities:
+Q.box <- ggplot(abs.Q, aes(x=month, y=Q.L.s, fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Q - by month')) +
+  ylab(expression('Q (L/s)')) +
+  xlab(expression('Month')) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,200))
+EC.box <- ggplot(abs.Q, aes(x=month, y=EC, fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('EC - by month')) +
+  ylab(expression('EC')) +
+  xlab(expression('Month')) #+
+  #coord_cartesian(xlim = c(1,12), ylim=c(0,2.5))
+pH.box <- ggplot(abs.Q, aes(x=month, y=pH, fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('pH - by month')) +
+  ylab(expression('pH')) +
+  xlab(expression('Month')) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,10))
+Cl.box <- ggplot(subset(CR.grab, Cl_mgL >0), aes(x=month, y=Cl_mgL, fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('Cl')) +
+  ylab(expression('Cl (mg/L)')) +
+  xlab(expression('Month')) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,4))
+SO4.box <- ggplot(subset(CR.grab, SO4_S_mgL >0), aes(x=month, y=SO4_S_mgL, fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('SO4')) +
+  ylab(expression('SO4 (mg/L)')) +
+  xlab(expression('Month')) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,1.5))
+#DOC 
+DOC.box <- ggplot(subset(abs.Q, abs.Q$DOCcorr >= 1), aes(x=month, y=DOCcorr, fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('[DOC]')) +
+  ylab(expression('[DOC]')) +
+  xlab(expression('Month')) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,15)) 
+# abs254
+abs254.box <- ggplot(abs.Q, aes(x=month, y=abs(abs254), fill=logstatus)) + 
+  geom_boxplot(outlier.shape = NA)  +          #remove extreme values
+  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  ggtitle(expression('abs254')) +
+  ylab(expression('abs254')) +
+  xlab(expression('Month')) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,40)) 
 # SUVA
 SUVA.box <- ggplot(abs.Q, aes(x=month, y=SUVA, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
@@ -662,6 +732,7 @@ SR.box <- ggplot(abs.Q, aes(x=month, y=SlopeRatio, fill=logstatus)) +
   ylab(expression('Slope Ratio')) +
   xlab(expression('Month')) +
   coord_cartesian(xlim = c(1,12), ylim=c(0,2.5))
+# DOC Flruoescence
 FI.box <- ggplot(CR.grab, aes(x=month, y=FI, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
@@ -682,20 +753,20 @@ FrI.box <- ggplot(subset(CR.grab, FrI >0), aes(x=month, y=FrI, fill=logstatus)) 
   ylab(expression('FrI (A.U)')) +
   xlab(expression('Month')) +
   coord_cartesian(xlim = c(1,12), ylim=c(0,1.5))
-Cl.box <- ggplot(subset(CR.grab, Cl_mgL >0), aes(x=month, y=Cl_mgL, fill=logstatus)) + 
+CMC1.box <- ggplot(subset(CR.grab, perprotein >0), aes(x=month, y=C1.x, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('Cl')) +
-  ylab(expression('Cl (mg/L)')) +
+  ggtitle(expression('CM C1')) +
+  ylab(expression('CM C1 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,4))
-SO4.box <- ggplot(subset(CR.grab, SO4_S_mgL >0), aes(x=month, y=SO4_S_mgL, fill=logstatus)) + 
+  coord_cartesian(xlim = c(1,12), ylim=c(5,12.5))
+CMC12.box <- ggplot(subset(CR.grab, perprotein >0), aes(x=month, y=C12.x, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('SO4')) +
-  ylab(expression('SO4 (mg/L)')) +
+  ggtitle(expression('CM C12')) +
+  ylab(expression('CM C12 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,1.5))
+  coord_cartesian(xlim = c(1,12), ylim=c(3,12.5))
 Redox.box <- ggplot(subset(CR.grab, redox >0), aes(x=month, y=redox, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
@@ -739,38 +810,202 @@ C4.box <- ggplot(subset(CR.grab, C4_per >0), aes(x=month, y=C4_per, fill=logstat
   xlab(expression('Month')) +
   coord_cartesian(xlim = c(1,12), ylim=c(25,35))
 ###### Save as PDF files
-pdf(file=paste0(fig.dir,"/CRFigures_Boxind.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(SUVA.box, SR.box, FI.box, FrI.box, HIX.box, Cl.box, SO4.box, ncol = 2)
+# Stream characteristics
+pdf(file=paste0(fig.dir,"/CRFigures_Boxstream.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(Q.box,EC.box,Cl.box, SO4.box, ncol = 2)
 dev.off()
-# save fluorescence parameters in another
-pdf(file=paste0(fig.dir,"/CRFigures_Boxfluorescence.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(Redox.box, PerProtein.box, C1.box, C2.box, C3.box, C4.box, ncol = 2)
+# Indicies
+pdf(file=paste0(fig.dir,"/CRFigures_Box_Indicies.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(DOC.box,abs254.box,SUVA.box, SR.box, FI.box, FrI.box, HIX.box, ncol = 2)
 dev.off()
-##################################
+# PARAFAC fits
+pdf(file=paste0(fig.dir,"/CRFigures_Box_PARAFAC.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(CMC1.box, CMC12.box,Redox.box, PerProtein.box, C1.box, C2.box, C3.box, C4.box, ncol = 2)
+dev.off()
+
+########################################################################################################################################
+# Get the statistics for the pre/post mean, etc.
+# stats according to all
+stats.all <- ddply(abs.Q, c("month"), summarise,
+                   logstatus <- NaN,
+                   mean.DOC = mean(DOCcorr, na.rm = TRUE), sd.DOC=sd(DOCcorr, na.rm = TRUE), max.DOC = max(DOCcorr, na.rm=TRUE), min.DOC = min(DOCcorr, na.rm=TRUE), 
+                   mean.SUVA = mean(SUVA, na.rm = TRUE), sd.SUVA=sd(SUVA, na.rm = TRUE), max.SUVA = max(SUVA, na.rm=TRUE), min.SUVA = min(SUVA, na.rm=TRUE), 
+                   mean.e2e3 = mean(e2e3, na.rm = TRUE), sd.e2e3=sd(e2e3, na.rm = TRUE), max.e2e3 = max(e2e3, na.rm=TRUE), min.e2e3 = min(e2e3, na.rm=TRUE), 
+                   mean.e4e6 = mean(e4e6, na.rm = TRUE), sd.e4e6=sd(e4e6, na.rm = TRUE), max.e4e6 = max(e4e6, na.rm=TRUE), min.e4e6 = min(e4e6, na.rm=TRUE), 
+                   mean.SlopeRatio = mean(SlopeRatio, na.rm = TRUE), sd.SlopeRatio=sd(SlopeRatio, na.rm = TRUE), max.SlopeRatio = max(SlopeRatio, na.rm=TRUE), min.SlopeRatio = min(SlopeRatio, na.rm=TRUE), 
+                   mean.NO3 = mean(NO3, na.rm = TRUE), sd.NO3=sd(NO3, na.rm = TRUE), max.NO3 = max(NO3, na.rm=TRUE), min.NO3 = min(NO3, na.rm=TRUE), 
+                   mean.abs254 = mean(abs254, na.rm = TRUE), sd.abs254=sd(abs254, na.rm = TRUE), max.abs254 = max(abs254, na.rm=TRUE), min.abs254 = min(abs254, na.rm=TRUE), 
+                   mean.EC = mean(EC, na.rm = TRUE), sd.EC=sd(EC, na.rm = TRUE), max.EC = max(EC, na.rm=TRUE), min.EC = min(EC, na.rm=TRUE), 
+                   mean.DO = mean(DO, na.rm = TRUE), sd.DO=sd(DO, na.rm = TRUE), max.DO = max(DO, na.rm=TRUE), min.DO = min(DO, na.rm=TRUE), 
+                   mean.ORP = mean(ORP, na.rm = TRUE), sd.ORP=sd(ORP, na.rm = TRUE), max.ORP = max(ORP, na.rm=TRUE), min.ORP = min(ORP, na.rm=TRUE), 
+                   mean.pH = mean(pH, na.rm = TRUE), sd.pH=sd(pH, na.rm = TRUE), max.pH = max(pH, na.rm=TRUE), min.pH = min(pH, na.rm=TRUE), 
+                   mean.Precip = mean(Precip, na.rm = TRUE), sd.Precip=sd(Precip, na.rm = TRUE), max.Precip = max(Precip, na.rm=TRUE), min.Precip = min(Precip, na.rm=TRUE), 
+                   mean.Q.L.s = mean(Q.L.s, na.rm = TRUE), sd.Precip=sd(Q.L.s, na.rm = TRUE), max.Precip = max(Q.L.s, na.rm=TRUE), min.Precip = min(Q.L.s, na.rm=TRUE)
+)
+# stats according to pre/post logging status
+stats.logging <- ddply(abs.Q, c("month", "logstatus"), summarise,
+                       mean.DOC = mean(DOCcorr, na.rm = TRUE), sd.DOC=sd(DOCcorr, na.rm = TRUE), max.DOC = max(DOCcorr, na.rm=TRUE), min.DOC = min(DOCcorr, na.rm=TRUE), 
+                       mean.SUVA = mean(SUVA, na.rm = TRUE), sd.SUVA=sd(SUVA, na.rm = TRUE), max.SUVA = max(SUVA, na.rm=TRUE), min.SUVA = min(SUVA, na.rm=TRUE), 
+                       mean.e2e3 = mean(e2e3, na.rm = TRUE), sd.e2e3=sd(e2e3, na.rm = TRUE), max.e2e3 = max(e2e3, na.rm=TRUE), min.e2e3 = min(e2e3, na.rm=TRUE), 
+                       mean.e4e6 = mean(e4e6, na.rm = TRUE), sd.e4e6=sd(e4e6, na.rm = TRUE), max.e4e6 = max(e4e6, na.rm=TRUE), min.e4e6 = min(e4e6, na.rm=TRUE), 
+                       mean.SlopeRatio = mean(SlopeRatio, na.rm = TRUE), sd.SlopeRatio=sd(SlopeRatio, na.rm = TRUE), max.SlopeRatio = max(SlopeRatio, na.rm=TRUE), min.SlopeRatio = min(SlopeRatio, na.rm=TRUE), 
+                       mean.NO3 = mean(NO3, na.rm = TRUE), sd.NO3=sd(NO3, na.rm = TRUE), max.NO3 = max(NO3, na.rm=TRUE), min.NO3 = min(NO3, na.rm=TRUE), 
+                       mean.abs254 = mean(abs254, na.rm = TRUE), sd.abs254=sd(abs254, na.rm = TRUE), max.abs254 = max(abs254, na.rm=TRUE), min.abs254 = min(abs254, na.rm=TRUE), 
+                       mean.EC = mean(EC, na.rm = TRUE), sd.EC=sd(EC, na.rm = TRUE), max.EC = max(EC, na.rm=TRUE), min.EC = min(EC, na.rm=TRUE), 
+                       mean.DO = mean(DO, na.rm = TRUE), sd.DO=sd(DO, na.rm = TRUE), max.DO = max(DO, na.rm=TRUE), min.DO = min(DO, na.rm=TRUE), 
+                       mean.ORP = mean(ORP, na.rm = TRUE), sd.ORP=sd(ORP, na.rm = TRUE), max.ORP = max(ORP, na.rm=TRUE), min.ORP = min(ORP, na.rm=TRUE), 
+                       mean.pH = mean(pH, na.rm = TRUE), sd.pH=sd(pH, na.rm = TRUE), max.pH = max(pH, na.rm=TRUE), min.pH = min(pH, na.rm=TRUE), 
+                       mean.Precip = mean(Precip, na.rm = TRUE), sd.Precip=sd(Precip, na.rm = TRUE), max.Precip = max(Precip, na.rm=TRUE), min.Precip = min(Precip, na.rm=TRUE), 
+                       mean.Q.L.s = mean(Q.L.s, na.rm = TRUE), sd.Precip=sd(Q.L.s, na.rm = TRUE), max.Precip = max(Q.L.s, na.rm=TRUE), min.Precip = min(Q.L.s, na.rm=TRUE)
+)
+stats.prepost <- rbind(stats.all, stats.logging) # bind together
+write.csv(stats.prepost, file = paste0(fig.dir, ("/CRprepost_stats.csv")))
+# Stats for in situ measurements - pre vs post harvest
+stats.all.log <- ddply(abs.Q, c("logstatus"), summarise,
+                       mean.DOC = mean(DOCcorr, na.rm = TRUE), sd.DOC=sd(DOCcorr, na.rm = TRUE), max.DOC = max(DOCcorr, na.rm=TRUE), min.DOC = min(DOCcorr, na.rm=TRUE), 
+                       mean.SUVA = mean(SUVA, na.rm = TRUE), sd.SUVA=sd(SUVA, na.rm = TRUE), max.SUVA = max(SUVA, na.rm=TRUE), min.SUVA = min(SUVA, na.rm=TRUE), 
+                       mean.e2e3 = mean(e2e3, na.rm = TRUE), sd.e2e3=sd(e2e3, na.rm = TRUE), max.e2e3 = max(e2e3, na.rm=TRUE), min.e2e3 = min(e2e3, na.rm=TRUE), 
+                       mean.e4e6 = mean(e4e6, na.rm = TRUE), sd.e4e6=sd(e4e6, na.rm = TRUE), max.e4e6 = max(e4e6, na.rm=TRUE), min.e4e6 = min(e4e6, na.rm=TRUE), 
+                       mean.SlopeRatio = mean(SlopeRatio, na.rm = TRUE), sd.SlopeRatio=sd(SlopeRatio, na.rm = TRUE), max.SlopeRatio = max(SlopeRatio, na.rm=TRUE), min.SlopeRatio = min(SlopeRatio, na.rm=TRUE), 
+                       mean.NO3 = mean(NO3, na.rm = TRUE), sd.NO3=sd(NO3, na.rm = TRUE), max.NO3 = max(NO3, na.rm=TRUE), min.NO3 = min(NO3, na.rm=TRUE), 
+                       mean.abs254 = mean(abs254, na.rm = TRUE), sd.abs254=sd(abs254, na.rm = TRUE), max.abs254 = max(abs254, na.rm=TRUE), min.abs254 = min(abs254, na.rm=TRUE), 
+                       mean.EC = mean(EC, na.rm = TRUE), sd.EC=sd(EC, na.rm = TRUE), max.EC = max(EC, na.rm=TRUE), min.EC = min(EC, na.rm=TRUE), 
+                       mean.DO = mean(DO, na.rm = TRUE), sd.DO=sd(DO, na.rm = TRUE), max.DO = max(DO, na.rm=TRUE), min.DO = min(DO, na.rm=TRUE), 
+                       mean.ORP = mean(ORP, na.rm = TRUE), sd.ORP=sd(ORP, na.rm = TRUE), max.ORP = max(ORP, na.rm=TRUE), min.ORP = min(ORP, na.rm=TRUE), 
+                       mean.pH = mean(pH, na.rm = TRUE), sd.pH=sd(pH, na.rm = TRUE), max.pH = max(pH, na.rm=TRUE), min.pH = min(pH, na.rm=TRUE), 
+                       mean.Precip = mean(Precip, na.rm = TRUE), sd.Precip=sd(Precip, na.rm = TRUE), max.Precip = max(Precip, na.rm=TRUE), min.Precip = min(Precip, na.rm=TRUE), 
+                       mean.Q.L.s = mean(Q.L.s, na.rm = TRUE), sd.Precip=sd(Q.L.s, na.rm = TRUE), max.Precip = max(Q.L.s, na.rm=TRUE), min.Precip = min(Q.L.s, na.rm=TRUE)
+)
+
+# Do stats for grab samples
+stats.logging.grab <- ddply(CR.grab, c("month", "logstatus"), summarise,
+                            mean.FI = mean(FI, na.rm = TRUE), sd.FI=sd(FI, na.rm = TRUE), max.FI = max(FI, na.rm=TRUE), min.FI = min(FI, na.rm=TRUE), 
+                            mean.HIX = mean(HIX_ohno_area, na.rm = TRUE), sd.HIX=sd(HIX_ohno_area, na.rm = TRUE), max.HIX = max(HIX_ohno_area, na.rm=TRUE), min.HIX = min(HIX_ohno_area, na.rm=TRUE), 
+                            mean.FrI = mean(FrI, na.rm = TRUE), sd.FrI=sd(FrI, na.rm = TRUE), max.FrI = max(FrI, na.rm=TRUE), min.FrI = min(FrI, na.rm=TRUE), 
+                            mean.C1.x = mean(C1.x, na.rm = TRUE), sd.C1.x=sd(C1.x, na.rm = TRUE), max.C1.x = max(C1.x, na.rm=TRUE), min.C1.x = min(C1.x, na.rm=TRUE), 
+                            mean.C12.x = mean(C12.x, na.rm = TRUE), sd.C12.x=sd(C12.x, na.rm = TRUE), max.C12.x = max(C12.x, na.rm=TRUE), min.C12.x = min(C12.x, na.rm=TRUE), 
+                            mean.perprotein = mean(perprotein, na.rm = TRUE), sd.perprotein=sd(perprotein, na.rm = TRUE), max.perprotein = max(perprotein, na.rm=TRUE), min.perprotein = min(perprotein, na.rm=TRUE), 
+                            mean.redox = mean(redox, na.rm = TRUE), sd.redox=sd(redox, na.rm = TRUE), max.redox = max(redox, na.rm=TRUE), min.redox = min(redox, na.rm=TRUE), 
+                            mean.C1_per = mean(C1_per, na.rm = TRUE), sd.C1_per=sd(C1_per, na.rm = TRUE), max.C1_per = max(C1_per, na.rm=TRUE), min.C1_per = min(C1_per, na.rm=TRUE), 
+                            mean.C2_per = mean(C2_per, na.rm = TRUE), sd.C2_per=sd(C2_per, na.rm = TRUE), max.C2_per = max(C2_per, na.rm=TRUE), min.C2_per = min(C2_per, na.rm=TRUE), 
+                            mean.C3_per = mean(C3_per, na.rm = TRUE), sd.C3_per=sd(C3_per, na.rm = TRUE), max.C3_per = max(C3_per, na.rm=TRUE), min.C3_per = min(C3_per, na.rm=TRUE), 
+                            mean.C4_per = mean(C4_per, na.rm = TRUE), sd.C4_per=sd(C4_per, na.rm = TRUE), max.C4_per = max(C4_per, na.rm=TRUE), min.C4_per = min(C4_per, na.rm=TRUE)
+)   
+stats.logging.graball <- ddply(CR.grab, c("month"), summarise,
+                               logstatus <- NaN,
+                               mean.FI = mean(FI, na.rm = TRUE), sd.FI=sd(FI, na.rm = TRUE), max.FI = max(FI, na.rm=TRUE), min.FI = min(FI, na.rm=TRUE), 
+                               mean.HIX = mean(HIX_ohno_area, na.rm = TRUE), sd.HIX=sd(HIX_ohno_area, na.rm = TRUE), max.HIX = max(HIX_ohno_area, na.rm=TRUE), min.HIX = min(HIX_ohno_area, na.rm=TRUE), 
+                               mean.FrI = mean(FrI, na.rm = TRUE), sd.FrI=sd(FrI, na.rm = TRUE), max.FrI = max(FrI, na.rm=TRUE), min.FrI = min(FrI, na.rm=TRUE), 
+                               mean.C1.x = mean(C1.x, na.rm = TRUE), sd.C1.x=sd(C1.x, na.rm = TRUE), max.C1.x = max(C1.x, na.rm=TRUE), min.C1.x = min(C1.x, na.rm=TRUE), 
+                               mean.C12.x = mean(C12.x, na.rm = TRUE), sd.C12.x=sd(C12.x, na.rm = TRUE), max.C12.x = max(C12.x, na.rm=TRUE), min.C12.x = min(C12.x, na.rm=TRUE), 
+                               mean.perprotein = mean(perprotein, na.rm = TRUE), sd.perprotein=sd(perprotein, na.rm = TRUE), max.perprotein = max(perprotein, na.rm=TRUE), min.perprotein = min(perprotein, na.rm=TRUE), 
+                               mean.redox = mean(redox, na.rm = TRUE), sd.redox=sd(redox, na.rm = TRUE), max.redox = max(redox, na.rm=TRUE), min.redox = min(redox, na.rm=TRUE), 
+                               mean.C1_per = mean(C1_per, na.rm = TRUE), sd.C1_per=sd(C1_per, na.rm = TRUE), max.C1_per = max(C1_per, na.rm=TRUE), min.C1_per = min(C1_per, na.rm=TRUE), 
+                               mean.C2_per = mean(C2_per, na.rm = TRUE), sd.C2_per=sd(C2_per, na.rm = TRUE), max.C2_per = max(C2_per, na.rm=TRUE), min.C2_per = min(C2_per, na.rm=TRUE), 
+                               mean.C3_per = mean(C3_per, na.rm = TRUE), sd.C3_per=sd(C3_per, na.rm = TRUE), max.C3_per = max(C3_per, na.rm=TRUE), min.C3_per = min(C3_per, na.rm=TRUE), 
+                               mean.C4_per = mean(C4_per, na.rm = TRUE), sd.C4_per=sd(C4_per, na.rm = TRUE), max.C4_per = max(C4_per, na.rm=TRUE), min.C4_per = min(C4_per, na.rm=TRUE)
+) 
+colnames(stats.logging.graball)[2] <- "logstatus"
+stats.grab <- rbind(stats.logging.graball, stats.logging.grab) # bind together
+write.csv(stats.grab, file = paste0(fig.dir, ("/CRprepost_stats_grab.csv")))
+
+stats.logging.graball.logstatus <- ddply(CR.grab, c("logstatus"), summarise,
+                               mean.FI = mean(FI, na.rm = TRUE), sd.FI=sd(FI, na.rm = TRUE), max.FI = max(FI, na.rm=TRUE), min.FI = min(FI, na.rm=TRUE), 
+                               mean.HIX = mean(HIX_ohno_area, na.rm = TRUE), sd.HIX=sd(HIX_ohno_area, na.rm = TRUE), max.HIX = max(HIX_ohno_area, na.rm=TRUE), min.HIX = min(HIX_ohno_area, na.rm=TRUE), 
+                               mean.FrI = mean(FrI, na.rm = TRUE), sd.FrI=sd(FrI, na.rm = TRUE), max.FrI = max(FrI, na.rm=TRUE), min.FrI = min(FrI, na.rm=TRUE), 
+                               mean.C1.x = mean(C1.x, na.rm = TRUE), sd.C1.x=sd(C1.x, na.rm = TRUE), max.C1.x = max(C1.x, na.rm=TRUE), min.C1.x = min(C1.x, na.rm=TRUE), 
+                               mean.C12.x = mean(C12.x, na.rm = TRUE), sd.C12.x=sd(C12.x, na.rm = TRUE), max.C12.x = max(C12.x, na.rm=TRUE), min.C12.x = min(C12.x, na.rm=TRUE), 
+                               mean.perprotein = mean(perprotein, na.rm = TRUE), sd.perprotein=sd(perprotein, na.rm = TRUE), max.perprotein = max(perprotein, na.rm=TRUE), min.perprotein = min(perprotein, na.rm=TRUE), 
+                               mean.redox = mean(redox, na.rm = TRUE), sd.redox=sd(redox, na.rm = TRUE), max.redox = max(redox, na.rm=TRUE), min.redox = min(redox, na.rm=TRUE), 
+                               mean.C1_per = mean(C1_per, na.rm = TRUE), sd.C1_per=sd(C1_per, na.rm = TRUE), max.C1_per = max(C1_per, na.rm=TRUE), min.C1_per = min(C1_per, na.rm=TRUE), 
+                               mean.C2_per = mean(C2_per, na.rm = TRUE), sd.C2_per=sd(C2_per, na.rm = TRUE), max.C2_per = max(C2_per, na.rm=TRUE), min.C2_per = min(C2_per, na.rm=TRUE), 
+                               mean.C3_per = mean(C3_per, na.rm = TRUE), sd.C3_per=sd(C3_per, na.rm = TRUE), max.C3_per = max(C3_per, na.rm=TRUE), min.C3_per = min(C3_per, na.rm=TRUE), 
+                               mean.C4_per = mean(C4_per, na.rm = TRUE), sd.C4_per=sd(C4_per, na.rm = TRUE), max.C4_per = max(C4_per, na.rm=TRUE), min.C4_per = min(C4_per, na.rm=TRUE)
+) 
+stats.bylog <- cbind(stats.all.log, stats.logging.graball.logstatus) # bind together the stats for the pre vs post
+write.csv(stats.bylog, file = paste0(fig.dir, ("/CR_stats_prevpostall.csv")))
+
+#######################################
 ## Test for significant differences
 # ANOVA on pre/post by month
-# test for normality
+# Investigate significant differences between pre/post
+# TEst for normality
+# https://cran.r-project.org/web/packages/normtest/normtest.pdf
+# Most non-normal!!
+qqnorm(log(abs.Q$DOCcorr));qqline(log(abs.Q$DOCcorr), col = 2)
+qqnorm(abs.Q$abs254);qqline(abs.Q$abs254, col = 2)
+qqnorm(abs.Q$SlopeRatio);qqline(abs.Q$SlopeRatio, col = 2)
+pearson.test(abs.Q$DOCcorr)
+pearson.test(abs.Q$abs254)
+pearson.test(CR.grab$C1_per)
+pearson.test(CR.grab$C3_per)
+###############
+# Test for significant differences
+# ANOVA
+DOC.lm.jan <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "01")))
+DOC.lm.feb <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "02")))
+DOC.lm.march <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "03")))
+DOC.lm.april <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "04")))
+DOC.lm.may <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "05")))
+DOC.lm.june <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "06")))
+DOC.lm.july <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "07")))
+DOC.lm.aug <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "08")))
+DOC.lm.sept <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "09")))
+DOC.lm.oct <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "10")))
+DOC.lm.nov <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "11")))
+DOC.lm.dec <- anova(lm(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "12")))
+# T-testing DOC - all significantly different
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "01"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "02"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "03"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "04"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "05"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "06"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "07"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "08"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "09"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "10"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "11"))
+t.test(DOCcorr~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "12"))
+# T-testing SlopeRatio - all significantly different
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "01"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "02"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "03"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "04"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "05"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "06"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "07"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "08"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "09"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "10"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "11"))
+t.test(SlopeRatio~logstatus, data = subset(abs.Q, format.Date(abs.Q$date, "%m") == "12"))
 
-# First, test whether data is normal or not.
-## Have a look at the densities - SUVA
-plot(density(abs.Q$SUVA, na.rm = TRUE))
-## Perform the test - too many observations
-#shapiro.test(abs.Q$SUVA)
+# use Kruskal-Wallis test - test for non-identitcal populations within non-normal data
+# For all data by pre/post
+DOC.kwt <- tidy(kruskal.test(DOCcorr ~ as.factor(logstatus), data = abs.Q))
+abs254.kwt <- tidy(kruskal.test(abs254 ~ as.factor(logstatus), data = abs.Q))
+SUVA.kwt <- tidy(kruskal.test(SUVA ~ as.factor(logstatus), data = abs.Q))
+SR.kwt <- tidy(kruskal.test(SlopeRatio ~ as.factor(logstatus), data = abs.Q))
+# for grab samples
+FI.kwt <- tidy(kruskal.test(FI ~ as.factor(logstatus), data = CR.grab))
+HIX.kwt <- tidy(kruskal.test(HIX_ohno_area ~ as.factor(logstatus), data = CR.grab))
+FrI.kwt <- tidy(kruskal.test(FrI ~ as.factor(logstatus), data = CR.grab))
+CMC1.kwt <- tidy(kruskal.test(C1.x ~ as.factor(logstatus), data = CR.grab))
+CMC12.kwt <- tidy(kruskal.test(C12.x ~ as.factor(logstatus), data = CR.grab))
+perprotein.kwt <- tidy(kruskal.test(perprotein ~ as.factor(logstatus), data = CR.grab))
+redox.kwt <- tidy(kruskal.test(redox ~ as.factor(logstatus), data = CR.grab))
+C1per.kwt <- tidy(kruskal.test(C1_per ~ as.factor(logstatus), data = CR.grab))
+C2per.kwt <- tidy(kruskal.test(C2_per ~ as.factor(logstatus), data = CR.grab))
+C3per.kwt <- tidy(kruskal.test(C3_per ~ as.factor(logstatus), data = CR.grab))
+C4per.kwt <- tidy(kruskal.test(C4_per ~ as.factor(logstatus), data = CR.grab))
+# save the chi value and p value for each
+all.kwt <- rbind(DOC.kwt, abs254.kwt, SUVA.kwt, SR.kwt, FI.kwt, HIX.kwt,FrI.kwt,CMC1.kwt,CMC12.kwt,perprotein.kwt,redox.kwt,
+                 C1per.kwt,C2per.kwt,C3per.kwt,C4per.kwt)
+all.kwt$type <- c("DOC", "abs254","SUVA","SR","FI","HIX","FrI","CMC1","CMC12","perprotein","redox","C1per","C2per","C3per","C4per")
+write.csv(all.kwt, file = paste0(fig.dir, ("/CR_stats_kwtprepost.csv")))
 
-## Plot using a qqplot - SUVA
-qqnorm(abs.Q$SUVA);qqline(abs.Q$SUVA, col = 2)
-# abs254 - not in the abs.Q data!! FUUCCCKKKK
-qqnorm(abs.Q$SR);qqline(abs.Q$SR, col = 2)
-# 
-
-#
-
-kruskal.test(jan.DOC.sub[,c(8,10,12)]) 
-library(dunn.test)
-dunn.test(jan.DOC.sub[,c(6,8,10,12)], g=DOCcorr, kw=TRUE)
-kruskal.test(feb.DOC.sub[,c(6,8,10,12)]) 
-kruskal.test(jan.DOC.sub[,c(4,6,8,10,12)]) 
-kruskalmc(jan.DOC.sub$date, jan.DOC.sub[,c(4,6,8,10,12)]) 
+### For data by month - pre/post
 
 #################################################################
 # C12 and C1 (%) from cory mkcknight - by pre/post, wet dry.
@@ -783,15 +1018,23 @@ library(digest)
 source_url("https://raw.github.com/low-decarie/FAAV/master/r/stat-ellipse.R")    
 # omit data where log status = NA
 CR.grab.elipse <- CR.grab[!is.na(CR.grab$logstatus),]
-C1C12.13comp <- qplot(data=CR.grab.elipse, x=C1.x, y=C12.x, colour=hydrolog, shape = hydrolog)+stat_ellipse() +
+C1C12.13comp <- qplot(data=CR.grab.elipse, x=C1.x, y=C12.x, colour=hydrolog, shape = logstatus)+stat_ellipse() +
   xlim(0, 20) + ylim(0,15) + 
   scale_color_manual(values=cbPalette[1:4]) +
   labs(x="CM C1 (%)", y="CM C12 (%)", title = "DOC Origin - Pre and Post Logging") +
-  coord_cartesian(xlim = c(5,15), ylim=c(0,15)) 
+  coord_cartesian(xlim = c(5,15), ylim=c(0,15)) +
+  theme(legend.position="none")
+
+# do for c1 versus c4 for custom PARAFAC fits
+C1C4.PAR <- qplot(data=CR.grab.elipse, x=C1_per, y=C4_per, colour=hydrolog, shape = logstatus)+stat_ellipse() +
+  xlim(20, 60) + ylim(20,35) + 
+  scale_color_manual(values=cbPalette[1:4]) +
+  labs(x="C1 (%)", y="C4 (%)", title = "DOC Origin - Pre and Post Logging") + 
+  theme(legend.justification=c(1,0), legend.position=c(1,0.6))
 
 # save figure
-pdf(file=paste0(fig.dir,"/CRFigures_13compC1vC13.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(C1C12.13comp, ncol = 1)
+pdf(file=paste0(fig.dir,"/CRFigures_PARAFACcom_comparison.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(C1C12.13comp,C1C4.PAR, ncol = 2)
 dev.off()
 #################################################################
 ## Conc/Q relationships: pre/post; wet/dry. Look for significant relationship
@@ -806,130 +1049,145 @@ DOC.cQ <- ggplot(abs.Q, aes(x=Q.mm.d, y=DOCcorr, color = hydrolog)) +
   coord_cartesian(xlim = c(0,13), ylim=c(0,10)) 
 
 ## Plot the raw data to see
-ggplot(abs.Q, aes(x=Q.mm.d, y=DOCcorr, color = hydrolog)) + 
-  geom_point() +    
-  geom_smooth(method="lm", se = FALSE) +
-  labs(x="Q.mm.day", y=expression(paste("[DOC] (mg/L)"))) +
-  labs(title="Soil Extracts - [DOC] versus Depth")
-# SUVA
-SUVA.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=SUVA, color = hydrolog)) +
-  geom_point() +
+DOC.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=DOCcorr, color = logstatus)) +
+  #geom_point() +
   scale_color_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
+  labs(x="Q (mm/day)", y=expression(paste("[DOC] (mg/L)"))) +
+  labs(title="cQ plot of Spectral DOC vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) +
+  coord_cartesian(xlim = c(0,13), ylim=c(0,10)) 
+# SUVA
+SUVA.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=SUVA, color = logstatus)) +
+  #geom_point() +
+  scale_color_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("SUVA"[254]))) +
   labs(title="cQ plot of Spectral SUVA vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) +
   coord_cartesian(xlim = c(0,13), ylim=c(3,4)) 
-# SR 
-SR.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=SlopeRatio, color = hydrolog)) +
-  geom_point() +
+#abs254
+abs254.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=abs254, color = logstatus)) +
+  #geom_point() +
   scale_color_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
+  labs(x="Q (mm/day)", y=expression(paste("abs"[254]))) +
+  labs(title="cQ plot of Spectral abs254 vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) +
+  coord_cartesian(xlim = c(0,13), ylim=c(0,20)) 
+
+# SR 
+SR.cQ <- ggplot(subset(abs.Q,Q.mm.d > 1), aes(x=Q.mm.d, y=SlopeRatio, color = logstatus)) +
+  #geom_point() +
+  scale_color_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:4], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("S"[R]))) +
   labs(title="cQ plot of Spectral Slope Ratio vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(0.9,1.5)) 
 ## Fluorescence - FI
-FI.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=FI, color = hydrolog)) +
+FI.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=FI, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("FI"))) +
   labs(title="cQ plot of Spectral FI vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(1.25,2)) 
 
-HIX.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=HIX_ohno_area, color = hydrolog)) +
+HIX.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=HIX_ohno_area, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("FI"))) +
   labs(title="cQ plot of Spectral HIX vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(-0.5,2)) 
 
-FrI.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=FrI, color = hydrolog)) +
+FrI.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=FrI, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("Freshness Index"))) +
   labs(title="cQ plot of Spectral FrI vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(0.1,1)) 
 # anions
-Cl.cQ <- ggplot(subset(CR.grab, Cl_mgL >0.1), aes(x=Q.mm.d, y=Cl_mgL, color = hydrolog)) +
+Cl.cQ <- ggplot(subset(CR.grab, Cl_mgL >0.1), aes(x=Q.mm.d, y=Cl_mgL, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("Cl (mg/L)"))) +
   labs(title="cQ plot of Spectral Cl vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(0,20)) 
 
-SO4.cQ <- ggplot(subset(CR.grab, SO4_S_mgL >0.1), aes(x=Q.mm.d, y=SO4_S_mgL, color = hydrolog)) +
+SO4.cQ <- ggplot(subset(CR.grab, SO4_S_mgL >0.1), aes(x=Q.mm.d, y=SO4_S_mgL, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("SO4 (mg/L)"))) +
   labs(title="cQ plot of Spectral SO4 vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(0,1)) 
 
 ## Flourescence - Redox
-Redox.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=redox, color = hydrolog)) +
+Redox.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=redox, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("Redox Index (A.U)"))) +
   labs(title="cQ plot of Spectral Redox Index (A.U) vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(0.25,0.4)) 
 
 ## Fluorescence - Per Protein
-PerProtein.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=perprotein, color = hydrolog)) +
+PerProtein.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=perprotein, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("Percent Protein (%)"))) +
   labs(title="cQ plot of Spectral Percent Protein (%) vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(0,10)) 
 ## Fluorescence - P1
-C1.cQ <- ggplot(subset(CR.grab, PARAFAC_C1 >0), aes(x=Q.mm.d, y=C1_per, color = hydrolog)) +
+C1.cQ <- ggplot(subset(CR.grab, PARAFAC_C1 >0), aes(x=Q.mm.d, y=C1_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("% C1"))) +
   labs(title="cQ plot of Spectral % C1 vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(20,45)) 
 
 ## Fluorescence - P2
-C2.cQ <- ggplot(subset(CR.grab, PARAFAC_C2 >0), aes(x=Q.mm.d, y=C2_per, color = hydrolog)) +
+C2.cQ <- ggplot(subset(CR.grab, PARAFAC_C2 >0), aes(x=Q.mm.d, y=C2_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("C2 %"))) +
   labs(title="cQ plot of Spectral C2% vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(18,21)) 
 ## Fluorescence - P3
-C3.cQ <- ggplot(subset(CR.grab, PARAFAC_C3 >0), aes(x=Q.mm.d, y=C3_per, color = hydrolog)) +
+C3.cQ <- ggplot(subset(CR.grab, PARAFAC_C3 >0), aes(x=Q.mm.d, y=C3_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("C3%"))) +
   labs(title="cQ plot of Spectral C3% vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(15,24)) 
 
 ## Fluorescence - P4
-C4.cQ <- ggplot(subset(CR.grab, PARAFAC_C4 >0), aes(x=Q.mm.d, y=C4_per, color = hydrolog)) +
+C4.cQ <- ggplot(subset(CR.grab, PARAFAC_C4 >0), aes(x=Q.mm.d, y=C4_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
-  stat_smooth(method="lm",aes(fill = hydrolog)) + 
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
   labs(x="Q (mm/day)", y=expression(paste("C4%"))) +
   labs(title="cQ plot of Spectral C4% vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
@@ -938,6 +1196,7 @@ C4.cQ <- ggplot(subset(CR.grab, PARAFAC_C4 >0), aes(x=Q.mm.d, y=C4_per, color = 
 ## save all as a pdf together
 pdf(file=paste0(fig.dir,"/CRFigures_CQrel.pdf"), width = 8.5, height = 11) #save figure
 DOC.cQ 
+abs254.cQ
 SR.cQ 
 SUVA.cQ 
 FI.cQ 
@@ -1010,6 +1269,378 @@ CMC12.cQ <- ggplot(subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C12.x, co
 pdf(file=paste0(fig.dir,"/CRFigures_CQrel_select.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(DOC.cQ, C1.cQ, C4.cQ, CMC1.cQ, CMC12.cQ, ncol = 2)
 dev.off()
+
+########################################################################
+# Storm events - as per Inamdar, Shreeram, Shatrughan Singh, Sudarshan Dutta, Delphis Levia, Myron Mitchell, Durelle Scott, Harsh Bais, and Pat McHale. 2011. “Fluorescence Characteristics and Sources of Dissolved Organic Matter for Stream Water During Storm Events in a Forested Mid‐Atlantic Watershed.” Journal of Geophysical Research Biogeosciences 116 (G3): G03043. doi:10.1029/2011JG001735.
+########################################################################
+# Storm characteristics
+# Get storms and look at characteristics within the pre/post and wet/dry period.
+# First, get baseflow conditions - what is the baseflow values for different variables in pre/post period?
+# use august to determine baseflow for all parameters - mean, sd, max, min
+
+## find events by subsetting according to greater than the mean monthly Q
+jan.events <- subset(abs.Q, abs.Q$Q.L.s >= 70 &format.Date(abs.Q$date, "%m") =="01" & format.Date(abs.Q$date, "%Y") >="2009"& format.Date(abs.Q$date, "%Y") <"2015")
+feb.events <- subset(abs.Q, abs.Q$Q.L.s >= 70 & format.Date(abs.Q$date, "%m") =="02" &format.Date(abs.Q$date, "%Y") >="2009")
+march.events <- subset(abs.Q, abs.Q$Q.L.s >= 66& format.Date(abs.Q$date, "%m") =="03" &format.Date(abs.Q$date, "%Y") >="2009")
+april.events <- subset(abs.Q, abs.Q$Q.L.s >= 33& format.Date(abs.Q$date, "%m") =="04" &format.Date(abs.Q$date, "%Y") >="2009")
+may.events <- subset(abs.Q, abs.Q$Q.L.s >= 18& format.Date(abs.Q$date, "%m") =="05" & format.Date(abs.Q$date, "%Y") >="2009")
+june.events <- subset(abs.Q, abs.Q$Q.L.s >= 13& format.Date(abs.Q$date, "%m") =="06" &format.Date(abs.Q$date, "%Y") >="2009")
+july.events <- subset(abs.Q, abs.Q$Q.L.s >= 5& format.Date(abs.Q$date, "%m") =="07" &format.Date(abs.Q$date, "%Y") >="2009")
+aug.events <- subset(abs.Q, abs.Q$Q.L.s >= 1& format.Date(abs.Q$date, "%m") =="08" &format.Date(abs.Q$date, "%Y") >="2009")
+sept.events <- subset(abs.Q, abs.Q$Q.L.s >= 5& format.Date(abs.Q$date, "%m") =="09" &format.Date(abs.Q$date, "%Y") >="2009")
+oct.events <- subset(abs.Q, abs.Q$Q.L.s >= 30& format.Date(abs.Q$date, "%m") =="10" &format.Date(abs.Q$date, "%Y") >="2009")
+nov.events <- subset(abs.Q, abs.Q$Q.L.s >= 66& format.Date(abs.Q$date, "%m") =="11" &format.Date(abs.Q$date, "%Y") >="2009")
+dec.events <- subset(abs.Q, abs.Q$Q.L.s >= 66& format.Date(abs.Q$date, "%m") =="12" &format.Date(abs.Q$date, "%Y") >="2009")
+
+events <- rbind(jan.events, feb.events, march.events, april.events, may.events,
+                june.events, july.events, aug.events, sept.events, oct.events, nov.events, dec.events)
+post2009 <- subset(abs.Q, format.Date(abs.Q$date, "%Y") >="2009")
+events.Na <- merge(post2009[,1:2], events, by = "date", all = TRUE)
+
+### Take the events and calculate the flow weighted mean for various parameters f
+write.csv(events.Na, file = paste0(fig.dir, ("/CR_events.csv")))
+
+# use function to identify specific events - get mean, max, min and sd values for each event
+# Function contains the dates for events identified accordin to greater than the mean discharge for the month
+# CREventAnalysis_function.R
+event.stats <- event(data = abs.Q)
+# add in pre/post
+event.stats$date <- event.stats$start
+event.stats <- logstatus.f(event.stats)
+event.stats <- wetdry.f(event.stats)
+
+# for absorbance parameters
+# flow weighted mean for the event calculated within the function
+# Do barplots - DOC, abs254, SUVA, sloperatio with baseflow as a line
+DOC.event.plot <- ggplot(data=event.stats, aes(x=start, y=DWM_DOC, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - DOC (mg/L)") + # Set axis labels
+  ggtitle("Event DWM - DOC") +     # Set title
+  geom_hline(yintercept = 2.573189) + # add in baseflow - mean DOC for august (across all) 
+  theme_bw()
+
+abs254.event.plot <- ggplot(data=event.stats, aes(x=start, y=DWM_abs254, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - abs254") + # Set axis labels
+  ggtitle("Event DWM - abs254") +     # Set title
+  geom_hline(yintercept = 8.620300) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+SUVA.event.plot <- ggplot(data=event.stats, aes(x=start, y=DWM_SUVA, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - SUVA") + # Set axis labels
+  ggtitle("Event DWM - SUVA") +     # Set title
+  geom_hline(yintercept = 3.507934) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+SR.event.plot <- ggplot(data=event.stats, aes(x=start, y=DWM_SR, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - SR") + # Set axis labels
+  ggtitle("Event DWM - SR") +     # Set title
+  geom_hline(yintercept = 1.2656681) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+pH.event.plot <- ggplot(data=event.stats, aes(x=start, y=DWM_pH, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - pH") + # Set axis labels
+  ggtitle("Event DWM - pH") +     # Set title
+  geom_hline(yintercept = 7.087427) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+EC.event.plot <- ggplot(data=event.stats, aes(x=start, y=DWM_EC, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - EC") + # Set axis labels
+  ggtitle("Event DWM - EC") +     # Set title
+  geom_hline(yintercept = 67.47083) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+######### Do the same for the grab samples - CREventAnalysis_grab_function.R
+event.stats.grab <- event.grab(data = CR.grab)
+# add in pre/post
+event.stats.grab$date <- event.stats.grab$start
+event.stats.grab <- logstatus.f(event.stats.grab)
+event.stats.grab <- wetdry.f(event.stats.grab)
+
+# Plot flow weighted means
+FI.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_Fi, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - FI") + # Set axis labels
+  ggtitle("Event DWM - FI") +     # Set title
+  geom_hline(yintercept = 1.753496) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+HIX.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=abs(DWM_HIX), fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - HIX") + # Set axis labels
+  ggtitle("Event DWM - HIX") +     # Set title
+  geom_hline(yintercept = 0.4216092) + 
+  theme_bw()
+
+FrI.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_FrI, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - FrI") + # Set axis labels
+  ggtitle("Event DWM - FrI") +     # Set title
+  geom_hline(yintercept = 0.7292170) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+CMC1.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_CMC1, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - CMC1") + # Set axis labels
+  ggtitle("Event DWM - CMC1") +     # Set title
+  geom_hline(yintercept = 9.254430) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+CMC12.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_CMC12, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - CMC12") + # Set axis labels
+  ggtitle("Event DWM - CMC12") +     # Set title
+  geom_hline(yintercept = 8.770252) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+perprotein.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_perprotein, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - perprotein") + # Set axis labels
+  ggtitle("Event DWM - perprotein") +     # Set title
+  geom_hline(yintercept = 5.434303) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+redox.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_redox, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - redox") + # Set axis labels
+  ggtitle("Event DWM - redox") +     # Set title
+  geom_hline(yintercept = stats.logging.graball$mean.redox[8]) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+C1per.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_C1per, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - C1per") + # Set axis labels
+  ggtitle("Event DWM - C1per") +     # Set title
+  geom_hline(yintercept = stats.logging.graball$mean.C1_per[8]) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+C2per.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_C2per, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - C2per") + # Set axis labels
+  ggtitle("Event DWM - C2per") +     # Set title
+  geom_hline(yintercept = stats.logging.graball$mean.C2_per[8]) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+C3per.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_C3per, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - C3per") + # Set axis labels
+  ggtitle("Event DWM - C3per") +     # Set title
+  geom_hline(yintercept = stats.logging.graball$mean.C3_per[8]) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+C4per.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_C4per, fill = hydro)) +
+  geom_bar(stat="identity", position=position_dodge()) + 
+  scale_fill_manual(name="Hydro Period", values=cbPalette[1:2]) +
+  xlab("Event Time") + ylab("Discharge Weighten Mean - C4per") + # Set axis labels
+  ggtitle("Event DWM - C4per") +     # Set title
+  geom_hline(yintercept = stats.logging.graball$mean.C4_per[8]) + # add in baseflow - mean abs254 for august (across all) 
+  theme_bw()
+
+#### arrange the plots: high frequency in one, grab samples in another
+pdf(file=paste0(fig.dir,"/CRFigures_Event_highfrequ.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(DOC.event.plot, abs254.event.plot, SUVA.event.plot, SR.event.plot, pH.event.plot, EC.event.plot, ncol = 2)
+dev.off()
+
+# grab sampling
+pdf(file=paste0(fig.dir,"/CRFigures_Event_grab.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(FI.event.plot, HIX.event.plot, FrI.event.plot, CMC1.event.plot, CMC12.event.plot, 
+             perprotein.event.plot, redox.event.plot,C1per.event.plot, C2per.event.plot,C3per.event.plot,C4per.event.plot, ncol = 2)
+dev.off()
+
+##########
+# Timeseries plots of specific months to show event behavior
+# Look just at Oct for all years
+y.2010 <- subset(abs.Q, format(abs.Q$date, "%Y") == "2010")
+
+plot(y.2010$date, y.2010$Precip)
+ggplot(data=subset(abs.Q, format(abs.Q$date, "%Y") == "2011"), aes(x=date, y=Precip)) +
+  geom_bar(stat="identity")
+##### plots to look at data more closely
+# Look at the driest months for baseflow conditions
+post.2009 <- subset(abs.Q,format.Date(abs.Q$date, "%Y")>="2009")
+# July-Sept
+julyaugsept <- subset(post.2009, format.Date(post.2009$date, "%m") == "07" | format.Date(post.2009$date, "%m")=="08"| format.Date(post.2009$date, "%m")=="09")
+julyaugsept$day <-  julyaugsept$date
+year(julyaugsept$day) <- 0
+julyaug.Q <- ggplot(julyaugsept, aes(day, Q.L.s)) + 
+  geom_point(aes(colour=format.Date(julyaugsept$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("Q.L.s") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("")
+
+absQ.pre <- subset(abs.Q, format.Date(abs.Q$date, "%Y") >="2009" & abs.Q$forest =="Pre-logging")
+absQ.post <- subset(abs.Q, format.Date(abs.Q$date, "%Y")>="2009" & abs.Q$forest =="Post-logging")
+
+jan.pre <- subset(absQ.pre, format.Date(absQ.pre$date, "%m") == "01")
+jan.post <- subset(absQ.post, format.Date(absQ.post$date, "%m") == "01")
+
+jan.pre$day <-  jan.pre$date
+year(jan.pre$day) <- 0
+jan.post$day <-  jan.post$date
+year(jan.post$day) <- 0
+
+jan.pre.plot <- ggplot(jan.pre, aes(day, Q.L.s)) + 
+  geom_point(aes(colour=format.Date(jan.pre$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("Q.L.s") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Pre Q")
+
+jan.post.plot <- ggplot(jan.post, aes(day, Q.L.s)) + 
+  geom_point(aes(colour=format.Date(jan.post$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("Q.L.s") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Post Q")
+
+jan.pre.plot.precip <- ggplot(jan.pre, aes(day, Precip)) + 
+  geom_point(aes(colour=format.Date(jan.pre$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("Q.L.s") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Pre")
+
+jan.post.plot.precip <- ggplot(jan.post, aes(day, Precip)) + 
+  geom_point(aes(colour=format.Date(jan.post$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("Precip") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Post")
+
+# Do DOC - Jan
+jan.pre.plot.DOC <- ggplot(jan.pre, aes(day, DOCcorr)) + 
+  geom_point(aes(colour=format.Date(jan.pre$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("DOC") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Pre")
+
+jan.post.plot.DOC <- ggplot(jan.post, aes(day, DOCcorr)) + 
+  geom_point(aes(colour=format.Date(jan.post$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("DOC") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Post")
+# abs 254
+jan.pre.plot.abs254 <- ggplot(jan.pre, aes(day, abs254)) + 
+  geom_point(aes(colour=format.Date(jan.pre$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("abs254") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Pre")
+
+jan.post.plot.abs254 <- ggplot(jan.post, aes(day, abs254)) + 
+  geom_point(aes(colour=format.Date(jan.post$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("abs254") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Post")
+
+# SUVA
+jan.pre.plot.SUVA <- ggplot(jan.pre, aes(day, SUVA)) + 
+  geom_point(aes(colour=format.Date(jan.pre$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("SUVA") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Pre")
+
+jan.post.plot.SUVA <- ggplot(jan.post, aes(day, SUVA)) + 
+  geom_point(aes(colour=format.Date(jan.post$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("SUVA") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Post")
+
+# SR
+jan.pre.plot.SR<- ggplot(jan.pre, aes(day, SlopeRatio)) + 
+  geom_point(aes(colour=format.Date(jan.pre$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("SlopeRatio") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Pre")
+
+jan.post.plot.SR <- ggplot(jan.post, aes(day, SlopeRatio)) + 
+  geom_point(aes(colour=format.Date(jan.post$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("SlopeRatio") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("jan-Post")
+
+# Add in % protein, and % C1-4 from fluorescence
+grab.pre <- subset(CR.grab, format.Date(CR.grab$date, "%Y") >="2009" & CR.grab$logstatus =="pre")
+grab.post <- subset(CR.grab, format.Date(CR.grab$date, "%Y")>="2009" & CR.grab$logstatus =="post")
+
+jan.grab.pre <- subset(grab.pre, format.Date(grab.pre$date, "%m") == "01")
+jan.grab.post <- subset(grab.post, format.Date(grab.post$date, "%m") == "01")
+
+jan.grab.pre$day <-  jan.grab.pre$date
+year(jan.grab.pre$day) <- 0
+jan.grab.post$day <-  jan.grab.post$date
+year(jan.grab.post$day) <- 0
+
+Sub.jan.grab.pre <- melt(jan.grab.pre[,c(90, 28,49:52)], id = "day")
+Sub.jan.grab.post <- melt(jan.grab.post[,c(90, 28,49:52)], id = "day")
+
+pd <- position_dodge(.65)
+time.PARAFACPer.pre <- ggplot(Sub.jan.grab.pre, aes(day, value, colour = variable, shape = variable)) + 
+  geom_point(position = pd, size = 2) +
+  scale_color_manual(values=cbPalette[1:5], 
+                     name="PARAFAC Component",
+                     breaks=c("perprotein", "C1_per", "C2_per", "C3_per", "C4_per"),
+                     labels=c("%Protein", "C1", "C2", "C3", "C4")) +
+  xlab("Date") + ylab("PARAFAC Component %") + theme(legend.position="top")  +
+  ylim(0, 70) +
+  scale_shape_manual(values=c(20,17,18,3,4), 
+                     name="PARAFAC Component",
+                     breaks=c("perprotein", "C1_per", "C2_per", "C3_per", "C4_per"),
+                     labels=c("% Protein", "C1", "C2", "C3", "C4")) 
+
+time.PARAFACPer.post <- ggplot(Sub.jan.grab.post, aes(day, value, colour = variable, shape = variable)) + 
+  geom_point(position = pd, size = 2) +
+  scale_color_manual(values=cbPalette[1:5], 
+                     name="PARAFAC Component",
+                     breaks=c("perprotein", "C1_per", "C2_per", "C3_per", "C4_per"),
+                     labels=c("%Protein", "C1", "C2", "C3", "C4")) +
+  xlab("Date") + ylab("PARAFAC Component %") + theme(legend.position="top")  +
+  ylim(0, 70) +
+  scale_shape_manual(values=c(20,17,18,3,4), 
+                     name="PARAFAC Component",
+                     breaks=c("perprotein", "C1_per", "C2_per", "C3_per", "C4_per"),
+                     labels=c("% Protein", "C1", "C2", "C3", "C4")) 
+
+# Plot January for all - show the events for a wet month
+jan.events$day <-  jan.events$date
+year(jan.events$day) <- 0
+jan.plot <- ggplot(jan.events, aes(day, Q.L.s)) + 
+  geom_point(aes(colour=format.Date(jan.events$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("Q.L.s") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("")
+
+march <- subset(post.2009, format.Date(post.2009$date, "%m") == "03")
+march$day <-  march$date
+year(march$day) <- 0
+march.plot <- ggplot(march, aes(day, Q.L.s)) + 
+  geom_point(aes(colour=format.Date(march$date, "%Y")), size = 0.4) +
+  xlab("Date") + ylab("Q.L.s") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("")
+
+
+# Dry months precipitation
+ggplot(subset(julyaugsept, julyaugsept$DOCcorr >=1), aes(day, Precip)) + 
+  geom_bar(stat = "identity") +
+  xlab("Date") + ylab("Precipitation (mm)") + 
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  theme(legend.position="top") + theme() + ggtitle("")
 ############
 #DO linear models and save the coefficients (m,b, r2) in a table
 # DOC- Q
@@ -1024,6 +1655,8 @@ spectrolm.SUVA.pre <- c(summary(lm(as.numeric(abs.Q.pre$SUVA) ~ as.numeric(abs.Q
                        summary(lm(as.numeric(abs.Q.pre$SUVA) ~ as.numeric(abs.Q.pre$Q.mm.d)))$r.squared)
 spectrolm.SUVA.post <- c(summary(lm(as.numeric(abs.Q.post$SUVA) ~ log(as.numeric(abs.Q.post$Q.mm.d))))$coefficients[1:2], 
                         summary(lm(as.numeric(abs.Q.post$SUVA) ~ log(as.numeric(abs.Q.post$Q.mm.d))))$r.squared)
+###############
+
 
 ## linear model
 # Do linear models (glm) to look at relationships between DOC and various parameters, as well as hour, pre/post, wet/dry, month..
@@ -1065,14 +1698,16 @@ fviz_contrib(fl.FWM.pca, choice = "var", axes = 1)
 fviz_contrib(fl.FWM.pca, choice = "var", axes = 2)
 
 ############### Do PCA on non-flowweighted means - only fluorescence parameters
-CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,28:29,48:52,58,63,68:70,83:84,86)])
-CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:19]), center = TRUE, scale. = TRUE, na.action=na.omit)
+CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,28:29,48:52,58,63,68:70,81:84,86)])
+# omit outliers - 916 and 1419
+CR.grab.fl <- CR.grab.fl[!rownames(CR.grab.fl) %in% c(916,1419, 1071), ]
+CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:21]), center = TRUE, scale. = TRUE, na.action=na.omit)
 summary(CR.grab.PCA)
 
 # plot PCA results
 pdf(file=paste0(fig.dir,"/CR_PCA_grabfl.pdf"), width = 11, height = 8.5)
 ggbiplot(CR.grab.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl$hydrolog),
-         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE) +
+         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE, var.axes=FALSE) +
   scale_colour_manual(values=cbPalette[1:6], name="logstatus") +
   theme(legend.direction = 'vertical', legend.position = 'right') 
 dev.off()
@@ -1091,20 +1726,22 @@ fviz_contrib(grabfl.pca, choice = "var", axes = 1)
 fviz_contrib(grabfl.pca, choice = "var", axes = 2)
 
 ## PCA Only on fluorescence and absorbance parameters
-CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,28:29,49:52,83:84,86)])
-CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:13]), center = TRUE, scale. = TRUE, na.action=na.omit)
+CR.grab.fl <- na.omit(CR.grab[,c(2,3,7:11,15:29,49:52,81:84,86)])
+# omit the outliers - 998, 1001, 1000, 1002, 916
+CR.grab.fl <- CR.grab.fl[!rownames(CR.grab.fl) %in% c(998,1001, 1000, 1002, 916, 1419, 1071, 1380), ]
+CR.grab.PCA <- prcomp(na.omit(CR.grab.fl[,1:28]), center = TRUE, scale. = TRUE, na.action=na.omit)
 summary(CR.grab.PCA)
 
 # plot PCA results
 pdf(file=paste0(fig.dir,"/CR_PCA_grabfl.pdf"), width = 11, height = 8.5)
 ggbiplot(CR.grab.PCA, obs.scale = 1, var.scale = 1, groups = na.omit(CR.grab.fl$hydrolog),
-         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE) +
+         ellipse = TRUE, circle = TRUE, varname.abbrev = FALSE, var.axes=FALSE) +
   scale_colour_manual(values=cbPalette[1:6], name="logstatus") +
   theme(legend.direction = 'vertical', legend.position = 'right') 
 dev.off()
 
 # show relative contribution of each variable to the first 5 components of PCA
-grabfl.pca <- PCA(CR.grab.fl[,1:13], graph = TRUE)
+grabfl.pca <- PCA(CR.grab.fl[,1:28], graph = TRUE)
 head(grabfl.pca$var$contrib)
 PCA.contrib <- data.frame(grabfl.pca$var$contrib)
 # sort variables by incresing contribution across the first 5 component
@@ -1115,7 +1752,6 @@ fviz_screeplot(grabfl.pca, ncp=6) # first 6 components
 # plot contribution to first 2 PCA components
 fviz_contrib(grabfl.pca, choice = "var", axes = 1)
 fviz_contrib(grabfl.pca, choice = "var", axes = 2)
-
 
 ############################################################################################
 ##### CR Soil Characteristics
