@@ -1030,11 +1030,23 @@ C1C4.PAR <- qplot(data=CR.grab.elipse, x=C1_per, y=C4_per, colour=hydrolog, shap
   xlim(20, 60) + ylim(20,35) + 
   scale_color_manual(values=cbPalette[1:4]) +
   labs(x="C1 (%)", y="C4 (%)", title = "DOC Origin - Pre and Post Logging") + 
-  theme(legend.justification=c(1,0), legend.position=c(1,0.6))
+  theme(legend.justification=c(1,0), legend.position=c(1,0.5))
+
+C1C2.PAR <- qplot(data=CR.grab.elipse, x=C1_per, y=C2_per, colour=hydrolog, shape = logstatus)+stat_ellipse() +
+  xlim(20, 40) + ylim(15,25) + 
+  scale_color_manual(values=cbPalette[1:4]) +
+  labs(x="C1 (%)", y="C2 (%)", title = "DOC Origin - Pre and Post Logging") + 
+  theme(legend.position="none")
+
+C2C4.PAR <- qplot(data=CR.grab.elipse, x=C4_per, y=C2_per, colour=hydrolog, shape = logstatus)+stat_ellipse() +
+  xlim(20, 40) + ylim(15,25) + 
+  scale_color_manual(values=cbPalette[1:4]) +
+  labs(x="C4 (%)", y="C2 (%)", title = "DOC Origin - Pre and Post Logging") +
+  theme(legend.position="none")
 
 # save figure
 pdf(file=paste0(fig.dir,"/CRFigures_PARAFACcom_comparison.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(C1C12.13comp,C1C4.PAR, ncol = 2)
+grid.arrange(C1C12.13comp,C1C4.PAR, C1C2.PAR, C2C4.PAR,ncol = 2)
 dev.off()
 #################################################################
 ## Conc/Q relationships: pre/post; wet/dry. Look for significant relationship
@@ -1136,7 +1148,7 @@ SO4.cQ <- ggplot(subset(CR.grab, SO4_S_mgL >0.1), aes(x=Q.mm.d, y=SO4_S_mgL, col
   coord_cartesian(xlim = c(0,13), ylim=c(0,1)) 
 
 ## Flourescence - Redox
-Redox.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=redox, color = logstatus)) +
+Redox.cQ <- ggplot(subset(CR.grab,Q.mm.d > 1), aes(x=Q.mm.d, y=redox, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = logstatus)) + 
@@ -1146,7 +1158,7 @@ Redox.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=redox, color = logstatus)) +
   coord_cartesian(xlim = c(0,13), ylim=c(0.25,0.4)) 
 
 ## Fluorescence - Per Protein
-PerProtein.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=perprotein, color = logstatus)) +
+PerProtein.cQ <- ggplot(subset(CR.grab,Q.mm.d > 1), aes(x=Q.mm.d, y=perprotein, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = logstatus)) + 
@@ -1154,8 +1166,26 @@ PerProtein.cQ <- ggplot(CR.grab, aes(x=Q.mm.d, y=perprotein, color = logstatus))
   labs(title="cQ plot of Spectral Percent Protein (%) vs. Q") +
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(0,10)) 
+CMC1.cQ <- ggplot(subset(CR.grab,Q.mm.d > 1), aes(x=Q.mm.d, y=C1.x, color = logstatus)) +
+  scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
+  labs(x="Q (mm/day)", y=expression(paste("CMC1 (%)"))) +
+  labs(title="cQ plot of Spectral CMC1 (%) vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) + 
+  coord_cartesian(xlim = c(0,13), ylim=c(7.5,12)) 
+
+CMC12.cQ <- ggplot(subset(CR.grab,Q.mm.d > 1), aes(x=Q.mm.d, y=C12.x, color = logstatus)) +
+  scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
+  stat_smooth(method="lm",aes(fill = logstatus)) + 
+  labs(x="Q (mm/day)", y=expression(paste("CM C12 (%)"))) +
+  labs(title="cQ plot of Spectral CMC12 (%) vs. Q") +
+  theme(legend.position="bottom", legend.title=element_blank()) + 
+  coord_cartesian(xlim = c(0,13), ylim=c(8,11)) 
+
 ## Fluorescence - P1
-C1.cQ <- ggplot(subset(CR.grab, PARAFAC_C1 >0), aes(x=Q.mm.d, y=C1_per, color = logstatus)) +
+C1.cQ <- ggplot(subset(subset(CR.grab,Q.mm.d > 1), PARAFAC_C1 >0), aes(x=Q.mm.d, y=C1_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = logstatus)) + 
@@ -1165,7 +1195,7 @@ C1.cQ <- ggplot(subset(CR.grab, PARAFAC_C1 >0), aes(x=Q.mm.d, y=C1_per, color = 
   coord_cartesian(xlim = c(0,13), ylim=c(20,45)) 
 
 ## Fluorescence - P2
-C2.cQ <- ggplot(subset(CR.grab, PARAFAC_C2 >0), aes(x=Q.mm.d, y=C2_per, color = logstatus)) +
+C2.cQ <- ggplot(subset(subset(CR.grab,Q.mm.d > 1), PARAFAC_C2 >0), aes(x=Q.mm.d, y=C2_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = logstatus)) + 
@@ -1174,7 +1204,7 @@ C2.cQ <- ggplot(subset(CR.grab, PARAFAC_C2 >0), aes(x=Q.mm.d, y=C2_per, color = 
   theme(legend.position="bottom", legend.title=element_blank()) + 
   coord_cartesian(xlim = c(0,13), ylim=c(18,21)) 
 ## Fluorescence - P3
-C3.cQ <- ggplot(subset(CR.grab, PARAFAC_C3 >0), aes(x=Q.mm.d, y=C3_per, color = logstatus)) +
+C3.cQ <- ggplot(subset(subset(CR.grab,Q.mm.d > 1), PARAFAC_C3 >0), aes(x=Q.mm.d, y=C3_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = logstatus)) + 
@@ -1184,7 +1214,7 @@ C3.cQ <- ggplot(subset(CR.grab, PARAFAC_C3 >0), aes(x=Q.mm.d, y=C3_per, color = 
   coord_cartesian(xlim = c(0,13), ylim=c(15,24)) 
 
 ## Fluorescence - P4
-C4.cQ <- ggplot(subset(CR.grab, PARAFAC_C4 >0), aes(x=Q.mm.d, y=C4_per, color = logstatus)) +
+C4.cQ <- ggplot(subset(subset(CR.grab,Q.mm.d > 1), PARAFAC_C4 >0), aes(x=Q.mm.d, y=C4_per, color = logstatus)) +
   scale_color_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   scale_fill_manual(values=cbPalette[1:5], guide=guide_legend(reverse=TRUE)) +
   stat_smooth(method="lm",aes(fill = logstatus)) + 
@@ -1206,12 +1236,17 @@ Cl.cQ
 SO4.cQ 
 Redox.cQ 
 PerProtein.cQ
+CMC1.cQ
+CMC12.cQ
 C1.cQ
 C2.cQ
 C3.cQ
 C4.cQ
 dev.off()
-
+#save select
+pdf(file=paste0(fig.dir,"/CRFigures_CQrelselect.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(DOC.cQ, SR.cQ, PerProtein.cQ, CMC1.cQ,CMC12.cQ, C1.cQ, C2.cQ, C3.cQ, C4.cQ, ncol = 2)
+dev.off()
 ### Conc-Q relationships for select variables: DOC, C1, C4, CM1, CM12 (%)
 CR.grab.omit <- CR.grab[!is.na(CR.grab$logstatus),]
 C1.cQ <- ggplot(subset(CR.grab.omit, Q.mm.d >=0.3), aes(x=Q.mm.d, y=C1_per, color = hydrolog)) +
