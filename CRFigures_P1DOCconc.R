@@ -897,8 +897,47 @@ dev.off()
 ######## REDO THIS!!! Use this instead to look at significance of changes in mean monthly DOC.
 #https://cran.r-project.org/web/packages/PMCMR/vignettes/PMCMR.pdf
 
-###################################################################################################################
+######## Do table of mean DOC by month within the pre/post period
+# Calculate mean DOC for pe/post by month
+spectro.all$month <- format(spectro.all$date,"%m")
+stats.logging.DOCconc <- ddply(spectro.all, c("month", "logstatus"), summarise,
+                       mean.DOC = mean(DOCcorr, na.rm = TRUE), sd.DOC=sd(DOCcorr, na.rm = TRUE), 
+                       max.DOC = max(DOCcorr, na.rm=TRUE), min.DOC = min(DOCcorr, na.rm=TRUE))
+write.csv(stats.logging.DOCconc, file = paste0(fig.dir, "/DOCconc_prepoststats.csv"))
+# do test for significance
+jan.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "01")
+jan.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = jan.DOC[!is.na(jan.DOC$logstatus),])
+feb.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "02")
+feb.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = feb.DOC[!is.na(feb.DOC$logstatus),])
+march.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "03")
+march.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = march.DOC[!is.na(march.DOC$logstatus),])
+april.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "04")
+april.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = april.DOC[!is.na(april.DOC$logstatus),])
+may.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "05")
+may.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = may.DOC[!is.na(may.DOC$logstatus),])
+june.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "06")
+june.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = june.DOC[!is.na(june.DOC$logstatus),])
+july.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "07")
+july.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = july.DOC[!is.na(july.DOC$logstatus),])
+aug.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "08")
+aug.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = aug.DOC[!is.na(aug.DOC$logstatus),])
+sept.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "09")
+sept.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = sept.DOC[!is.na(sept.DOC$logstatus),])
+oct.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "10")
+oct.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = oct.DOC[!is.na(oct.DOC$logstatus),])
+nov.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "11")
+nov.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = nov.DOC[!is.na(nov.DOC$logstatus),])
+dec.DOC <- subset(spectro.all, format(spectro.all$date, format='%m') == "12")
+dec.kwt <- kruskal.test(DOCcorr ~ as.factor(logstatus), data = dec.DOC[!is.na(dec.DOC$logstatus),])
+DOCconc.kwt <- rbind(jan.kwt[1:3], feb.kwt[1:3], march.kwt[1:3], april.kwt[1:3], may.kwt[1:3], june.kwt[1:3], 
+                     july.kwt[1:3], aug.kwt[1:3], sept.kwt[1:3], nov.kwt[1:3], dec.kwt[1:3]) 
+write.csv(DOCconc.kwt, file = paste0(fig.dir, "/DOCconc_KWT.csv"))
+# calculate the overall difference/pre post
 
+# calculate the percent change - pre and post by month
+stats.DOCconc.all <- ddply(spectro.all, c("logstatus"), summarise,
+                               mean.DOC = mean(DOCcorr, na.rm = TRUE), sd.DOC=sd(DOCcorr, na.rm = TRUE), 
+                               max.DOC = max(DOCcorr, na.rm=TRUE), min.DOC = min(DOCcorr, na.rm=TRUE))
 ###################################################################################################################
 # How does harvest affect DOC flux?
 ## Calculation of DOC Flux
@@ -1126,6 +1165,54 @@ DOC.monthly <- ddply(DOC.Q,.(format(DOC.Q$date, format='%Y-%m')),
                      summarise, meanmonthly.DOCflux = mean(cflux.gshec, na.rm = TRUE),
                      sdmonthly.DOCflux = sd(cflux.gshec, na.rm = TRUE)) 
 write.csv(DOC.monthly, file=paste0(fig.dir,"/CRmonthlymeanDOCflux.csv")) # write mean DOC
+
+######## Do table of mean daily DOC flux by month within the pre/post period + test for significance
+# Calculate mean DOC for pe/post by month
+DOC.daily.flux$month <- format(DOC.daily.flux$date,"%m")
+DOC.daily.flux <- logstatus.f(DOC.daily.flux)
+DOC.daily.flux <- wetdry.f(DOC.daily.flux)
+
+stats.logging.DOCflux <- ddply(DOC.daily.flux, c("month", "logstatus"), summarise,
+                               mean.DOC = mean(meandaily.DOC.gshe, na.rm = TRUE), sd.DOC=sd(meandaily.DOC.gshe, na.rm = TRUE), 
+                               max.DOC = max(meandaily.DOC.gshe, na.rm=TRUE), min.DOC = min(meandaily.DOC.gshe, na.rm=TRUE))
+
+write.csv(stats.logging.DOCflux, file = paste0(fig.dir, "/DOCflux_prepoststats.csv"))
+# do test for significance kruskal wallis test 
+jan.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "01")
+jan.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = jan.DOC)
+
+feb.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "02")
+feb.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = feb.DOC[!is.na(feb.DOC$logstatus),])
+march.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "03")
+march.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = march.DOC[!is.na(march.DOC$logstatus),])
+april.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "04")
+april.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = april.DOC[!is.na(april.DOC$logstatus),])
+may.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "05")
+may.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = may.DOC[!is.na(may.DOC$logstatus),])
+june.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "06")
+june.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = june.DOC[!is.na(june.DOC$logstatus),])
+july.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "07")
+july.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = july.DOC[!is.na(july.DOC$logstatus),])
+aug.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "08")
+aug.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = aug.DOC[!is.na(aug.DOC$logstatus),])
+sept.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "09")
+sept.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = sept.DOC[!is.na(sept.DOC$logstatus),])
+oct.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "10")
+oct.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = oct.DOC[!is.na(oct.DOC$logstatus),])
+nov.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "11")
+nov.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = nov.DOC[!is.na(nov.DOC$logstatus),])
+dec.DOC <- subset(DOC.daily.flux, DOC.daily.flux$month == "12")
+dec.kwt <- kruskal.test(meandaily.DOC.gshe ~ as.factor(logstatus), data = dec.DOC[!is.na(dec.DOC$logstatus),])
+# bind together
+DOCflux.kwt <- rbind(jan.kwt[1:3], feb.kwt[1:3], march.kwt[1:3], april.kwt[1:3], may.kwt[1:3], june.kwt[1:3], 
+                     july.kwt[1:3], aug.kwt[1:3], sept.kwt[1:3], dec.kwt[1:3]) 
+write.csv(DOCflux.kwt, file = paste0(fig.dir, "/DOCflux_KWT.csv"))
+# calculate the overall difference/pre post
+
+# calculate the percent change - pre and post by month
+stats.DOCflux.all <- ddply(DOC.daily.flux, c("logstatus"), summarise,
+                           mean.DOC = mean(meandaily.DOC.gshe, na.rm = TRUE), sd.DOC=sd(meandaily.DOC.gshe, na.rm = TRUE), 
+                           max.DOC = max(meandaily.DOC.gshe, na.rm=TRUE), min.DOC = min(meandaily.DOC.gshe, na.rm=TRUE))
 
 #### Figure 4
 # Hysterisis loops for event pre/post harvest. 
