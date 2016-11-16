@@ -191,11 +191,13 @@ dev.off()
 # As per figure 1 in Strohmeier, S, K H Knorr, M Reichert, and S Frei. 2013. 
 # “Concentrations and Fluxes of Dissolved Organic Carbon in Runoff From a Forested Catchment: Insights From High Frequency Measurements.” …. doi:10.5194/bg-10-905-2013.
 
-time.disc <- ggplot(discharge, aes(date, Q.L.s, colour = logstatus)) + 
+time.disc <- ggplot(discharge, aes(date, Q.m3.s, colour = logstatus)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("Q (L/s)") + 
+  labs(x = expression("Date"),  
+       y = expression(Q~(m^{3}~s^{-1}))) + 
   scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top")
+  theme(legend.position="") + 
+  ggtitle("Discharge")
 
 # do daily sum of precip for bar graph. Too complicated otherwise
 dailysum.precip<- ddply(climate,.(format(climate$date, format = "%Y-%m-%d")),
@@ -442,20 +444,26 @@ dev.off()
 # Do all by day? Better to compare?
 mmp.month.plot <- ggplot(data=Q.P.merged, aes(x=date, y=monthlyP.mm, fill = factor(logstatus))) +
   geom_bar(stat="identity", colour = "black") + 
+  scale_fill_manual(values = c(cbPalette[1], cbPalette[2]),
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colours to colour blind
   xlab("Date") + ylab("Monthly Precipitation (mm/month)") +
   ggtitle("Monthly  Precipitation") +
-  theme(legend.position="none")
+  theme(legend.position="top") #+ 
+  #scale_x_date(limits=c(min = as.Date(Q.P.merged$date[1]), max=as.Date("2014-12-01")))
 
 time.disc
 boxplot.discharge <- boxplot.discharge + theme(legend.position="none")
 
 # Monthly runoff barplot
 mmrunoff.plot <- ggplot(data=Q.P.merged, aes(x=date, y=summonthly.Q.mmmonth, fill = factor(logstatus))) +
-  geom_bar(stat="identity", colour = "black") + #, fill = c(cbPalette[1], cbPalette[2])) + colour doesn't work!!
+  geom_bar(stat="identity", colour = "black") + #, fill = c(cbPalette[1], cbPalette[2])) + #colour doesn't work!!
   #scale_x_date(breaks = "1 year", minor_breaks = "1 month") +
+  scale_fill_manual(values = c(cbPalette[1], cbPalette[2])) +
   expand_limits(y=0) +
   xlab("Date") + ylab("Monthly Runoff (mm/month)") +
-  ggtitle("Monthly Mean Runoff") + 
+  ggtitle("Monthly Runoff") + 
   theme(legend.position="none")
 
 # save figures - precip, daily mean discharge, and runoff - FIGURE 2*******
@@ -465,6 +473,13 @@ grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"),
 grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(3/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/2, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("D", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+
+pdf(file=paste0(fig.dir,"/CRFigures_Fig2ChangQ_nobox.pdf"), width = 8.5, height = 11) #save figure without boxplot
+grid.arrange(mmp.month.plot, time.disc, mmrunoff.plot, ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
 
 #####################################################################################
@@ -593,7 +608,7 @@ dev.off()
 daily.Q$Q.m3s <- ddply(discharge,.(format(discharge$date, format='%Y-%m-%d')),
                  summarise, meandaily.Q = mean(Q.m3.s, na.rm = TRUE))[2]
 # Convert to m3/day
-daily.Q$Q.m3day <- daily.Q[4] *60*24
+daily.Q$Q.m3day <- daily.Q[4] *60*60*24
 # For pre and post harvest period
 daily.Q <- logstatus.f(daily.Q)
 prelog.dailyQ <- subset(daily.Q, daily.Q$logstatus == "pre")
@@ -644,12 +659,19 @@ grid.arrange(fdc(pre.post, lQ.thr=0.7, hQ.thr=0.2, plot=TRUE, log="y",
                                           ylab="Q, [m3/day]"), 
              fdc(hydro.prepost, lQ.thr=0.7, hQ.thr=0.2, plot=TRUE, log="y",
                                                             main= "Flow Duration Curve", xlab="% Time flow equalled or exceeded",
-                                                            ylab="Q, [m3/day]"), 
+                 col=cbPalette[4:7],ylab=expression(Q~(m^{3}~day^{-1})), cex.lab=2), 
              ncol = 1)
 grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
+
+pdf(file=paste0(fig.dir,"/CRFigures_FDC_preposthydro.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(fdc(hydro.prepost, lQ.thr=0.7, hQ.thr=0.2, plot=TRUE, log="y",
+    main= "Flow Duration Curve", xlab="% Time flow equalled or exceeded",
+    col=cbPalette[4:7], ylab=expression(Q~(m^{3}~day^{-1})), cex.lab=2,new = FALSE, leg.pos="bottomleft"))
+dev.off()
+
 #############################################################################
 
 #############################################################################
@@ -658,7 +680,8 @@ dev.off()
 
 time.disc <- ggplot(discharge, aes(date, Q.m3.s, colour = logstatus)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("Q (m3/s)") + 
+  labs(x = expression("Date"),  
+       y = expression(Q~(m^{3}~s^{-1}))) +
   scale_color_manual(values=cbPalette[1:2]) + # colours
   theme(legend.position="top")
 
@@ -691,7 +714,7 @@ boxplot.DOC30 <- ggplot(DOC.box, aes(x=date, y=DOCcorr, group = format(DOC.box$d
                     values = c(cbPalette[1], cbPalette[2]),
                     name="Logging\nStatus") +
   xlab("Date") + 
-  ylab("30 Minute DOC (mg/L)") + 
+  ylab("[DOC] (mg/L)") + 
   #geom_line() + # line to show where logging occureed
   ggtitle("DOC Measurements") +
   theme() +
@@ -1042,7 +1065,7 @@ boxplot.monthcexport <- ggplot(monthly.DOCflux, aes(as.Date(date), cflux.gmonthh
   scale_fill_manual(breaks = c('pre', 'post'),
                     values = c(cbPalette[1], cbPalette[2]),
                     name="Logging\nStatus") +
-  xlab("Date") + ylab("C Flux - DOC (g/monthhect)") + 
+  xlab("Date") + ylab("DOC Flux (g/monthhect)") + 
   theme() +
   scale_x_date(date_breaks = "year", 
                labels=date_format("%Y")) +
@@ -1093,6 +1116,23 @@ grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"),
 grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
+
+## save figure - DOC concentration and flux on one
+maxWidth <- grid::unit.pmax(boxplot.DOC30$widths[2:5], boxplot.monthcexport$widths[2:5])
+time.disc$widths[2:5] <- as.list(maxWidth)
+boxplot.DOC30$widths[2:5] <- as.list(maxWidth)
+time.DOC$widths[2:5] <- as.list(maxWidth)
+boxplot.monthcexport$widths[2:5] <- as.list(maxWidth)
+
+pdf(file=paste0(fig.dir,"/CRFigures_DOCFlux.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(time.disc,(time.DOC+theme(legend.position= "NONE")), (boxplot.DOC30+theme(legend.position= "NONE")), boxplot.monthcexport+theme(legend.position= "NONE"),  ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(3/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/2, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("d", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+dev.off()
+
+
 
 # sum daily flux by year to get yearly fluxes
 yearly.DOCflux <- ddply(cflux.day,.(format(cflux.day$date, format='%Y')),
@@ -1213,6 +1253,7 @@ write.csv(DOCflux.kwt, file = paste0(fig.dir, "/DOCflux_KWT.csv"))
 stats.DOCflux.all <- ddply(DOC.daily.flux, c("logstatus"), summarise,
                            mean.DOC = mean(meandaily.DOC.gshe, na.rm = TRUE), sd.DOC=sd(meandaily.DOC.gshe, na.rm = TRUE), 
                            max.DOC = max(meandaily.DOC.gshe, na.rm=TRUE), min.DOC = min(meandaily.DOC.gshe, na.rm=TRUE))
+
 
 #### Figure 4
 # Hysterisis loops for event pre/post harvest. 
