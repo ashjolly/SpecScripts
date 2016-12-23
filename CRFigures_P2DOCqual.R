@@ -2859,37 +2859,44 @@ CR.grab.sub <- subset(CR.grab, date > "2013-07-01" & date < "2014-07-01")
 
 # plot discharge for the year
 time.disc <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, Q.L.s/1000)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("Q (L/s)") + 
+  labs(x = expression("Date"),  
+       y = expression(Q~(m^{3}~s^{-1}))) + 
   theme()
 
 # plot DOC for the year
 time.DOC <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, DOCcorr)) + 
   geom_point(size = 0.4, color = cbPalette[6]) +
-  xlab("Date") + ylab("DOC") + theme()
+  labs(x = expression("Date"),  
+       y = expression(DOC~(mg~L^{-1}))) + 
+  theme()
 
 # plot abs254 for the year
 time.abs254 <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, abs254)) + 
   geom_point(size = 0.4, color = cbPalette[7]) +
-  xlab("Date") + ylab("abs254") + theme()
+  labs(x = expression("Date"),  
+       y = expression(abs[254]~(m^{-1}))) + 
+  theme()
 
 time.SUVA <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, SUVA)) + 
   geom_point(size = 0.4, color = cbPalette[7]) +
-  xlab("Date") + ylab("SUVA254") + theme()
+  labs(x = expression("Date"),  
+       y = expression(SUVA[254]~(L~mg^{-1}~m^{-1})))  +
+  theme()
 
 time.e2e3 <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, e2e3)) + 
   geom_point(size = 0.4, color = cbPalette[4]) +
-  xlab("Date") + ylab("E2E3") + 
+  xlab("Date") + ylab("E2:E3 (A.U)") + 
   scale_y_continuous(limits = c(0, 8)) + theme()
 
 time.e4e6 <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, e4e6)) + 
   geom_point(size = 0.4, color = cbPalette[3]) +
-  xlab("Date") + ylab("E4E6") + 
+  xlab("Date") + ylab("E4:E6 (A.U)") + 
   scale_y_continuous(limits = c(0, 1000)) + theme()
 
 # plot slope ratio for the year
 time.SR<- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, SR)) + 
   geom_point(size = 0.4, color = cbPalette[8]) +
-  xlab("Date") + ylab("Slope Ratio") + theme()
+  xlab("Date") + ylab("SR (A.U)") + theme()
 
 # plot discharge and PARAFAC points (4 component fits) for the year
 # massage the component percents to have all points on one graph
@@ -2902,36 +2909,69 @@ time.PARAFACPer <- ggplot(Sub.PARA.per, aes(date, value, colour = variable, shap
                     name="PARAFAC Component",
                     breaks=c("C1_per", "C2_per", "C3_per", "C4_per"),
                     labels=c("C1", "C2", "C3", "C4")) +
-  xlab("Date") + ylab("PARAFAC Component %") + theme(legend.position="top")  +
-  ylim(0, 70) +
   scale_shape_manual(values=c(17,18,3,4), 
                      name="PARAFAC Component",
                      breaks=c("C1_per", "C2_per", "C3_per", "C4_per"),
-                     labels=c("C1", "C2", "C3", "C4")) 
+                     labels=c("C1", "C2", "C3", "C4"))+   
+  xlab("Date") + ylab("PARAFAC (%)") + theme(legend.position="top")  +
+  ylim(0, 70) 
+
 # PARAFAC fmax
 Sub.PARA.fmax <- melt(CR.grab.sub[,c(64, 44:47)], id = "date")
 time.PARAFACfmax <- ggplot(Sub.PARA.fmax, aes(date, value, color = variable, shape = variable)) + 
   geom_point(position = pd, size = 2) +
-  xlab("Date") + ylab("PARAFAC Component Fmax") + 
-  theme(legend.position="top")  +
+  xlab("Date") + ylab("PARAFAC Fmax") + 
+  theme(legend.position="")  +
   ylim(0, 1) +
-  scale_color_manual(values=cbPalette[1:4], 
-                      name="PARAFAC Component",
-                      breaks=c("PARAFAC_C1", "PARAFAC_C2", "PARAFAC_C3", "PARAFAC_C4"),
-                      labels=c("C1", "C2", "C3", "C4")) +
-  scale_shape_manual(values=c(17,18,3,4), 
-                     name="PARAFAC Component",
-                     breaks=c("PARAFAC_C1", "PARAFAC_C2", "PARAFAC_C3", "PARAFAC_C4"),
-                     labels=c("C1", "C2", "C3", "C4")) 
+  scale_color_manual(values=cbPalette[1:4]) 
+ #                     name="PARAFAC Component",
+#                      breaks=c("PARAFAC_C1", "PARAFAC_C2", "PARAFAC_C3", "PARAFAC_C4"),
+#                      labels=c("C1", "C2", "C3", "C4")) +
+#  scale_shape_manual(values=c(17,18,3,4), 
+#                     name="PARAFAC Component",
+#                     breaks=c("PARAFAC_C1", "PARAFAC_C2", "PARAFAC_C3", "PARAFAC_C4"),
+#                     labels=c("C1", "C2", "C3", "C4")) 
 
 # Arrange the timeseries on top of each other
+## Arrange the timeseries on top of each other
+# make sure that plot y axis will line up.
+p1 <- ggplot_gtable(ggplot_build(time.disc))
+p2 <- ggplot_gtable(ggplot_build(time.DOC))
+p3 <- ggplot_gtable(ggplot_build(time.abs254))
+p4 <- ggplot_gtable(ggplot_build(time.SUVA))
+p5 <- ggplot_gtable(ggplot_build(time.PARAFACPer))
+p6 <- ggplot_gtable(ggplot_build(time.PARAFACfmax))
+
+maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3], p4$widths[2:3], p5$widths[2:3], p6$widths[2:3])
+p1$widths[2:3] <- maxWidth
+p2$widths[2:3] <- maxWidth
+p3$widths[2:3] <- maxWidth
+p4$widths[2:3] <- maxWidth
+p5$widths[2:3] <- maxWidth
+p6$widths[2:3] <- maxWidth
+
 pdf(file=paste0(fig.dir,"/CRFigures_SoilTimeseries.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(time.disc, time.DOC, time.abs254, time.SUVA, time.PARAFACPer,time.PARAFACfmax, ncol = 1)
+grid.arrange(p1, p2, p3, p4,p5, p6, ncol = 1)
 dev.off()
 
 # Supplementary figure
+# make sure that plot y axis will line up.
+p1 <- ggplot_gtable(ggplot_build(time.disc))
+p2 <- ggplot_gtable(ggplot_build(time.DOC))
+p3 <- ggplot_gtable(ggplot_build(time.SR))
+p4 <- ggplot_gtable(ggplot_build(time.e2e3))
+p5 <- ggplot_gtable(ggplot_build(time.e4e6))
+p6 <- ggplot_gtable(ggplot_build(time.PARAFACPer))
+
+maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3], p4$widths[2:3], p5$widths[2:3], p6$widths[2:3])
+p1$widths[2:3] <- maxWidth
+p2$widths[2:3] <- maxWidth
+p3$widths[2:3] <- maxWidth
+p4$widths[2:3] <- maxWidth
+p5$widths[2:3] <- maxWidth
+p6$widths[2:3] <- maxWidth
 pdf(file=paste0(fig.dir,"/CRFigures_SoilTimeseries_supplemental.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(time.disc, time.DOC, time.SR, time.e2e3, time.e4e6, time.PARAFACfmax, ncol = 1)
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol = 1)
 dev.off()
 
 #######################
