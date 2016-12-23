@@ -682,8 +682,12 @@ time.disc <- ggplot(discharge, aes(date, Q.m3.s, colour = logstatus)) +
   geom_point(size = 0.4) +
   labs(x = expression("Date"),  
        y = expression(Q~(m^{3}~s^{-1}))) +
-  scale_color_manual(values=cbPalette[1:2]) + # colours
+  scale_color_manual(values=cbPalette[1:2],
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
   theme(legend.position="top")
+
 
 # do daily sum of precip for bar graph. Too complicated otherwise
 dailysum.precip<- ddply(climate,.(format(climate$date, format = "%Y-%m-%d")),
@@ -703,7 +707,10 @@ time.precip <- ggplot(dailysum.precip, aes(as.Date(date), dailyP.mm, fill = fact
 time.DOC <- ggplot(subset(spectro.all, spectro.all$DOCcorr >=1), aes(date, DOCcorr, colour = logstatus)) + 
   geom_point(size = 0.4) +
   xlab("Date") + ylab("[DOC] (mg/L)") + 
-  scale_color_manual(values=cbPalette[1:2]) + # colours
+  scale_color_manual(values=cbPalette[1:2],
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
   theme(legend.position="top")
 
 # boxplot of 30 minute DOC measurements, compiled by month. Deliniate the pre and post harvest period
@@ -1053,19 +1060,24 @@ colnames(monthly.DOCflux)[1] <- 'date'
 monthly.DOCflux$date <- as.POSIXct(strptime(paste(monthly.DOCflux$date, "-01", sep = ""), format = "%Y-%m-%d"))
 monthly.DOCflux$cflux.gmonth = monthly.DOCflux$monthlysumCs/1000
 monthly.DOCflux$cflux.gmonthhect <- monthly.DOCflux$monthlysumCs/area.hect
+monthly.DOCflux$cflux.kgmonth = monthly.DOCflux$cflux.gmonth/1000
+monthly.DOCflux$cflux.kgmonthhect <- monthly.DOCflux$cflux.kgmonth/area.hect
+
 # add in pre/post harvest
 monthly.DOCflux <- logstatus.f(monthly.DOCflux)
 monthly.DOCflux$logstatus
 
 # do boxplot for c-export by month. Pre and post harvest coloured.
-boxplot.monthcexport <- ggplot(monthly.DOCflux, aes(as.Date(date), cflux.gmonthhect)) + 
+boxplot.monthcexport <- ggplot(monthly.DOCflux, aes(as.Date(date), cflux.kgmonthhect)) + 
   geom_bar(aes(fill=logstatus),   # fill depends on cond2
            stat="identity",
            colour="black") +    # Black outline for all
   scale_fill_manual(breaks = c('pre', 'post'),
                     values = c(cbPalette[1], cbPalette[2]),
                     name="Logging\nStatus") +
-  xlab("Date") + ylab("DOC Flux (g/monthhect)") + 
+  labs(x = expression("Date"),  
+       y = expression(DOCFlux~(kg~month^{-1}~hec^{-1})))
+  #xlab("Date") + ylab("DOC Flux (kg/monthhect)") + 
   theme() +
   scale_x_date(date_breaks = "year", 
                labels=date_format("%Y")) +
@@ -1123,13 +1135,24 @@ time.disc$widths[2:5] <- as.list(maxWidth)
 boxplot.DOC30$widths[2:5] <- as.list(maxWidth)
 time.DOC$widths[2:5] <- as.list(maxWidth)
 boxplot.monthcexport$widths[2:5] <- as.list(maxWidth)
+# make sure that plot y axis will line up.
+p1 <- ggplot_gtable(ggplot_build(time.disc))
+p2 <- ggplot_gtable(ggplot_build(time.DOC+theme(legend.position= "NONE")))
+p3 <- ggplot_gtable(ggplot_build(boxplot.DOC30+theme(legend.position= "NONE")))
+p4 <- ggplot_gtable(ggplot_build(boxplot.monthcexport+theme(legend.position= "NONE")))
+
+maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3], p4$widths[2:3])
+p1$widths[2:3] <- maxWidth
+p2$widths[2:3] <- maxWidth
+p3$widths[2:3] <- maxWidth
+p4$widths[2:3] <- maxWidth
 
 pdf(file=paste0(fig.dir,"/CRFigures_DOCFlux.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(time.disc,(time.DOC+theme(legend.position= "NONE")), (boxplot.DOC30+theme(legend.position= "NONE")), boxplot.monthcexport+theme(legend.position= "NONE"),  ncol = 1)
+grid.arrange(p1,p2, p3, p4,  ncol = 1)
 grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(3/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/2, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
-grid.text("d", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/4, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("D", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/3.42, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
 
 
@@ -1495,23 +1518,35 @@ julyaug.DOC.plot <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, DOCcor
 plot1 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, DOCcorr)) + 
   geom_point(size = 0.4) +
   #geom_point(data = subset(julyaug, julyaug$DOCcorr >=1), aes(x = day, y = Q.m3.s, color = "blue"))  + # add in discharge
-  xlab("") + ylab("[DOC] (mg/L)") + 
+  labs(x = expression(""),  
+       y = expression('[DOC]'~(mg~L^{-1}))) +
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August [DOC] ")
+  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles")
+plottest <- subset(julyaug, julyaug$DOCcorr >=1)
+# by hour - DOC
+jan.DOC.hour <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(format(plottest$date, "%H:%M"), DOCcorr)) + 
+  geom_point(size = 0.4) +
+  labs(x = expression(""),  
+       y = expression('[DOC]'~(mg~L^{-1}))) +
+  #scale_color_manual(values=cbPalette[1:2]) + # colours
+  #scale_x_datetime(limits = as.Date(jan.post$date), breaks=date_breaks("4 hour"), labels=date_format("%H:%M")) + 
+  theme(legend.position="top") + theme(legend.position ="") + ggtitle("") +
+  scale_y_continuous(limits = c(0.8, 3)) 
 
 plot2 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, Q.m3.s)) + 
   geom_point(size = 0.4) +
-  xlab("") + ylab("Q (m3/s)")
+  labs(x = expression(""),  
+       y = expression(Q~(m^{3}~s^{-1})))
 
 plot3 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, Tair)) + 
   geom_line() +
-  xlab("Date") + ylab("Mean Air Temperature (degC)")
+  xlab("Date") + ylab(expression("Mean Air Temperature ("~degree~"C)")) 
 
 #AWESOME diurnal cycles
 # save figures
 pdf(file=paste0(fig.dir,"/CR_DOC_diurnaljulyaug.pdf"), width = 11, height = 8.5)
 grid.newpage()
-grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), ggplotGrob(plot3), size = "last")) # align the plots by date
+grid.draw(rbind(ggplotGrob(plot1), ggplotGrob(plot2), ggplotGrob(plot3), size = "max")) # align the plots by date
 dev.off()
 
 # Show the DOC/Q/airT over one day period - take last week of july
@@ -1541,7 +1576,8 @@ plot1 <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, DOCcorr)) +
 
 plot2 <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, Q.m3.s)) + 
   geom_point(size = 0.4) +
-  xlab("") + ylab("Q (m3/s)") 
+  labs(x = expression(""),  
+       y = expression(Q~(m^{3}~s^{-1}))) 
   
 plot3 <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, Tair)) + 
   geom_point(size = 0.4) +

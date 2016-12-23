@@ -303,14 +303,57 @@ CR.grab.DWM.Ls$F_mgL <- NULL
 time.Q <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, Q.L.s)) + geom_point(size = 0.4) +
   xlab("Date") + ylab("Q (L/s)") + theme()
 
-time.DOC <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, DOCcorr)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("[DOC] (mg/L)") + theme()
+discharge$Q.m3.s <- discharge$Q.L.s/1000 # convert from L/s to m3/s
 
-time.abs254 <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, abs254)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("abs254") + theme()
+time.disc <- ggplot(discharge, aes(date, Q.m3.s, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  labs(x = expression("Date"),  
+       y = expression(Q~(m^{3}~s^{-1}))) +
+  scale_color_manual(values=cbPalette[1:2],
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
+  theme(legend.position="top")
 
-time.SUVA <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, SUVA)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("SUVA") + theme()
+time.Q <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, Q.L.s/1000, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  labs(x = expression("Date"),  
+       y = expression(Q~(m^{3}~s^{-1}))) +
+  scale_color_manual(values=cbPalette[1:2],
+                    name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
+  theme(legend.position="top")
+
+time.DOC <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, DOCcorr, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  labs(x = expression("Date"),  
+       y = expression(DOC~(mg~L^{-1}))) + 
+  scale_color_manual(values=cbPalette[1:2],
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
+  theme(legend.position="top")
+#abs254
+time.abs254 <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, abs254, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  labs(x = expression("Date"),  
+       y = expression(abs[254]~(m^{-1}))) +
+  scale_color_manual(values=cbPalette[1:2],
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
+  theme(legend.position="top")
+
+time.SUVA <- ggplot(subset(abs.Q, DOCcorr >=1), aes(date, SUVA, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  labs(x = expression("Date"),  
+       y = expression(SUVA[254]~(L~mg^{-1}~m^{-1}))) +
+  scale_color_manual(values=cbPalette[1:2],
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
+  theme(legend.position="top")
 
 time.e2e3 <- ggplot(abs.Q, aes(date, e2e3)) + geom_point(size = 0.4) +
   xlab("Date") + ylab("e2e3") + theme()
@@ -318,28 +361,45 @@ time.e2e3 <- ggplot(abs.Q, aes(date, e2e3)) + geom_point(size = 0.4) +
 time.e4e6 <- ggplot(abs.Q, aes(date, e4e6)) + geom_point(size = 0.4) +
   xlab("Date") + ylab("e4e6") + theme()+ scale_y_continuous(limits = c(-5, 1000))
   
-time.SR <-   ggplot(subset(abs.Q, DOCcorr >=1), aes(date, SlopeRatio)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("Slope Ratio") + theme() + scale_y_continuous(limits = c(0, 5))
+time.SR <-   ggplot(subset(abs.Q, DOCcorr >=1), aes(date, SlopeRatio, colour = logstatus)) + 
+  geom_point(size = 0.4) +
+  labs(x = expression("Date"),  
+       y = expression(SR~(A.U))) +
+  scale_color_manual(values=cbPalette[1:2],
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # colours
+  theme(legend.position="top") + 
+  scale_y_continuous(limits = c(0, 4))
 
 # timeseries look really odd?!! Jump in data.
 # show as boxplots?
-
+############ Fluorescence parameters
 PARA.perprotein <- melt(CR.grab[,c(64, 28)], id = "date")
+PARA.perprotein <- logstatus.f(PARA.perprotein)
 pd <- position_dodge(.65)
-time.perprotein <- ggplot(PARA.perprotein, aes(date, value, colour = variable, shape = variable)) + 
+time.perprotein <- ggplot(PARA.perprotein, aes(date, value, shape = variable, colour = logstatus)) + 
   geom_point(position = pd, size = 2) +
-  scale_color_manual(values=cbPalette[1]) +
-  xlab("Date") + ylab("% Protein (CM PARAFAC Model)") + theme(legend.position="top")  +
-  ylim(0, 50) 
+  scale_color_manual(values=cbPalette[1:2], # colours and labels for 
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + 
+  xlab("Date") + ylab("% Protein") + 
+  theme(legend.position="") +
+  ylim(0, 40) 
 
 # redox index
 PARA.redox <- melt(CR.grab[,c(64, 29)], id = "date")
+PARA.redox <- logstatus.f(PARA.redox)
 pd <- position_dodge(.65)
-time.redox <- ggplot(PARA.redox, aes(date, value, colour = variable, shape = variable)) + 
+time.redox <- ggplot(PARA.redox, aes(date, value, colour = logstatus, shape = variable)) + 
   geom_point(position = pd, size = 2) +
-  scale_color_manual(values=cbPalette[2]) +
-  xlab("Date") + ylab("Redox Index (CM PARAFAC Model)") + theme(legend.position="top")  +
-  ylim(0, 0.8) 
+  scale_color_manual(values=cbPalette[1:2], # colours and labels for 
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + 
+  xlab("Date") + ylab("Redox Index (A.U)") + theme(legend.position="top")  +
+  ylim(0, 0.6) 
 
 # PARAFAC - 4 component %
 PARA.per <- melt(CR.grab[,c(64, 49:52)], id = "date")
@@ -360,7 +420,8 @@ time.PARAFACPer <- ggplot(PARA.per, aes(date, value, colour = variable, shape = 
 PARA.fmax <- melt(CR.grab[,c(64, 44:47)], id = "date")
 time.PARAFACfmax <- ggplot(PARA.fmax, aes(date, value, color = variable, shape = variable)) + 
   geom_point(position = pd, size = 2) +
-  xlab("Date") + ylab("PARAFAC Component Fmax") + 
+  labs(x = expression("Date"),  
+       y = expression(PARAFAC~ F[max]~(R.U))) + 
   theme(legend.position="top")  +
   ylim(0, 1) +
   scale_color_manual(values=cbPalette[1:4], 
@@ -372,17 +433,61 @@ time.PARAFACfmax <- ggplot(PARA.fmax, aes(date, value, color = variable, shape =
                      breaks=c("PARAFAC_C1", "PARAFAC_C2", "PARAFAC_C3", "PARAFAC_C4"),
                      labels=c("C1", "C2", "C3", "C4")) 
 
-# Arrange the timeseries on top of each other
+## Arrange the timeseries on top of each other
+# make sure that plot y axis will line up.
+p1 <- ggplot_gtable(ggplot_build(time.Q))
+p2 <- ggplot_gtable(ggplot_build(time.DOC+theme(legend.position= "NONE")))
+p3 <- ggplot_gtable(ggplot_build(time.abs254+theme(legend.position= "NONE")))
+p4 <- ggplot_gtable(ggplot_build(time.SUVA+theme(legend.position= "NONE")))
+p5 <- ggplot_gtable(ggplot_build(time.SR+theme(legend.position= "NONE")))
+
+maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3], p4$widths[2:3], p5$widths[2:3])
+p1$widths[2:3] <- maxWidth
+p2$widths[2:3] <- maxWidth
+p3$widths[2:3] <- maxWidth
+p4$widths[2:3] <- maxWidth
+p5$widths[2:3] <- maxWidth
+
 pdf(file=paste0(fig.dir,"/CRFigures_QualityF1_TimeseriesAbs.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(time.Q, time.DOC, time.abs254, time.SUVA, time.SR, ncol = 1)
+grid.arrange(p1, p2, p3, p4, p5, ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(4.1/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(3.1/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("D", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2.2/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
+grid.text("E", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=20))
 dev.off()
 
 ############################################# 
 # Figure 2 - Timeseries of fluorescence data - PARAFAC components over time.
+# make sure that plot y axis will line up.
+p1 <- ggplot_gtable(ggplot_build(time.disc))
+p2 <- ggplot_gtable(ggplot_build(time.DOC+theme(legend.position= "NONE")))
+p3 <- ggplot_gtable(ggplot_build(time.perprotein+theme(legend.position= "NONE")))
+p4 <- ggplot_gtable(ggplot_build(time.redox+theme(legend.position= "NONE")))
+p5 <- ggplot_gtable(ggplot_build(time.PARAFACPer+theme(legend.position= "NONE")))
+p6 <- ggplot_gtable(ggplot_build(time.PARAFACfmax+theme(legend.position= "NONE")))
+
+maxWidth = unit.pmax(p1$widths[2:3], p2$widths[2:3], p3$widths[2:3], p4$widths[2:3], p5$widths[2:3], p6$widths[2:3])
+p1$widths[2:3] <- maxWidth
+p2$widths[2:3] <- maxWidth
+p3$widths[2:3] <- maxWidth
+p4$widths[2:3] <- maxWidth
+p5$widths[2:3] <- maxWidth
+p6$widths[2:3] <- maxWidth
 
 # Arrange timeseries for PARAFAC data
 pdf(file=paste0(fig.dir,"/CRFigures_QualityF1_Timeseriesfluor.pdf"), width = 8.5, height = 11) #save figure
-grid.arrange(time.Q, time.DOC, time.perprotein, time.redox, time.PARAFACPer, time.PARAFACfmax, ncol = 1)
+grid.arrange(p1, p3, p4, p5, p6, ncol = 1)
+grid.text("A", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=15))
+grid.text("B", x=unit(0, "npc")+ unit(2,"mm"), y=unit(4.1/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=15))
+grid.text("C", x=unit(0, "npc")+ unit(2,"mm"), y=unit(3.12/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=15))
+grid.text("D", x=unit(0, "npc")+ unit(2,"mm"), y=unit(2.27/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=15))
+grid.text("E", x=unit(0, "npc")+ unit(2,"mm"), y=unit(1.15/5, "npc") - unit(5, "mm"), just=c("left", "top"),gp = gpar(fontsize=10))
+dev.off()
+
+# Arrange timeseries for PARAFAC data
+pdf(file=paste0(fig.dir,"/CRFigures_QualityF1_Timeseriesfluor2.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(time.Q, time.DOC, time.perprotein, time.redox, time.PARAFACPer,  ncol = 1)
 dev.off()
 
 ############################################# 
@@ -432,23 +537,27 @@ julyaug$day <-  julyaug$date
 year(julyaug$day) <- 0
 julyaug.abs254 <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, abs254)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("abs254") + 
+  labs(x = expression("Date"),  
+       y = expression(abs[254]~(m^{-1}))) +
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August abs254 ")
+  theme(legend.position="top") + theme() + ggtitle("")
 
 # SUVA
 julyaug.SUVA <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, SUVA)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("SUVA") + 
+  labs(x = expression("Date"),  
+       y = expression(SUVA[254]~(L~m^{-1}~mg^{-1}))) +
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August SUVA ")
+  theme(legend.position="top") + theme() + ggtitle("")
 
 # SR
 julyaug.SR <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, SR)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("Slope Ratio") + 
+  xlab("Date") + ylab("Slope Ratio (A.U)") + 
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July - August Slope Ratio ")
+  theme(legend.position="top") + theme() + ggtitle("")+
+  scale_y_continuous(limits = c(0.7, 3))
+
 # abs 350 - need to calculate
 #julyaug.SR <- ggplot(subset(julyaug, julyaug$DOCcorr >=1), aes(day, SR)) + 
 #  geom_point(size = 0.4) +
@@ -469,23 +578,28 @@ day(julDOC$hour) <- 0
 #julDOC$hour <- as.POSIXct(strptime(julDOC$hour, format="%H:%M"))
 jul.abs254<- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, abs254)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("abs254") + 
+  labs(x = expression("Hour"),  
+       y = expression(abs[254]~(m^{-1}))) +
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July 25 - 31 abs254 ")
+  theme(legend.position="top") + theme() + ggtitle("") +
+  scale_x_datetime(labels = date_format("%H"))
 
 jul.SUVA<- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, SUVA)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("SUVA") + 
+  labs(x = expression("Hour"),  
+       y = expression(SUVA[254]~(L~m^{-1}~mg^{-1}))) +
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July 25 - 31 SUVA ") +
-  scale_y_continuous(limits = c(3.5, 4))
+  theme(legend.position="top") + theme() + ggtitle("") +
+  scale_y_continuous(limits = c(3.5, 4)) +
+  scale_x_datetime(labels = date_format("%H"))
 
-jul.SR<- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, SR)) + 
+jul.SR <- ggplot(subset(julDOC, julDOC$DOCcorr >=1), aes(hour, SR)) + 
   geom_point(size = 0.4) +
-  xlab("Date") + ylab("Slope Ratio") + 
+  xlab("Hour") + ylab("SR (A.U)") + 
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("Diurnal Cycles: July 25 - 31 Slope Ratio ") +
-  scale_y_continuous(limits = c(1.4, 2.2))
+  theme(legend.position="top") + theme() + ggtitle("") +
+  scale_y_continuous(limits = c(1.4, 2.2))+
+  scale_x_datetime(labels = date_format("%H"))
 
 ## Save plot - hourly data as a subplot of the whole week
 #A viewport taking up a fraction of the plot area
@@ -534,70 +648,83 @@ diurnal.FI.box <- ggplot(subset(box.crgrab, variable  == "FI"), aes(x=hydrodn, y
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - FI')) +
-  ylab(expression('FI')) +
-  xlab(expression('Day/Night')) 
+  ylab(expression('FI (A.U)')) +
+  xlab(expression("Wet/Dry - Day/Night")) + 
+  theme(legend.position= "NONE")
 
 # boxplot - HIX
 diurnal.HIX.box <- ggplot(subset(box.crgrab, variable  == "HIX_ohno_area"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - HIX')) +
-  ylab(expression('HIX')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0, 1.5))
+  ylab(expression('HIX (A.U)')) +
+  xlab(expression("Wet/Dry - Day/Night")) + 
+  coord_cartesian(ylim = c(0, 1.5))+ 
+  theme(legend.position= "NONE")
 
 diurnal.FrI.box <- ggplot(subset(box.crgrab, variable  == "FrI"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - FrI')) +
-  ylab(expression('FrI')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0, 1.5))
+  ylab(expression('FrI (A.U)')) +
+  xlab(expression("Wet/Dry - Day/Night")) + 
+  coord_cartesian(ylim = c(0, 1.5))+ 
+  theme(legend.position= "NONE")
 
 diurnal.perprotein.box <- ggplot(subset(box.crgrab, variable  == "perprotein"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('Diurnal - % Protein')) +
+  ggtitle(expression('Diurnal - Percent Protein')) +
   ylab(expression('% Protein (%)')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0, 15))
+  xlab(expression("Wet/Dry - Day/Night")) + 
+  coord_cartesian(ylim = c(0, 15)) + 
+  theme(legend.position= "NONE")
 
 diurnal.redox.box <- ggplot(subset(box.crgrab, variable  == "redox"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - Redox Index')) +
-  ylab(expression('Redox Index')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0.2, 0.5))
+  ylab(expression('Redox Index (A.U)')) +
+  xlab(expression("Wet/Dry - Day/Night")) + 
+  coord_cartesian(ylim = c(0.2, 0.5)) + 
+  theme(legend.position= "NONE")
+
 # PARAFAC Fmax
 diurnal.C1.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C1"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - C1')) +
-  ylab(expression('C1 Fmax')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0, 1))
+  labs(x = expression("Wet/Dry - Day/Night"),  
+       y = expression("C1 "~F[max]~"R.U")) + 
+  coord_cartesian(ylim = c(0, 1))+ 
+  theme(legend.position= "NONE")
+
 diurnal.C2.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C2"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - C2')) +
-  ylab(expression('C2 Fmax')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0, 1))
+  labs(x = expression("Wet/Dry - Day/Night"),  
+       y = expression("C2 "~F[max]~"R.U")) + 
+  coord_cartesian(ylim = c(0, 0.5)) + 
+  theme(legend.position= "NONE")
+
 diurnal.C3.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C3"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - C3')) +
-  ylab(expression('C3 Fmax')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0, 1))
+  labs(x = expression("Wet/Dry - Day/Night"),  
+       y = expression("C3 "~F[max]~"R.U")) + 
+  coord_cartesian(ylim = c(0, 1)) + 
+  theme(legend.position= "NONE")
+
 diurnal.C4.box <- ggplot(subset(box.crgrab, variable  == "PARAFAC_C4"), aes(x=hydrodn, y=value, fill=hydrodn)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
   ggtitle(expression('Diurnal - C4')) +
-  ylab(expression('C4 Fmax')) +
-  xlab(expression('Day/Night')) + 
-  coord_cartesian(ylim = c(0, 1))
+  labs(x = expression("Wet/Dry - Day/Night"),  
+       y = expression("C4 "~F[max]~"R.U")) + 
+  coord_cartesian(ylim = c(0, 1)) + 
+  theme(legend.position= "NONE")
 
 # save boxplots - 6 in all
 pdf(file=paste0(fig.dir,"/CRFigures_Quality_DiurnalFluor.pdf"), width = 8.5, height = 11) #save figure
@@ -666,20 +793,30 @@ write.csv(corr.matrix, paste0(fig.dir, ("/CRcorrmatrix_abs.csv"))) #write correl
 # do anova test on each of the pairs?
 # ANOVA/Box plots on pre/post for significant changes
 # Stream qualities:
-Q.box <- ggplot(abs.Q, aes(x=month, y=Q.L.s, fill=logstatus)) + 
+Q.box <- ggplot(abs.Q, aes(x=month, y=Q.L.s/1000, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('Q - by month')) +
-  ylab(expression('Q (L/s)')) +
-  xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,200))
+  scale_fill_manual(values=cbPalette,
+                     name="Log Status",
+                     breaks=c("pre", "post"),
+                     labels=c("Pre", "Post")) + # change colour to colour blind
+  ggtitle(expression('Discharge')) +
+  labs(x = expression("Date"),  
+       y = expression(Q~(m^{3}~s^{-1}))) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,0.22)) + 
+  theme(axis.text.x = element_text(size = 10))
+
 EC.box <- ggplot(abs.Q, aes(x=month, y=EC, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('EC - by month')) +
-  ylab(expression('EC')) +
-  xlab(expression('Month')) #+
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  ggtitle(expression('EC')) +
+  labs(x = expression("Date"),  
+       y = expression(EC~(mu~C~cm^{-1}))) +
   #coord_cartesian(xlim = c(1,12), ylim=c(0,2.5))
+  theme(axis.text.x = element_text(size = 10))
+  
 pH.box <- ggplot(abs.Q, aes(x=month, y=pH, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
@@ -701,122 +838,213 @@ SO4.box <- ggplot(subset(CR.grab, SO4_S_mgL >0), aes(x=month, y=SO4_S_mgL, fill=
   ylab(expression('SO4 (mg/L)')) +
   xlab(expression('Month')) +
   coord_cartesian(xlim = c(1,12), ylim=c(0,1.5))
+
 #DOC 
 DOC.box <- ggplot(subset(abs.Q, abs.Q$DOCcorr >= 1), aes(x=month, y=DOCcorr, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
   ggtitle(expression('[DOC]')) +
-  ylab(expression('[DOC]')) +
-  xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,15)) 
+  labs(x = expression("Month"),  
+       y = expression(DOC~(mg~L^{-1}))) + 
+  coord_cartesian(xlim = c(1,12), ylim=c(0,15)) + 
+  theme(axis.text.x = element_text(size = 10))
+
 # abs254
 abs254.box <- ggplot(abs.Q, aes(x=month, y=abs(abs254), fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('abs254')) +
-  ylab(expression('abs254')) +
-  xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,40)) 
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
+  ggtitle(expression(abs[254])) +
+  labs(x = expression("Month"),  
+       y = expression(abs[254]~(m^{-1}))) +
+  coord_cartesian(xlim = c(1,12), ylim=c(0,40)) + 
+  theme(axis.text.x = element_text(size = 10))
 # SUVA
 SUVA.box <- ggplot(abs.Q, aes(x=month, y=SUVA, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('SUVA')) +
-  ylab(expression('SUVA')) +
-  xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(2,5)) 
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  ggtitle(expression(SUVA[254])) +
+  labs(x = expression("Month"),  
+       y = expression(SUVA[254]~(L~mg^{-1}~m^{-1}))) +
+  coord_cartesian(xlim = c(1,12), ylim=c(2,5)) + 
+  theme(axis.text.x = element_text(size = 10))
+
 SR.box <- ggplot(abs.Q, aes(x=month, y=SlopeRatio, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('Slope Ratio - by month')) +
-  ylab(expression('Slope Ratio')) +
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
+  ggtitle(expression('Slope Ratio')) +
+  ylab(expression('Slope Ratio (A.U)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,2.5))
+  coord_cartesian(xlim = c(1,12), ylim=c(0,2.5))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 # DOC Flruoescence
 FI.box <- ggplot(CR.grab, aes(x=month, y=FI, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
   ggtitle(expression('FI')) +
-  ylab(expression('FI')) +
-  xlab(expression('Month')) 
+  ylab(expression('FI (A.U)')) +
+  xlab(expression('Month')) + 
+  theme(axis.text.x = element_text(size = 10))
+
 HIX.box <- ggplot(subset(CR.grab, HIX_ohno_area >0), aes(x=month, y=HIX_ohno_area, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
   ggtitle(expression('HIX')) +
-  ylab(expression('HIX')) +
+  ylab(expression('HIX (A.U)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,2))
+  coord_cartesian(xlim = c(1,12), ylim=c(0,2))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 FrI.box <- ggplot(subset(CR.grab, FrI >0), aes(x=month, y=FrI, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
   ggtitle(expression('Freshness Index')) +
   ylab(expression('FrI (A.U)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,1.5))
+  coord_cartesian(xlim = c(1,12), ylim=c(0,1.5))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 CMC1.box <- ggplot(subset(CR.grab, perprotein >0), aes(x=month, y=C1.x, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('CM C1')) +
-  ylab(expression('CM C1 (%)')) +
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
+  ggtitle(expression('CM-C1')) +
+  ylab(expression('CM-C1 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(5,12.5))
+  coord_cartesian(xlim = c(1,12), ylim=c(5,12.5))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 CMC12.box <- ggplot(subset(CR.grab, perprotein >0), aes(x=month, y=C12.x, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('CM C12')) +
-  ylab(expression('CM C12 (%)')) +
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
+  ggtitle(expression('CM-C12')) +
+  ylab(expression('CM-C12 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(3,12.5))
+  coord_cartesian(xlim = c(1,12), ylim=c(3,12.5)) + 
+  theme(axis.text.x = element_text(size = 10))
+
 Redox.box <- ggplot(subset(CR.grab, redox >0), aes(x=month, y=redox, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
-  ggtitle(expression('redox Index')) +
-  ylab(expression('redox Index (A.U)')) +
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
+  ggtitle(expression('Redox Index')) +
+  ylab(expression('Redox Index (A.U)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0.2,0.6))
+  coord_cartesian(xlim = c(1,12), ylim=c(0.2,0.6)) + 
+  theme(axis.text.x = element_text(size = 10))
+
 PerProtein.box <- ggplot(subset(CR.grab, perprotein >0), aes(x=month, y=perprotein, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
+  
   ggtitle(expression('Percent Protein')) +
   ylab(expression('Percent Protein (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,25))
+  coord_cartesian(xlim = c(1,12), ylim=c(0,25))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 C1.box <- ggplot(subset(CR.grab, C1_per >0), aes(x=month, y=C1_per, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
   ggtitle(expression('C1 %')) +
-  ylab(expression('C1 Fmax (%)')) +
+  ylab(expression('C1 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(10,60))
+  coord_cartesian(xlim = c(1,12), ylim=c(10,60))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 C2.box <- ggplot(subset(CR.grab, C2_per >0), aes(x=month, y=C2_per, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
   ggtitle(expression('C2 %')) +
-  ylab(expression('C2 Fmax (%)')) +
+  ylab(expression('C2 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(15,22))
+  coord_cartesian(xlim = c(1,12), ylim=c(15,22))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 C3.box <- ggplot(subset(CR.grab, C3_per >0), aes(x=month, y=C3_per, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
   ggtitle(expression('C3 %')) +
-  ylab(expression('C3 Fmax (%)')) +
+  ylab(expression('C3 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(0,25))
+  coord_cartesian(xlim = c(1,12), ylim=c(0,25))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 C4.box <- ggplot(subset(CR.grab, C4_per >0), aes(x=month, y=C4_per, fill=logstatus)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
-  scale_fill_manual(values=c(cbPalette)) +       # change colour to colour blind
+  scale_fill_manual(values=cbPalette,
+                    name="Log Status",
+                    breaks=c("pre", "post"),
+                    labels=c("Pre", "Post")) + # change colour to colour blind
   ggtitle(expression('C4 %')) +
-  ylab(expression('C4 Fmax (%)')) +
+  ylab(expression('C4 (%)')) +
   xlab(expression('Month')) +
-  coord_cartesian(xlim = c(1,12), ylim=c(25,35))
+  coord_cartesian(xlim = c(1,12), ylim=c(25,35))+ 
+  theme(axis.text.x = element_text(size = 10))
+
 ###### Save as PDF files
 # Stream characteristics
 pdf(file=paste0(fig.dir,"/CRFigures_Boxstream.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(Q.box,EC.box,Cl.box, SO4.box, ncol = 2)
 dev.off()
+pdf(file=paste0(fig.dir,"/CRFigures_Boxstream_select.pdf"), width = 8.5, height = 11/2) #save figure
+grid.arrange(Q.box,EC.box, ncol = 2)
+dev.off()
+
 # Indicies
 pdf(file=paste0(fig.dir,"/CRFigures_Box_Indicies.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(DOC.box,abs254.box,SUVA.box, SR.box, FI.box, FrI.box, HIX.box, ncol = 2)
+dev.off()
+pdf(file=paste0(fig.dir,"/CRFigures_Box_Indiciesselect.pdf"), width = 8.5, height = 11) #save figure
+grid.arrange(DOC.box,SUVA.box,SR.box, FI.box, FrI.box, HIX.box, ncol = 2)
 dev.off()
 # PARAFAC fits
 pdf(file=paste0(fig.dir,"/CRFigures_Box_PARAFAC.pdf"), width = 8.5, height = 11) #save figure
@@ -1495,11 +1723,18 @@ C4per.event.plot <- ggplot(data=event.stats.grab, aes(x=start, y=DWM_C4per, fill
 pdf(file=paste0(fig.dir,"/CRFigures_Event_highfrequ.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(DOC.event.plot, abs254.event.plot, SUVA.event.plot, SR.event.plot, pH.event.plot, EC.event.plot, ncol = 2)
 dev.off()
+pdf(file=paste0(fig.dir,"/CRFigures_Event_highfrequselect.pdf"), width = 11, height = 8.5) #save figure
+grid.arrange(DOC.event.plot, SR.event.plot, EC.event.plot,FI.event.plot, HIX.event.plot, FrI.event.plot, ncol = 2)
+dev.off()
 
 # grab sampling
 pdf(file=paste0(fig.dir,"/CRFigures_Event_grab.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(FI.event.plot, HIX.event.plot, FrI.event.plot, CMC1.event.plot, CMC12.event.plot, 
              perprotein.event.plot, redox.event.plot,C1per.event.plot, C2per.event.plot,C3per.event.plot,C4per.event.plot, ncol = 2)
+dev.off()
+
+pdf(file=paste0(fig.dir,"/CRFigures_Event_grab_select.pdf"), width = 11, height = 8.5) #save figure
+grid.arrange(CMC1.event.plot, CMC12.event.plot,perprotein.event.plot, redox.event.plot,C1per.event.plot, C2per.event.plot,C3per.event.plot,C4per.event.plot, ncol = 2)
 dev.off()
 
 ##########
@@ -1605,9 +1840,28 @@ jan.pre.plot.SR<- ggplot(jan.pre, aes(day, SlopeRatio)) +
 
 jan.post.plot.SR <- ggplot(jan.post, aes(day, SlopeRatio)) + 
   geom_point(aes(colour=format.Date(jan.post$date, "%Y")), size = 0.4) +
-  xlab("Date") + ylab("SlopeRatio") + 
+  xlab("Date") + ylab("SR (A.U)") + 
+  scale_color_manual(values=c(cbbPalette[1], cbbPalette[1], cbbPalette[1], cbbPalette[1], cbbPalette[1])) + # colours
+  theme(legend.position="top") + theme(legend.position ="") + ggtitle("")
+
+jan.SR.hour <- ggplot(jan.post, aes(format(jan.post$date, "%H:%M"), SR)) + 
+  geom_point(size = 0.4) +
+  xlab("Hour") + ylab("SR (A.U)") + 
   #scale_color_manual(values=cbPalette[1:2]) + # colours
-  theme(legend.position="top") + theme() + ggtitle("jan-Post")
+  #scale_x_datetime(limits = as.Date(jan.post$date), breaks=date_breaks("4 hour"), labels=date_format("%H:%M")) + 
+  theme(legend.position="top") + theme(legend.position ="") + ggtitle("") +
+  scale_y_continuous(limits = c(0.8, 1)) 
+
+## Save plot - hourly data as a subplot of the whole week
+#A viewport taking up a fraction of the plot area
+vp <- viewport(width = 0.4, height = 0.4, x = 0.2, y = 0.8)
+#Just draw the plot twice
+png(file=paste0(fig.dir,"/CRFigures_diurnal_SRJan.png"))
+print(jan.post.plot.SR)
+print(jan.SR.hour, vp = vp)
+dev.off()
+
+
 
 # Add in % protein, and % C1-4 from fluorescence
 grab.pre <- subset(CR.grab, format.Date(CR.grab$date, "%Y") >="2009" & CR.grab$logstatus =="pre")
@@ -1877,19 +2131,19 @@ lm.pp <- c(summary(extractlm.pp)$coefficients[1:2], summary(extractlm.pp)$r.squa
 extractlm.redox <- lm(as.numeric(extract.h2o$redox) ~ as.numeric(extract.h2o$depth_cm))
 lm.redox <- c(summary(extractlm.redox)$coefficients[1:2], summary(extractlm.redox)$r.squared)
 # C1
-extractlm.C1 <- lm(as.numeric(extract.h2o$C1) ~ as.numeric(extract.h2o$depth_cm))
+extractlm.C1 <- lm(as.numeric(extract.h2o$C1.x.1) ~ as.numeric(extract.h2o$depth_cm))
 lm.C1 <- c(summary(extractlm.C1)$coefficients[1:2], summary(extractlm.C1)$r.squared)
 # C2
-extractlm.C2 <- lm(as.numeric(extract.h2o$C2) ~ as.numeric(extract.h2o$depth_cm))
+extractlm.C2 <- lm(as.numeric(extract.h2o$C2.x.1) ~ as.numeric(extract.h2o$depth_cm))
 lm.C2 <- c(summary(extractlm.C2)$coefficients[1:2], summary(extractlm.C2)$r.squared)
 # C3
-extractlm.C3 <- lm(as.numeric(extract.h2o$C3) ~ as.numeric(extract.h2o$depth_cm))
+extractlm.C3 <- lm(as.numeric(extract.h2o$C3.x.1) ~ as.numeric(extract.h2o$depth_cm))
 lm.C3 <- c(summary(extractlm.C3)$coefficients[1:2], summary(extractlm.C3)$r.squared)
 # C4
-extractlm.C4 <- lm(as.numeric(extract.h2o$C4) ~ as.numeric(extract.h2o$depth_cm))
+extractlm.C4 <- lm(as.numeric(extract.h2o$C4.x.1) ~ as.numeric(extract.h2o$depth_cm))
 lm.C4 <- c(summary(extractlm.C4)$coefficients[1:2], summary(extractlm.C4)$r.squared)
 # C5
-extractlm.C5 <- lm(as.numeric(extract.h2o$C5) ~ as.numeric(extract.h2o$depth_cm))
+extractlm.C5 <- lm(as.numeric(extract.h2o$C5.x.1) ~ as.numeric(extract.h2o$depth_cm))
 lm.C5 <- c(summary(extractlm.C5)$coefficients[1:2], summary(extractlm.C5)$r.squared)
 # abs254
 extractlm.abs254 <- lm(as.numeric(extract.h2o$abs254) ~ as.numeric(extract.h2o$depth_cm))
@@ -1998,11 +2252,11 @@ mean.dh2o <- ddply(extract.h2o,~depth_cm,summarise,
       mean.TN=mean(TN_mgL),sd.TN=sd(TN_mgL),
       mean.perprotein=mean(perprotein),sd.perprotein=sd(perprotein),
       mean.redox=mean(redox),sd.redox=sd(redox),
-      mean.C1 = mean(C1),sd.C1 = sd(C1),
-      mean.C2 = mean(C2),sd.C2 = sd(C2),
-      mean.C3 = mean(C3),sd.C3 = sd(C3),
-      mean.C4 = mean(C4),sd.C4 = sd(C4),
-      mean.C5 = mean(C5),sd.C5 = sd(C5),
+      mean.C1 = mean(C1.x.1),sd.C1 = sd(C1.x.1),
+      mean.C2 = mean(C2.x.1),sd.C2 = sd(C2.x.1),
+      mean.C3 = mean(C3.x.1),sd.C3 = sd(C3.x.1),
+      mean.C4 = mean(C4.x.1),sd.C4 = sd(C4.x.1),
+      mean.C5 = mean(C5.x.1),sd.C5 = sd(C5.x.1),
       mean.abs254=mean(abs254),sd.abs254=sd(abs254),
       mean.SUVA=mean(SUVA),sd.SUVA=sd(SUVA),
       mean.abs272=mean(abs272),sd.abs272=sd(abs272),
@@ -2033,12 +2287,12 @@ mean.kcl <- ddply(extract.kcl,~depth_cm,summarise,
                    mean.TN=mean(TN_mgL),sd.TN=sd(TN_mgL),
                    mean.perprotein=mean(perprotein),sd.perprotein=sd(perprotein),
                    mean.redox=mean(redox),sd.redox=sd(redox),
-                   mean.C1 = mean(C1),sd.C1 = sd(C1),
-                   mean.C2 = mean(C2),sd.C2 = sd(C2),
-                   mean.C3 = mean(C3),sd.C3 = sd(C3),
-                   mean.C4 = mean(C4),sd.C4 = sd(C4),
-                   mean.C5 = mean(C5),sd.C5 = sd(C5),
-                   mean.abs254=mean(abs254),sd.abs254=sd(abs254),
+                  mean.C1 = mean(C1.x.1),sd.C1 = sd(C1.x.1),
+                  mean.C2 = mean(C2.x.1),sd.C2 = sd(C2.x.1),
+                  mean.C3 = mean(C3.x.1),sd.C3 = sd(C3.x.1),
+                  mean.C4 = mean(C4.x.1),sd.C4 = sd(C4.x.1),
+                  mean.C5 = mean(C5.x.1),sd.C5 = sd(C5.x.1),
+                  mean.abs254=mean(abs254),sd.abs254=sd(abs254),
                    mean.SUVA=mean(SUVA),sd.SUVA=sd(SUVA),
                    mean.abs272=mean(abs272),sd.abs272=sd(abs272),
                    mean.e2e3=mean(e2e3),sd.e2e3=sd(e2e3), mean.e4e6=mean(e4e6),sd.e4e6=sd(e4e6),
@@ -2068,11 +2322,11 @@ mean.k2s04 <- ddply(extract.k2so4,~depth_cm,summarise,
                    mean.TN=mean(TN_mgL),sd.TN=sd(TN_mgL),
                    mean.perprotein=mean(perprotein),sd.perprotein=sd(perprotein),
                    mean.redox=mean(redox),sd.redox=sd(redox),
-                   mean.C1 = mean(C1),sd.C1 = sd(C1),
-                   mean.C2 = mean(C2),sd.C2 = sd(C2),
-                   mean.C3 = mean(C3),sd.C3 = sd(C3),
-                   mean.C4 = mean(C4),sd.C4 = sd(C4),
-                   mean.C5 = mean(C5),sd.C5 = sd(C5),
+                   mean.C1 = mean(C1.x.1),sd.C1 = sd(C1.x.1),
+                   mean.C2 = mean(C2.x.1),sd.C2 = sd(C2.x.1),
+                   mean.C3 = mean(C3.x.1),sd.C3 = sd(C3.x.1),
+                   mean.C4 = mean(C4.x.1),sd.C4 = sd(C4.x.1),
+                   mean.C5 = mean(C5.x.1),sd.C5 = sd(C5.x.1),
                    mean.abs254=mean(abs254),sd.abs254=sd(abs254),
                    mean.SUVA=mean(SUVA),sd.SUVA=sd(SUVA),
                    mean.abs272=mean(abs272),sd.abs272=sd(abs272),
@@ -2105,23 +2359,27 @@ mean.all <-rbind(mean.dh2o, mean.kcl, mean.k2s04)
 extract.DOCplot <- ggplot(subset(mean.all, mean.all$variable == "mean.DOC"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("[DOC] (mg/L)"))) +
-  labs(title="Soil Extracts - [DOC] versus Depth") + 
+  labs(x = expression("Depth (cm)"),  
+       y = expression("[DOC]"~(mg~L^{-1}))) +
+  labs(title="") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.DOC")$value - subset(mean.all, mean.all$variable == "sd.DOC")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.DOC")$value + subset(mean.all, mean.all$variable == "sd.DOC")$value,
-                    position = "dodge", width=0.2))
+                    position = "dodge", width=0.2)) 
+
 extract.TNplot <- ggplot(subset(mean.all, mean.all$variable == "mean.TN"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("[TN] (mg/L)"))) +
+  labs(x = expression("Depth (cm)"),  
+       y = expression("[TN]"~(mg~L^{-1}))) +
   labs(title="Soil Extracts - [TN] versus Depth") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.TN")$value - subset(mean.all, mean.all$variable == "sd.TN")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.TN")$value + subset(mean.all, mean.all$variable == "sd.TN")$value,
                     position = "dodge", width=0.2))
+
 extract.perproteinplot <- ggplot(subset(mean.all, mean.all$variable == "mean.perprotein"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("perprotein (%)"))) +
+  labs(x="Depth (cm)", y=expression(paste("Percent Protein (%)"))) +
   labs(title="Soil Extracts - perprotein versus Depth") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.perprotein")$value - subset(mean.all, mean.all$variable == "sd.perprotein")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.perprotein")$value + subset(mean.all, mean.all$variable == "sd.perprotein")$value,
@@ -2137,16 +2395,16 @@ extract.redox <- ggplot(subset(mean.all, mean.all$variable == "mean.redox"), aes
 extract.C1 <- ggplot(subset(mean.all, mean.all$variable == "mean.C1"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("C1 (A.U)"))) +
-  labs(title="Soil Extracts - C1 versus Depth") + 
+  labs(x="Depth (cm)", y=expression(paste("C1 (%)"))) +
+  labs(title="") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.C1")$value - subset(mean.all, mean.all$variable == "sd.C1")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.C1")$value + subset(mean.all, mean.all$variable == "sd.C1")$value,
                     position = "dodge", width=0.2))
 extract.C2 <- ggplot(subset(mean.all, mean.all$variable == "mean.C2"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("C2 (A.U)"))) +
-  labs(title="Soil Extracts - C2 versus Depth") + 
+  labs(x="Depth (cm)", y=expression(paste("C2 (%)"))) +
+  labs(title="") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.C2")$value - subset(mean.all, mean.all$variable == "sd.C2")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.C2")$value + subset(mean.all, mean.all$variable == "sd.C2")$value,
                     position = "dodge", width=0.2))
@@ -2154,38 +2412,40 @@ extract.C3 <- ggplot(subset(mean.all, mean.all$variable == "mean.C3"), aes(x = a
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
   labs(x="Depth (cm)", y=expression(paste("C3 (A.U)"))) +
-  labs(title="Soil Extracts - C3 versus Depth") + 
+  labs(title="") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.C3")$value - subset(mean.all, mean.all$variable == "sd.C3")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.C3")$value + subset(mean.all, mean.all$variable == "sd.C3")$value,
                     position = "dodge", width=0.2))
 extract.C4 <- ggplot(subset(mean.all, mean.all$variable == "mean.C4"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("C4 (A.U)"))) +
-  labs(title="Soil Extracts - C4 versus Depth") + 
+  labs(x="Depth (cm)", y=expression(paste("C4 (%)"))) +
+  labs(title="") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.C4")$value - subset(mean.all, mean.all$variable == "sd.C4")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.C4")$value + subset(mean.all, mean.all$variable == "sd.C4")$value,
                     position = "dodge", width=0.2))
 extract.C5 <- ggplot(subset(mean.all, mean.all$variable == "mean.C5"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("C5 (A.U)"))) +
-  labs(title="Soil Extracts - C5 versus Depth") + 
+  labs(x="Depth (cm)", y=expression(paste("C5 (%)"))) +
+  labs(title="") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.C5")$value - subset(mean.all, mean.all$variable == "sd.C5")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.C5")$value + subset(mean.all, mean.all$variable == "sd.C5")$value,
                     position = "dodge", width=0.2))
 extract.abs254 <- ggplot(subset(mean.all, mean.all$variable == "mean.abs254"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("abs254 (A.U)"))) +
-  labs(title="Soil Extracts - abs254 versus Depth") + 
+  labs(x = expression("Depth (cm)"),  
+       y = expression(abs[254]~(m^{-1}))) +
+  labs(title="") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.abs254")$value - subset(mean.all, mean.all$variable == "sd.abs254")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.abs254")$value + subset(mean.all, mean.all$variable == "sd.abs254")$value,
                     position = "dodge", width=0.2))
+
 extract.SUVA<- ggplot(subset(mean.all, mean.all$variable == "mean.SUVA"), aes(x = as.numeric(depth_cm), y = as.numeric(value), colour = extract, shape=extract)) + 
   geom_point() +    
   geom_smooth(method="lm", se = FALSE) +
-  labs(x="Depth (cm)", y=expression(paste("SUVA (A.U)"))) +
+  labs(x="Depth (cm)", y=expression(SUVA[254]~(L~mg^{-1}~m^{-1}))) +
   labs(title="Soil Extracts - SUVA versus Depth") + 
   geom_errorbar(aes(ymin = subset(mean.all, mean.all$variable == "mean.SUVA")$value - subset(mean.all, mean.all$variable == "sd.SUVA")$value, 
                     ymax = subset(mean.all, mean.all$variable == "mean.SUVA")$value + subset(mean.all, mean.all$variable == "sd.SUVA")$value,
@@ -2349,46 +2609,57 @@ lys.all$SUVA <- lys.all$abs254/lys.all$NPOC
 CRLys.box.DOC <- ggplot(lys.all, aes(x=depth_cm, y=NPOC, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +        #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
-  ggtitle(expression('CR Lysimeter - DOC Trends')) +
-  ylab(expression('[DOC] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ggtitle(expression('')) +
+  labs(x = expression("Depth (cm)"),  
+       y = expression("[DOC]"~(mg~L^{-1}))) 
 
 CRLys.box.TN <- ggplot(lys.all, aes(x=depth_cm, y=TN, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - TN Trends')) +
-  ylab(expression('[TN] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  labs(x = expression("Depth (cm)"),  
+       y = expression("[TN]"~(mg~L^{-1}))) +
+  coord_cartesian(ylim = c(0, 2)) 
+
 CRLys.box.Cl <- ggplot(lys.all, aes(x=depth_cm, y=cl...mg.L., group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - Cl Trends')) +
-  ylab(expression('[Cl] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  labs(x = expression("Depth (cm)"),  
+       y = expression("[Cl]"~(mg~L^{-1})))+
+  coord_cartesian(ylim = c(0, 3)) 
+
 CRLys.box.no3 <- ggplot(lys.all, aes(x=depth_cm, y=no3.mgL, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - NO3 Trends')) +
-  ylab(expression('[NO3] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  labs(x = expression("Depth (cm)"),  
+       y = expression("[NO]"[3]~(mg~L^{-1})))+
+  coord_cartesian(ylim = c(0, 1)) 
+
 CRLys.box.so4 <- ggplot(lys.all, aes(x=depth_cm, y=so4.mg.L, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - SO4 Trends')) +
-  ylab(expression('[SO4] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  labs(x = expression("Depth (cm)"),  
+       y = expression("[SO]"[4]~(mg~L^{-1})))+
+  coord_cartesian(ylim = c(0, 1)) 
+
 CRLys.box.abs254 <- ggplot(lys.all, aes(x=depth_cm, y=abs254, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
-  ggtitle(expression('CR Lysimeter - abs254 Trends')) +
-  ylab(expression('[abs254] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ggtitle(expression('')) +
+  labs(x = expression("Depth (cm)"),  
+       y = expression("abs"[254]~(m^{-1})))+
+  coord_cartesian(ylim = c(0, 40)) 
+
 CRLys.box.SUVA <- ggplot(lys.all, aes(x=depth_cm, y=SUVA, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - SUVA Trends')) +
-  ylab(expression('[SUVA]254 ')) +
-  xlab(expression('Lysimeter Location'))
+  labs(x = expression("Depth (cm)"),  
+       y = expression("SUVA"[254]~(L~mg^{-1}~m^{-1})))
+
 CRLys.box.abs272 <- ggplot(lys.all, aes(x=depth_cm, y=abs272, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
@@ -2411,98 +2682,110 @@ CRLys.box.SR <- ggplot(lys.all, aes(x=depth_cm, y=SR, group = depth_cm, fill = L
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - SR Trends')) +
-  ylab(expression('[SR] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('SR (A.U)')) +
+  xlab(expression('Depth (cm)'))+
+  coord_cartesian(ylim = c(0.7, 1)) 
+
 CRLys.box.FI <- ggplot(lys.all, aes(x=depth_cm, y=FI, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - FI Trends')) +
-  ylab(expression('[FI] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('FI (A.U)')) +
+  xlab(expression('Depth (cm)'))
+
 CRLys.box.HIX_ohno_area <- ggplot(lys.all, aes(x=depth_cm, y=HIX_ohno_area, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - HIX_ohno_area Trends')) +
-  ylab(expression('[HIX_ohno_area] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('HIX (A.U)')) +
+  xlab(expression('Depth (cm)'))
+
 CRLys.box.FrI <- ggplot(lys.all, aes(x=depth_cm, y=FrI, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - FrI Trends')) +
-  ylab(expression('[FrI] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('FrI (A.U))')) +
+  xlab(expression('Depth (cm)'))
+
 CRLys.box.peakA <- ggplot(lys.all, aes(x=depth_cm, y=peakA, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - peakA Trends')) +
-  ylab(expression('[peakA] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('PeakA (A.U)')) +
+  xlab(expression('Depth (cm)'))
+
 CRLys.box.peakC <- ggplot(lys.all, aes(x=depth_cm, y=peakC, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - peakC Trends')) +
-  ylab(expression('[peakC] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('PeakC (A.U)')) +
+  xlab(expression('Depth (cm)'))
+
 CRLys.box.peakB <- ggplot(lys.all, aes(x=depth_cm, y=peakB, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - peakB Trends')) +
-  ylab(expression('[peakB] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('PeakB (A.U)')) +
+  xlab(expression('Depth (cm)'))
 CRLys.box.peakT <- ggplot(lys.all, aes(x=depth_cm, y=peakT, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - peakT Trends')) +
   ylab(expression('[peakT] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  xlab(expression('Depth (cm)'))
 CRLys.box.OFI <- ggplot(lys.all, aes(x=depth_cm, y=OFI, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - OFI Trends')) +
   ylab(expression('[OFI] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  xlab(expression('Depth (cm)'))
 CRLys.box.perprotein <- ggplot(lys.all, aes(x=depth_cm, y=perprotein, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - perprotein Trends')) +
-  ylab(expression('[perprotein] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
+  ylab(expression('Percent Protein (%)')) +
+  xlab(expression('Depth (cm)'))
+
 CRLys.box.redox <- ggplot(lys.all, aes(x=depth_cm, y=redox, group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
   ggtitle(expression('CR Lysimeter - redox Trends')) +
-  ylab(expression('[redox] (mg/L)')) +
-  xlab(expression('Lysimeter Location'))
-CRLys.box.C1 <- ggplot(lys.all, aes(x=depth_cm, y=C1, group = depth_cm, fill = Location)) + 
+  ylab(expression('Redox Index (A.U)')) +
+  xlab(expression('Depth (cm)'))
+
+CRLys.box.C1 <- ggplot(lys.all, aes(x=depth_cm, y=lys.all[,78], group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
-  ggtitle(expression('CR Lysimeter - C1 Trends')) +
-  ylab(expression('[C1] (%)')) +
-  xlab(expression('Lysimeter Location'))
-CRLys.box.C2 <- ggplot(lys.all, aes(x=depth_cm, y=C2, group = depth_cm, fill = Location)) + 
+  ggtitle(expression('')) +
+  ylab(expression('C1 (%)')) +
+  xlab(expression('Depth (cm)')) +
+  coord_cartesian(ylim = c(0, 0.25)) 
+
+CRLys.box.C2 <- ggplot(lys.all, aes(x=depth_cm, y=lys.all[,79], group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
-  ggtitle(expression('CR Lysimeter - C2 Trends')) +
-  ylab(expression('[C2] (%)')) +
-  xlab(expression('Lysimeter Location'))
-CRLys.box.C3 <- ggplot(lys.all, aes(x=depth_cm, y=C3, group = depth_cm, fill = Location)) + 
+  ggtitle(expression('')) +
+  ylab(expression('C2 (%)')) +
+  xlab(expression('Depth (cm)'))
+CRLys.box.C3 <- ggplot(lys.all, aes(x=depth_cm, y=lys.all[,80], group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
-  ggtitle(expression('CR Lysimeter - C3 Trends')) +
-  ylab(expression('[C3] (%)')) +
-  xlab(expression('Lysimeter Location'))
-CRLys.box.C4 <- ggplot(lys.all, aes(x=depth_cm, y=C4, group = depth_cm, fill = Location)) + 
+  ggtitle(expression('')) +
+  ylab(expression('C3 (%)')) +
+  xlab(expression('Depth (cm)'))
+CRLys.box.C4 <- ggplot(lys.all, aes(x=depth_cm, y=lys.all[,81], group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
-  ggtitle(expression('CR Lysimeter - C4 Trends')) +
-  ylab(expression('[C4] (%)')) +
-  xlab(expression('Lysimeter Location'))
-CRLys.box.C5 <- ggplot(lys.all, aes(x=depth_cm, y=C5, group = depth_cm, fill = Location)) + 
+  ggtitle(expression('')) +
+  ylab(expression('C4 (%)')) +
+  xlab(expression('Depth (cm)')) + coord_cartesian(ylim = c(0, 40)) 
+
+CRLys.box.C5 <- ggplot(lys.all, aes(x=depth_cm, y=lys.all[,82], group = depth_cm, fill = Location)) + 
   geom_boxplot(outlier.shape = NA)  +          #remove extreme values
   scale_fill_manual(values=c(cbPalette)[4:5]) +       # change colour to colour blind
-  ggtitle(expression('CR Lysimeter - C5 Trends')) +
-  ylab(expression('[C5] (%)')) +
-  xlab(expression('Lysimeter Location'))
+  ggtitle(expression('')) +
+  ylab(expression('C5 (%)')) +
+  xlab(expression('Depth (cm)'))
 # save the figures - DOC, abs254 and the C1-C5
 pdf(file=paste0(fig.dir,"/CRFigures_SoilLys.pdf"), width = 8.5, height = 11) #save figure
 grid.arrange(CRLys.box.DOC, CRLys.box.abs254, CRLys.box.C1, CRLys.box.C2, CRLys.box.C3, CRLys.box.C4, CRLys.box.C5, ncol = 2)
@@ -2575,8 +2858,9 @@ stream.dischsub <- subset(abs.Q, date > "2013-07-01" & date < "2014-07-01")
 CR.grab.sub <- subset(CR.grab, date > "2013-07-01" & date < "2014-07-01")
 
 # plot discharge for the year
-time.disc <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, Q.L.s)) + geom_point(size = 0.4) +
-  xlab("Date") + ylab("Q (L/s)") + theme()
+time.disc <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, Q.L.s/1000)) + geom_point(size = 0.4) +
+  xlab("Date") + ylab("Q (L/s)") + 
+  theme()
 
 # plot DOC for the year
 time.DOC <- ggplot(subset(stream.dischsub, stream.dischsub$DOCcorr >=2), aes(date, DOCcorr)) + 
