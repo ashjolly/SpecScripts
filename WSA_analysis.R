@@ -1350,11 +1350,11 @@ shadesOfGrey <- colorRampPalette(c("grey90", "grey20"))(n = 299)
 #fiftyGreys <- shadesOfGrey(50)
 
 # redo figure 3 - bargraph of number of submissions
-png(paste(directory, "WSA_number of submissions_noind_grey.png", sep = ""),         # create PNG for the heat map        
+png(paste(directory, "WSA_number of submissions_noind_grey8.png", sep = ""),         # create PNG for the heat map        
     width = 20*300,        # 5 x 300 pixels
     height = 10*300,
     res = 600,            # 300 pixels per inch
-    pointsize = 6)        # smaller font size
+    pointsize = 8)        # smaller font size
 
 par(mar = c(14,5,4,2) + 1) # increase magins, especialy x axis margins
 par(oma=c(0,0,0,0) )
